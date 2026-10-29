@@ -1,0 +1,464 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.handschuh.dev/llm/response/v1",
+  "title": "LLM Response v1",
+  "description": "A closed provider-agnostic terminal response envelope for one bounded language-model completion. Failed provider invocations and successful provider roundtrips are counted separately, and diagnostics remain bounded and sanitized.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "status",
+    "output",
+    "failedAttempts",
+    "iterations",
+    "errors"
+  ],
+  "properties": {
+    "schema": {
+      "const": "https://schemas.handschuh.dev/llm/response/v1",
+      "description": "The versioned identifier for this normalized LLM response contract.",
+      "examples": [
+        "https://schemas.handschuh.dev/llm/response/v1"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "input_invalid",
+        "configuration_error",
+        "provider_error",
+        "output_invalid",
+        "attempts_exhausted"
+      ],
+      "description": "Terminal outcome of request validation, provider execution, output validation, or bounded retry processing.",
+      "examples": [
+        "success",
+        "output_invalid",
+        "attempts_exhausted"
+      ]
+    },
+    "output": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/StructuredOutput",
+          "description": "Validated structured output returned after applying outputSchema.",
+          "examples": [
+            {
+              "$type": "object",
+              "schema": {
+                "name": "https://schemas.handschuh.dev/example/assessment-output/v1"
+              },
+              "value": {
+                "decision": "accepted",
+                "confidence": 0.94,
+                "findings": []
+              }
+            }
+          ]
+        },
+        {
+          "$ref": "#/$defs/RawOutput",
+          "description": "Unstructured text output returned when outputSchema was not configured.",
+          "examples": [
+            {
+              "$type": "string",
+              "schema": null,
+              "value": "The work item is ready for decomposition."
+            }
+          ]
+        },
+        {
+          "type": "null",
+          "description": "No output is available because request, configuration, provider, or bounded-attempt processing terminated before a usable completion was returned.",
+          "examples": [
+            null
+          ]
+        }
+      ],
+      "description": "Typed completion output on success, raw text when no output schema was configured, or null for terminal failures.",
+      "examples": [
+        {
+          "$type": "object",
+          "schema": {
+            "name": "https://schemas.handschuh.dev/example/assessment-output/v1"
+          },
+          "value": {
+            "decision": "accepted",
+            "confidence": 0.94,
+            "findings": []
+          }
+        },
+        {
+          "$type": "string",
+          "schema": null,
+          "value": "The work item is ready for decomposition."
+        },
+        null
+      ]
+    },
+    "failedAttempts": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Count of provider invocations that failed before returning a usable provider response. Provider failures increment this counter without incrementing iterations; pre-provider failures leave both counters at zero.",
+      "examples": [
+        0,
+        1,
+        3
+      ]
+    },
+    "iterations": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Count of successful provider roundtrips, including responses later rejected by output-schema validation and correction responses. This value does not repeat the request's maxIterations limit.",
+      "examples": [
+        0,
+        1,
+        3
+      ]
+    },
+    "errors": {
+      "type": "array",
+      "maxItems": 10,
+      "description": "Bounded sanitized diagnostics. Entries exclude credentials, authorization headers, unbounded prompts, raw provider responses, and other secret or unbounded content.",
+      "items": {
+        "$ref": "#/$defs/Error",
+        "description": "One bounded sanitized error diagnostic.",
+        "examples": [
+          {
+            "code": "OUTPUT_SCHEMA_VALIDATION_FAILED",
+            "message": "Provider output did not satisfy the configured output schema.",
+            "phase": "output-validation"
+          }
+        ]
+      },
+      "examples": [
+        [],
+        [
+          {
+            "code": "PROVIDER_REQUEST_FAILED",
+            "message": "The provider request failed before a usable response was returned.",
+            "phase": "provider"
+          }
+        ]
+      ]
+    }
+  },
+  "$defs": {
+    "SchemaMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Identity metadata for the output schema used to validate structured output.",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Configured output schema name or identifier.",
+          "examples": [
+            "https://schemas.handschuh.dev/example/assessment-output/v1",
+            "sdlc/schemas/sdlc-task-review/v1/sdlc-task-review.schema.json"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*(?:^|/)\\.env(?:\\..*)?(?:/|$)).+$",
+          "description": "Optional repository-relative path from which the configured output schema was resolved.",
+          "examples": [
+            "sdlc/schemas/sdlc-task-review/v1/sdlc-task-review.schema.json"
+          ]
+        }
+      },
+      "examples": [
+        {
+          "name": "https://schemas.handschuh.dev/example/assessment-output/v1"
+        },
+        {
+          "name": "sdlc-task-review",
+          "path": "sdlc/schemas/sdlc-task-review/v1/sdlc-task-review.schema.json"
+        }
+      ]
+    },
+    "StructuredOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Validated structured completion output produced when an output schema is configured.",
+      "required": [
+        "schema",
+        "value"
+      ],
+      "dependentRequired": {
+        "schema": [
+          "$type"
+        ]
+      },
+      "properties": {
+        "schema": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$",
+              "description": "Absolute schema URI identifying the configured output schema.",
+              "examples": [
+                "https://schemas.handschuh.dev/example/assessment-output/v1"
+              ]
+            },
+            {
+              "$ref": "#/$defs/SchemaMetadata",
+              "description": "Schema identity and optional source path used to validate value.",
+              "examples": [
+                {
+                  "name": "https://schemas.handschuh.dev/example/assessment-output/v1"
+                }
+              ]
+            }
+          ],
+          "description": "Configured schema identity and optional source path used to validate value.",
+          "examples": [
+            "https://schemas.handschuh.dev/example/assessment-output/v1"
+          ]
+        },
+        "value": {
+          "description": "Parsed JSON value that passed validation against the configured output schema.",
+          "examples": [
+            {
+              "decision": "accepted",
+              "confidence": 0.94,
+              "findings": []
+            },
+            [
+              "finding-001",
+              "finding-002"
+            ]
+          ]
+        }
+      },
+      "patternProperties": {
+        "^\\$type$": {
+          "type": "string",
+          "enum": [
+            "object",
+            "array",
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "null"
+          ],
+          "description": "Effective JSON type of the parsed structured output value.",
+          "examples": [
+            "object",
+            "array"
+          ]
+        }
+      },
+      "examples": [
+        {
+          "$type": "object",
+          "schema": {
+            "name": "https://schemas.handschuh.dev/example/assessment-output/v1"
+          },
+          "value": {
+            "decision": "accepted",
+            "confidence": 0.94,
+            "findings": []
+          }
+        }
+      ]
+    },
+    "RawOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Unstructured text completion output produced when no output schema is configured.",
+      "required": [
+        "schema",
+        "value"
+      ],
+      "dependentRequired": {
+        "schema": [
+          "$type"
+        ]
+      },
+      "properties": {
+        "schema": {
+          "oneOf": [
+            {
+              "type": "null",
+              "description": "Null because no output schema was configured for raw text output.",
+              "examples": [
+                null
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$",
+              "description": "Absolute schema URI retained as metadata for the raw response.",
+              "examples": [
+                "https://schemas.handschuh.dev/example/assessment-output/v1"
+              ]
+            }
+          ],
+          "description": "Null because no output schema was configured for raw text output, or an absolute schema URI retained as metadata.",
+          "examples": [
+            "https://schemas.handschuh.dev/example/assessment-output/v1"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Raw provider response text returned without JSON parsing or structured-output validation.",
+          "examples": [
+            "The work item is ready for decomposition."
+          ]
+        }
+      },
+      "patternProperties": {
+        "^\\$type$": {
+          "const": "string",
+          "description": "Fixed effective JSON type for raw text output.",
+          "examples": [
+            "string"
+          ]
+        }
+      },
+      "examples": [
+        {
+          "$type": "string",
+          "schema": null,
+          "value": "The work item is ready for decomposition."
+        }
+      ]
+    },
+    "Error": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One bounded and sanitized diagnostic describing a terminal or recoverable completion failure.",
+      "required": [
+        "code",
+        "message",
+        "phase"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "REQUEST_INVALID",
+            "TASK_SCHEMA_VALIDATION_FAILED",
+            "SOURCE_RESOLUTION_FAILED",
+            "CONFIGURATION_INVALID",
+            "PROVIDER_REQUEST_FAILED",
+            "OUTPUT_JSON_INVALID",
+            "OUTPUT_SCHEMA_VALIDATION_FAILED",
+            "ATTEMPTS_EXHAUSTED",
+            "OUTPUT_INVALID"
+          ],
+          "description": "Stable sanitized error classification used by callers without exposing provider internals or secrets.",
+          "examples": [
+            "OUTPUT_SCHEMA_VALIDATION_FAILED",
+            "PROVIDER_REQUEST_FAILED"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Bounded human-readable explanation that excludes credentials, authorization headers, raw provider output, and unbounded prompt content.",
+          "examples": [
+            "Provider output did not satisfy the configured output schema.",
+            "The provider request failed before a usable response was returned."
+          ]
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "request",
+            "configuration",
+            "source-resolution",
+            "provider",
+            "output-parsing",
+            "output-validation",
+            "retry"
+          ],
+          "description": "Bounded processing phase in which the diagnostic was produced.",
+          "examples": [
+            "provider",
+            "output-validation"
+          ]
+        }
+      },
+      "examples": [
+        {
+          "code": "OUTPUT_SCHEMA_VALIDATION_FAILED",
+          "message": "Provider output did not satisfy the configured output schema.",
+          "phase": "output-validation"
+        }
+      ]
+    }
+  },
+  "examples": [
+    {
+      "schema": "https://schemas.handschuh.dev/llm/response/v1",
+      "status": "success",
+      "output": {
+        "$type": "object",
+        "schema": {
+          "name": "https://schemas.handschuh.dev/example/assessment-output/v1"
+        },
+        "value": {
+          "decision": "accepted",
+          "confidence": 0.94,
+          "findings": [
+            "Provider failures and output-correction iterations are counted separately."
+          ]
+        }
+      },
+      "failedAttempts": 0,
+      "iterations": 1,
+      "errors": []
+    },
+    {
+      "schema": "https://schemas.handschuh.dev/llm/response/v1",
+      "status": "provider_error",
+      "output": null,
+      "failedAttempts": 1,
+      "iterations": 0,
+      "errors": [
+        {
+          "code": "PROVIDER_REQUEST_FAILED",
+          "message": "The provider request failed before a usable response was returned.",
+          "phase": "provider"
+        }
+      ]
+    },
+    {
+      "schema": "https://schemas.handschuh.dev/llm/response/v1",
+      "status": "output_invalid",
+      "output": null,
+      "failedAttempts": 0,
+      "iterations": 3,
+      "errors": [
+        {
+          "code": "OUTPUT_SCHEMA_VALIDATION_FAILED",
+          "message": "Provider output did not satisfy the configured output schema.",
+          "phase": "output-validation"
+        }
+      ]
+    },
+    {
+      "schema": "https://schemas.handschuh.dev/llm/response/v1",
+      "status": "success",
+      "output": {
+        "$type": "string",
+        "schema": null,
+        "value": "The work item is ready for decomposition."
+      },
+      "failedAttempts": 0,
+      "iterations": 1,
+      "errors": []
+    }
+  ]
+}

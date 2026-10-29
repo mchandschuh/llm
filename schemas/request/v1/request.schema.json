@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.handschuh.dev/llm/request/v1",
+  "title": "LLM Request v1",
+  "description": "A closed provider-agnostic request configuration for one bounded language-model completion. Source-bearing values may be literal strings or repository-approved file references resolved by the runtime; credentials, when supplied, remain in memory and are never persisted, logged, prompted, or returned.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "task",
+    "systemPrompt"
+  ],
+  "properties": {
+    "schema": {
+      "const": "https://schemas.handschuh.dev/llm/request/v1",
+      "description": "The versioned identifier for this normalized LLM request contract.",
+      "examples": [
+        "https://schemas.handschuh.dev/llm/request/v1"
+      ]
+    },
+    "provider": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9._-]*$",
+      "default": "openrouter",
+      "description": "Provider adapter identity. The runtime defaults this field to openrouter when it is omitted.",
+      "examples": [
+        "openrouter",
+        "anthropic"
+      ]
+    },
+    "model": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$",
+      "default": "openai/gpt-5.6-luna",
+      "description": "Provider-specific model identifier. The runtime defaults this field to openai/gpt-5.6-luna when it is omitted.",
+      "examples": [
+        "openai/gpt-5.6-luna",
+        "anthropic/claude-sonnet-4"
+      ]
+    },
+    "thinking": {
+      "type": "string",
+      "enum": [
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "default": "high",
+      "description": "Provider-independent reasoning effort. Adapters translate this value into provider-specific settings; the runtime defaults it to high.",
+      "examples": [
+        "high",
+        "xhigh"
+      ]
+    },
+    "maxFailedAttempts": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "default": 3,
+      "description": "Maximum number of provider invocations that fail before returning a provider or exhausted-attempts result. The runtime defaults this field to 3.",
+      "examples": [
+        0,
+        3,
+        10
+      ]
+    },
+    "maxIterations": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 3,
+      "description": "Maximum number of successful provider roundtrips, including correction requests after schema-invalid output. The runtime defaults this field to 3.",
+      "examples": [
+        1,
+        3,
+        10
+      ]
+    },
+    "credentials": {
+      "$ref": "#/$defs/Credentials",
+      "description": "Optional in-memory provider credentials. The provider adapter may fall back to provider-specific environment variables when this field is omitted; implementations must not persist, log, prompt, or return these values.",
+      "examples": [
+        {
+          "apiKey": "in-memory-example-key"
+        }
+      ]
+    },
+    "task": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Task data supplied to the model as a literal string or as a repository-approved file reference. When taskSchema is configured, the resolved content must be JSON and must validate against that schema before provider invocation.",
+      "examples": [
+        "{\"workItemId\":\"WI-0002\",\"operation\":\"assess-readiness\"}",
+        ".docs/work-items/WI-0002/work-item.json"
+      ]
+    },
+    "systemPrompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "System-level instructions passed separately to the provider rather than embedded in the composed llmPrompt XML. This value may be literal content or a repository-approved file reference.",
+      "examples": [
+        "You are an SDLC assessment agent. Return only JSON that conforms to outputSchema.",
+        ".sdlc/prompts/assessment-system.txt"
+      ]
+    },
+    "taskSchema": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional task-data JSON Schema supplied as literal content or as a repository-approved file reference. When configured, the resolved task must parse as JSON and validate against it before provider invocation.",
+      "examples": [
+        "https://schemas.handschuh.dev/example/assessment-input/v1"
+      ]
+    },
+    "files": {
+      "type": "array",
+      "uniqueItems": true,
+      "description": "Ordered repository-approved reference files included in the composed llmPrompt. Declaration order is preserved, and each entry supplies the metadata used to label its CDATA body.",
+      "items": {
+        "$ref": "#/$defs/ReferenceFile",
+        "description": "One ordered reference-file declaration included in the composed prompt.",
+        "examples": [
+          {
+            "name": "assessment-process",
+            "path": ".docs/sdlc/work-item-assessment-process.md",
+            "type": "guidance",
+            "purpose": "Define assessment evidence and provider-fallback boundaries."
+          }
+        ]
+      },
+      "examples": [
+        [],
+        [
+          {
+            "name": "assessment-process",
+            "path": ".docs/sdlc/work-item-assessment-process.md",
+            "type": "guidance",
+            "purpose": "Define assessment evidence and provider-fallback boundaries."
+          }
+        ]
+      ]
+    },
+    "outputSchema": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional required-response JSON Schema supplied as literal content or as a repository-approved file reference. When configured, provider output must be JSON and must validate against the resolved schema before a successful response is returned.",
+      "examples": [
+        "https://schemas.handschuh.dev/example/assessment-output/v1"
+      ]
+    }
+  },
+  "$defs": {
+    "Credentials": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "In-memory provider credential material accepted at the request boundary. The object intentionally permits only generic adapter inputs and must never be persisted, logged, placed in prompts, or returned.",
+      "required": [],
+      "properties": {
+        "apiKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Provider API key held in memory for the duration of the request; it is redacted from diagnostics and excluded from all durable artifacts.",
+          "examples": [
+            "in-memory-example-key"
+          ]
+        },
+        "accessToken": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Provider access token held in memory for the duration of the request; it is redacted from diagnostics and excluded from all durable artifacts.",
+          "examples": [
+            "in-memory-example-token"
+          ]
+        }
+      },
+      "examples": [
+        {},
+        {
+          "apiKey": "in-memory-example-key"
+        }
+      ]
+    },
+    "ReferenceFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Metadata for one ordered regular UTF-8 reference file resolved through the runtime's mediated read boundary.",
+      "required": [
+        "name",
+        "path",
+        "type",
+        "purpose"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "description": "Stable prompt-local label for the reference file.",
+          "examples": [
+            "assessment-process",
+            "work-item"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*(?:^|/)\\.env(?:\\..*)?(?:/|$)).+$",
+          "description": "Repository-relative regular-file path resolved by the mediated source boundary; absolute paths, traversal, and environment-file names are rejected by the runtime.",
+          "examples": [
+            ".docs/sdlc/work-item-assessment-process.md",
+            "sdlc/schemas/work-item/v2/work-item.schema.json"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+          "description": "Lower-kebab-case semantic category used to label the reference body in the composed prompt.",
+          "examples": [
+            "guidance",
+            "schema",
+            "source-data"
+          ]
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable reason this file is supplied to the model.",
+          "examples": [
+            "Define assessment evidence and provider-fallback boundaries."
+          ]
+        }
+      },
+      "examples": [
+        {
+          "name": "assessment-process",
+          "path": ".docs/sdlc/work-item-assessment-process.md",
+          "type": "guidance",
+          "purpose": "Define assessment evidence and provider-fallback boundaries."
+        }
+      ]
+    }
+  },
+  "examples": [
+    {
+      "schema": "https://schemas.handschuh.dev/llm/request/v1",
+      "provider": "openrouter",
+      "model": "openai/gpt-5.6-luna",
+      "thinking": "high",
+      "maxFailedAttempts": 3,
+      "maxIterations": 3,
+      "task": "{\"workItemId\":\"WI-0002\",\"operation\":\"assess-readiness\",\"scope\":[\"provider-boundary\",\"retry-semantics\",\"structured-output\"]}",
+      "systemPrompt": "You are an SDLC assessment agent. Return only JSON that conforms to outputSchema.",
+      "taskSchema": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"required\":[\"workItemId\",\"operation\",\"scope\"]}",
+      "files": [
+        {
+          "name": "assessment-process",
+          "path": ".docs/sdlc/work-item-assessment-process.md",
+          "type": "guidance",
+          "purpose": "Define assessment evidence and provider-fallback boundaries."
+        }
+      ],
+      "outputSchema": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"required\":[\"decision\",\"confidence\",\"findings\"]}"
+    },
+    {
+      "schema": "https://schemas.handschuh.dev/llm/request/v1",
+      "task": "Assess the current work item for decomposition readiness.",
+      "systemPrompt": "Return a concise plain-text assessment."
+    }
+  ]
+}
