@@ -76,8 +76,6 @@ file-reading, or credential-storage mechanism.
 - Build output is generated in `dist/` and dependencies are in `node_modules/`;
   both are ignored by Git.
 
-From `/home/michael/src/github/llm`:
-
 ```bash
 npm ci
 npm run typecheck
@@ -126,7 +124,7 @@ The minimal request is:
 ```
 
 The complete request contract is
-`schemas/request/v1/request.schema.json`. Requests are closed objects: unknown
+`./schemas/request/v1/request.schema.json`. Requests are closed objects: unknown
 properties are rejected.
 
 ## Request fields
