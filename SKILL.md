@@ -59,9 +59,9 @@ auto_load: true
 
 # `llm` CLI and Node.js library
 
-This skill describes the implementation in `/home/michael/src/github/llm`. The
-canonical skill document is the repository file; the global
-`/home/michael/.cline/skills/llm/SKILL.md` path should remain a symlink to it.
+This skill describes the implementation in the repository checkout. The canonical
+skill document is the repository file; the global skills-directory copy should
+remain a symlink to it.
 
 Use this tool for one bounded, provider-backed completion when the result should
 be plain text or validated against a JSON Schema. Prefer an injected provider in
@@ -83,15 +83,19 @@ npm test
 npm run build
 ```
 
-The installed command is available as `llm` when the user-local link is present.
-To register or repair that link with npm 11:
+The installer performs the complete clone-checkout setup, including the user-local
+npm link and skill-directory links:
 
 ```bash
-npm_config_prefix="$HOME/.local" npm link --no-save
+mkdir -p "$HOME/src/github"
+git clone git@github.com:mchandschuh/llm.git "$HOME/src/github/llm"
+cd "$HOME/src/github/llm"
+./scripts/install_agent_skill.mjs "$HOME/.cline/skills"
 ```
 
-Ensure `$HOME/.local/bin` is on `PATH`. Build before invoking the linked command,
-because `bin/cli.js` loads compiled modules from `dist/`.
+The installed command is available as `llm` when `$HOME/.local/bin` is on `PATH`.
+Build before invoking the linked command, because `bin/cli.js` loads compiled
+modules from `dist/`.
 
 ## CLI usage
 
@@ -301,8 +305,9 @@ test explicitly requires that evidence.
 4. Keep credentials outside committed files and inspect the sanitized response,
    not provider-specific exceptions or raw network errors.
 5. For code changes, run `npm run typecheck`, `npm test`, and `npm run build`.
-6. For a CLI registration problem, verify `command -v llm`, rebuild, then run
-   `npm_config_prefix="$HOME/.local" npm link --no-save`.
+6. For a CLI registration problem, rerun
+   `./scripts/install_agent_skill.mjs "$HOME/.cline/skills"` and verify
+   `command -v llm`.
 
 Do not claim a successful command exit alone proves a successful completion:
 inspect the response envelope’s `status`, `output`, counters, and `errors`.
