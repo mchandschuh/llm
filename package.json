@@ -24,6 +24,7 @@
   "scripts": {
     "dev": "tsx src/cli.ts",
     "build": "tsc",
+    "prepare": "npm run build",
     "start": "node ./bin/cli.js",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts"
