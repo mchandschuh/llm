@@ -7,7 +7,7 @@ import { complete } from '../src/index.js';
 import { main as cliMain } from '../src/cli.js';
 import { composePrompt } from '../src/prompt.js';
 import { normalizeRequest } from '../src/normalize.js';
-import type { LlmProvider, ProviderCompletionRequest } from '../src/types.js';
+import type { ILlmProvider, LlmProvider, ProviderCompletionRequest } from '../src/types.js';
 
 const schema = 'https://schemas.handschuh.dev/llm/request/v1';
 const outputSchema = JSON.stringify({ $id: 'https://example.test/output', type: 'object', required: ['ok'], additionalProperties: false, properties: { ok: { type: 'boolean' } } });
@@ -34,6 +34,13 @@ test('normalizes closed request defaults', async () => {
   assert.equal(normalized.thinking, 'high');
   assert.equal(normalized.maxFailedAttempts, 3);
   assert.equal(normalized.maxIterations, 3);
+});
+
+test('exposes the normalized completion service through ILlmProvider', async () => {
+  const service: ILlmProvider = { complete };
+  const result = await service.complete({ schema, task: 'task', systemPrompt: 'system' }, { configurationRoot: process.cwd() });
+  assert.equal(result.status, 'configuration_error');
+  assert.equal(result.errors[0]?.code, 'CONFIGURATION_INVALID');
 });
 
 test('rejects unknown and out-of-range request settings before provider invocation', async () => {

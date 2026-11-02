@@ -3,11 +3,13 @@ export { composePrompt, composeCorrectionPrompt, composeRequestPrompt } from './
 export { normalizeRequest } from './normalize.js';
 export { OpenRouterProvider } from './provider.js';
 export { LlmFailure } from './errors.js';
+export { REQUEST_SCHEMA, RESPONSE_SCHEMA } from './types.js';
 export type {
   CompletionOptions,
   Credentials,
   ErrorCode,
   ErrorPhase,
+  ILlmProvider,
   LlmError,
   LlmOutput,
   LlmProvider,

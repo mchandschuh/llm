@@ -126,6 +126,17 @@ export interface LlmResponse {
   readonly errors: readonly LlmError[];
 }
 
+/**
+ * High-level completion service boundary for consumers such as sdlc.
+ *
+ * The lower-level LlmProvider above remains the raw provider-adapter seam used
+ * by this package. Consumers should depend on this contract when they need the
+ * normalized request and closed response envelope.
+ */
+export interface ILlmProvider {
+  complete(request: LlmRequest, options?: CompletionOptions): Promise<LlmResponse>;
+}
+
 export interface CompletionOptions {
   readonly provider?: LlmProvider;
   readonly configurationFilePath?: string;
