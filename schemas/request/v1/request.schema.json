@@ -116,7 +116,7 @@
     "files": {
       "type": "array",
       "uniqueItems": true,
-      "description": "Ordered repository-approved reference files included in the composed llmPrompt. Declaration order is preserved, and each entry supplies the metadata used to label its CDATA body.",
+      "description": "Ordered repository-approved reference files. Text files are included in the composed llmPrompt; binary files are encoded as base64 and supplied to compatible providers as attachments.",
       "items": {
         "$ref": "#/$defs/ReferenceFile",
         "description": "One ordered reference-file declaration included in the composed prompt.",
@@ -124,7 +124,7 @@
           {
             "name": "assessment-process",
             "path": ".docs/sdlc/work-item-assessment-process.md",
-            "type": "guidance",
+            "type": "text/markdown",
             "purpose": "Define assessment evidence and provider-fallback boundaries."
           }
         ]
@@ -135,7 +135,7 @@
           {
             "name": "assessment-process",
             "path": ".docs/sdlc/work-item-assessment-process.md",
-            "type": "guidance",
+            "type": "text/markdown",
             "purpose": "Define assessment evidence and provider-fallback boundaries."
           }
         ]
@@ -184,7 +184,7 @@
     "ReferenceFile": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Metadata for one ordered regular UTF-8 reference file resolved through the runtime's mediated read boundary.",
+      "description": "Metadata for one ordered regular reference file resolved through the runtime's mediated read boundary. type is the file MIME type; binary files are normalized with base64 encoding.",
       "required": [
         "name",
         "path",
@@ -212,13 +212,21 @@
         },
         "type": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
-          "description": "Lower-kebab-case semantic category used to label the reference body in the composed prompt.",
+          "pattern": "^[a-z][a-z0-9!#$&^_.+-]*\\/[a-z0-9!#$&^_.+-]+$",
+          "description": "MIME type of the referenced file.",
           "examples": [
-            "guidance",
-            "schema",
-            "source-data"
+            "text/markdown",
+            "application/json",
+            "image/png"
           ]
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "utf8",
+            "base64"
+          ],
+          "description": "Optional content encoding override. When omitted, text MIME types use utf8 and binary MIME types use base64."
         },
         "purpose": {
           "type": "string",
@@ -233,7 +241,7 @@
         {
           "name": "assessment-process",
           "path": ".docs/sdlc/work-item-assessment-process.md",
-          "type": "guidance",
+          "type": "text/markdown",
           "purpose": "Define assessment evidence and provider-fallback boundaries."
         }
       ]
@@ -254,7 +262,7 @@
         {
           "name": "assessment-process",
           "path": ".docs/sdlc/work-item-assessment-process.md",
-          "type": "guidance",
+          "type": "text/markdown",
           "purpose": "Define assessment evidence and provider-fallback boundaries."
         }
       ],

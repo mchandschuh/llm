@@ -31,10 +31,10 @@ export async function normalizeRequest(value: unknown, options: { readonly confi
   const systemPrompt = await resolveSource(request.systemPrompt, root);
   const taskSchema = request.taskSchema ? await resolveSource(request.taskSchema, root) : undefined;
   const outputSchema = request.outputSchema ? await resolveSource(request.outputSchema, root) : undefined;
-  const files: Array<ReferenceFile & { readonly content: string; readonly resolvedPath: string }> = [];
+  const files: Array<ReferenceFile & { readonly encoding: 'utf8' | 'base64'; readonly content: string; readonly resolvedPath: string }> = [];
   for (const file of request.files ?? []) {
-    const resolved = await resolveRequiredFile(file.path, root);
-    files.push({ ...file, content: resolved.value, resolvedPath: resolved.path });
+    const resolved = await resolveRequiredFile(file.path, root, file.type, file.encoding);
+    files.push({ ...file, encoding: resolved.encoding, content: resolved.value, resolvedPath: resolved.path });
   }
   return {
     schema: request.schema,

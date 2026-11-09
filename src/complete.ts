@@ -63,7 +63,7 @@ export async function complete(request: LlmRequest | unknown, options: Completio
   while (iterations < normalized.maxIterations) {
     let raw: string;
     try {
-      raw = await provider.complete({ provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, credentials: normalized.credentials });
+      raw = await provider.complete({ provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials });
       iterations += 1;
     } catch (error) {
       const failure = error instanceof LlmFailure ? error : new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider request failed before a usable response was returned.');

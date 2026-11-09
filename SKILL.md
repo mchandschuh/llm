@@ -151,8 +151,11 @@ properties are rejected.
   before the provider is called.
 - `outputSchema` is optional inline JSON Schema text or a permitted file
   reference. When present, provider output must be JSON and satisfy it.
-- `files` is an ordered list of `{ name, path, type, purpose }` reference
-  descriptors. Every `path` must resolve to a permitted regular file.
+- `files` is an ordered list of `{ name, path, type, purpose, encoding? }`
+  reference descriptors. `type` is always a MIME type such as `text/markdown`,
+  `application/json`, or `image/png`. Every `path` must resolve to a permitted
+  regular file. Text MIME types default to `encoding: "utf8"`; binary files,
+  including images, default to `encoding: "base64"`.
 - `credentials` may contain an in-memory `apiKey` or `accessToken`, but do not
   put credentials in committed or persistent request files.
 
@@ -188,6 +191,32 @@ Credentials are not persisted, logged, prompted for, or returned by the
 library. Prefer the environment variable for CLI use and an in-memory value for
 library use. A missing credential returns a bounded configuration error rather
 than prompting.
+
+Binary reference files are not placed in the textual `llmPrompt`. Image files
+normalized with `encoding: "base64"` are sent by the OpenRouter adapter as
+OpenAI-compatible `image_url` content parts. For example:
+
+```json
+{
+  "schema": "https://schemas.handschuh.dev/llm/request/v1",
+  "model": "openai/gpt-5.6-luna",
+  "task": "Describe the supplied image.",
+  "systemPrompt": "Return a concise description.",
+  "files": [
+    {
+      "name": "satellite-tile",
+      "path": "imagery/tile.png",
+      "type": "image/png",
+      "purpose": "Satellite image to inspect"
+    }
+  ]
+}
+```
+
+The normalized provider request includes the PNG as a base64 string and the
+OpenRouter request contains a `data:image/png;base64,...` image URL. The image
+must have a matching signature; a file renamed to `.png` but containing other
+content is rejected.
 
 Only the `openrouter` adapter is built in. A non-OpenRouter provider name
 requires an injected `LlmProvider`; otherwise the completion returns
