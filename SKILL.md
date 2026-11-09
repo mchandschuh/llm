@@ -87,10 +87,9 @@ The installer performs the complete clone-checkout setup, including the user-loc
 npm link and skill-directory links:
 
 ```bash
-mkdir -p "$HOME/src/github"
-git clone git@github.com:mchandschuh/llm.git "$HOME/src/github/llm"
-cd "$HOME/src/github/llm"
-./scripts/install_agent_skill.mjs "$HOME/.cline/skills"
+git clone https://github.com/mchandschuh/llm.git
+cd llm
+./scripts/install_agent_skill.mjs /path/to/agent-skills
 ```
 
 The installed command is available as `llm` when `$HOME/.local/bin` is on `PATH`.

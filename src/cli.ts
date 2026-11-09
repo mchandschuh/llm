@@ -3,9 +3,9 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const packagePath = resolve(dirname(fileURLToPath(import.meta.url)), '../package.json');
-const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const requestSchemaPath = resolve(repositoryRoot, 'llm/schemas/request/v1/request.schema.json');
-const responseSchemaPath = resolve(repositoryRoot, 'llm/schemas/response/v1/response.schema.json');
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const requestSchemaPath = resolve(packageRoot, 'schemas/request/v1/request.schema.json');
+const responseSchemaPath = resolve(packageRoot, 'schemas/response/v1/response.schema.json');
 
 async function version(): Promise<string> {
   const packageJson = JSON.parse(await readFile(packagePath, 'utf8')) as { version: string };

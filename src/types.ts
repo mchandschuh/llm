@@ -28,10 +28,8 @@ export interface LlmRequest {
   readonly credentials?: Credentials;
   readonly task: string;
   readonly systemPrompt: string;
-  // Ensure schemas pass the schema-validate tool and are saved under a schemas directory following conventions in ~/src/github/llm/schemas
   readonly taskSchema?: string;
   readonly files?: readonly ReferenceFile[];
-  // Ensure schemas pass the schema-validate tool and are saved under a schemas directory following conventions in ~/src/github/llm/schemas
   readonly outputSchema?: string;
 }
 
@@ -50,11 +48,8 @@ export interface NormalizedRequest {
   readonly credentials?: Credentials;
   readonly task: ResolvedSource;
   readonly systemPrompt: ResolvedSource;
-  // Ensure schemas pass the schema-validate tool and are saved under a schemas directory following conventions in ~/src/github/llm/schemas
   readonly taskSchema?: ResolvedSource;
   readonly files: readonly (ReferenceFile & { readonly encoding: FileEncoding; readonly content: string; readonly resolvedPath: string })[];
-  
-  // Ensure schemas pass the schema-validate tool and are saved under a schemas directory following conventions in ~/src/github/llm/schemas
   readonly outputSchema?: ResolvedSource;
   readonly configurationRoot: string;
 }

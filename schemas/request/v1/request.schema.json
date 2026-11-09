@@ -226,7 +226,11 @@
             "utf8",
             "base64"
           ],
-          "description": "Optional content encoding override. When omitted, text MIME types use utf8 and binary MIME types use base64."
+          "description": "Optional content encoding override. When omitted, text MIME types use utf8 and binary MIME types use base64.",
+          "examples": [
+            "utf8",
+            "base64"
+          ]
         },
         "purpose": {
           "type": "string",

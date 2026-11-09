@@ -9,10 +9,9 @@ and the terminal CLI registration. Clone the repository and pass the parent skil
 directory as the installer's only argument:
 
 ```bash
-mkdir -p "$HOME/src/github"
-git clone git@github.com:mchandschuh/llm.git "$HOME/src/github/llm"
-cd "$HOME/src/github/llm"
-./scripts/install_agent_skill.mjs "$HOME/.cline/skills"
+git clone https://github.com/mchandschuh/llm.git
+cd llm
+./scripts/install_agent_skill.mjs /path/to/agent-skills
 ```
 
 The installer runs `npm ci`, builds `dist/`, registers the package with npm's
@@ -33,11 +32,11 @@ directories, or links to another source.
 The destination directory may be anywhere:
 
 ```bash
-./scripts/install_agent_skill.mjs /tmp/agent-skills
+./scripts/install_agent_skill.mjs /path/to/agent-skills
 ```
 
-This produces `/tmp/agent-skills/llm/SKILL.md` and
-`/tmp/agent-skills/llm/schemas` pointing back to the checkout containing the
+This produces `<agent-skills>/llm/SKILL.md` and
+`<agent-skills>/llm/schemas` pointing back to the checkout containing the
 installer. The installer is safe to rerun when the expected links already exist
 and refuses to overwrite unexpected files, directories, or links to another
 source.
