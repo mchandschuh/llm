@@ -55,6 +55,71 @@ test('exposes the normalized completion service through ILlmProvider', async () 
   assert.equal(result.output?.$type, 'string');
 });
 
+test('ILlmProvider performs bounded output-schema correction iterations', async () => {
+  const outputSchema = JSON.stringify({
+    $id: 'https://example.test/act-result',
+    type: 'object',
+    required: ['status', 'summary'],
+    additionalProperties: false,
+    properties: {
+      status: { const: 'completed' },
+      summary: { type: 'string', minLength: 1 },
+    },
+  });
+  const taskSchema = JSON.stringify({
+    $id: 'https://example.test/act-task',
+    type: 'object',
+    required: ['target'],
+    additionalProperties: false,
+    properties: { target: { type: 'string', minLength: 1 } },
+  });
+  const service: ILlmProvider = { complete };
+  const provider = new SequenceProvider([
+    '{"status":"completed"}',
+    '{"status":"completed","summary":"validated completion"}',
+  ]);
+  const result = await service.complete(
+    {
+      schema,
+      task: '{"target":"B0056-04"}',
+      taskSchema,
+      systemPrompt: 'Return only the structured Act result.',
+      outputSchema,
+      maxIterations: 2,
+    },
+    { configurationRoot: process.cwd(), provider },
+  );
+
+  assert.equal(result.status, 'success');
+  assert.equal(result.iterations, 2);
+  assert.equal(provider.calls.length, 2);
+  assert.deepEqual((result.output as { value: unknown }).value, {
+    status: 'completed',
+    summary: 'validated completion',
+  });
+  assert.match(provider.calls[1].llmPrompt, /correctionInstruction/);
+
+  const exhaustedProvider = new SequenceProvider([
+    '{"status":"completed"}',
+    '{"status":"completed"}',
+    '{"status":"completed"}',
+  ]);
+  const exhausted = await service.complete(
+    {
+      schema,
+      task: '{"target":"B0056-04"}',
+      taskSchema,
+      systemPrompt: 'Return only the structured Act result.',
+      outputSchema,
+      maxIterations: 2,
+    },
+    { configurationRoot: process.cwd(), provider: exhaustedProvider },
+  );
+  assert.equal(exhausted.status, 'output_invalid');
+  assert.equal(exhausted.iterations, 2);
+  assert.equal(exhaustedProvider.calls.length, 2);
+});
+
 test('rejects unknown and out-of-range request settings before provider invocation', async () => {
   const provider = new SequenceProvider(['{"ok":true}']);
   const result = await complete({ ...request(), extra: true, maxIterations: 11 }, { provider });
