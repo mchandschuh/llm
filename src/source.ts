@@ -57,6 +57,7 @@ async function readCandidate(candidate: string, root: string): Promise<ResolvedC
     } catch (error) {
       if (error instanceof LlmFailure) throw error;
       const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+      if (code === 'ENAMETOOLONG') return undefined;
       if (code !== 'ENOENT' && code !== 'ENOTDIR') throw sourceFailure('The configured source could not be inspected.');
     }
   }
@@ -65,7 +66,7 @@ async function readCandidate(candidate: string, root: string): Promise<ResolvedC
     info = await lstat(absolute);
   } catch (error) {
     const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
-    if (code === 'ENOENT' || code === 'ENOTDIR') return undefined;
+    if (code === 'ENOENT' || code === 'ENOTDIR' || code === 'ENAMETOOLONG') return undefined;
     throw sourceFailure('The configured source could not be inspected.');
   }
   if (info.isSymbolicLink()) throw sourceFailure('Symbolic-link sources are not permitted.');

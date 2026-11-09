@@ -38,6 +38,16 @@ test('normalizes closed request defaults', async () => {
   assert.equal(normalized.maxIterations, 3);
 });
 
+test('treats long literal task and system prompt values as literals', async () => {
+  const provider = new SequenceProvider(['ok']);
+  const longLiteral = 'word '.repeat(100);
+  const result = await complete({ schema, task: longLiteral, systemPrompt: longLiteral }, { provider });
+  assert.equal(result.status, 'success');
+  assert.equal(provider.calls.length, 1);
+  assert.ok(provider.calls[0].llmPrompt.includes(longLiteral));
+  assert.equal(provider.calls[0].systemPrompt, longLiteral);
+});
+
 test('exposes the normalized completion service through ILlmProvider', async () => {
   const service: ILlmProvider = { complete };
   const result = await service.complete({ schema, task: 'task', systemPrompt: 'system' }, { configurationRoot: process.cwd(), provider: new SequenceProvider(['ok']) });
