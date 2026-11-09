@@ -17,6 +17,21 @@ function contentFromMessage(message: unknown): string {
   throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider returned no usable completion content.');
 }
 
+function userContent(request: ProviderCompletionRequest): string | Array<Record<string, unknown>> {
+  const images = request.files.filter((file) => file.encoding === 'base64' && file.type.startsWith('image/'));
+  if (images.length === 0) return request.llmPrompt;
+  return [
+    { type: 'text', text: request.llmPrompt },
+    ...images.map((file) => ({
+      type: 'image_url',
+      image_url: {
+        url: `data:${file.type};base64,${file.content}`,
+        detail: 'high',
+      },
+    })),
+  ];
+}
+
 export class OpenRouterProvider implements LlmProvider {
   async complete(request: ProviderCompletionRequest): Promise<string> {
     const apiKey = credential(request);
@@ -28,7 +43,7 @@ export class OpenRouterProvider implements LlmProvider {
         headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
         body: JSON.stringify({
           model: request.model,
-          messages: [{ role: 'system', content: request.systemPrompt }, { role: 'user', content: request.llmPrompt }],
+          messages: [{ role: 'system', content: request.systemPrompt }, { role: 'user', content: userContent(request) }],
           reasoning: { effort: request.thinking },
         }),
       });

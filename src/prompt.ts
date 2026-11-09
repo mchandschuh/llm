@@ -1,4 +1,4 @@
-import type { NormalizedRequest, PromptParts, ReferenceFile } from './types.js';
+import type { FileEncoding, NormalizedRequest, PromptParts, ReferenceFile } from './types.js';
 
 function attribute(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -9,8 +9,10 @@ function cdata(value: string): string {
 }
 
 function fileXml(file: ReferenceFile & { readonly content: string }): string {
-  const attrs = `name="${attribute(file.name)}" path="${attribute(file.path)}" type="${attribute(file.type)}" purpose="${attribute(file.purpose)}"`;
-  return `    <file ${attrs}>${cdata(file.content)}</file>`;
+  const encoding: FileEncoding = file.encoding ?? 'utf8';
+  const attrs = `name="${attribute(file.name)}" path="${attribute(file.path)}" type="${attribute(file.type)}" encoding="${attribute(encoding)}" purpose="${attribute(file.purpose)}"`;
+  const body = encoding === 'base64' ? '[binary attachment supplied separately]' : cdata(file.content);
+  return `    <file ${attrs}>${body}</file>`;
 }
 
 export function composePrompt(parts: PromptParts): string {

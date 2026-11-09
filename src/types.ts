@@ -3,6 +3,8 @@ export const RESPONSE_SCHEMA = 'https://schemas.handschuh.dev/llm/response/v1' a
 
 export type Thinking = 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
 
+export type FileEncoding = 'utf8' | 'base64';
+
 export interface Credentials {
   readonly apiKey?: string;
   readonly accessToken?: string;
@@ -13,6 +15,7 @@ export interface ReferenceFile {
   readonly path: string;
   readonly type: string;
   readonly purpose: string;
+  readonly encoding?: FileEncoding;
 }
 
 export interface LlmRequest {
@@ -46,7 +49,7 @@ export interface NormalizedRequest {
   readonly task: ResolvedSource;
   readonly systemPrompt: ResolvedSource;
   readonly taskSchema?: ResolvedSource;
-  readonly files: readonly (ReferenceFile & { readonly content: string; readonly resolvedPath: string })[];
+  readonly files: readonly (ReferenceFile & { readonly encoding: FileEncoding; readonly content: string; readonly resolvedPath: string })[];
   readonly outputSchema?: ResolvedSource;
   readonly configurationRoot: string;
 }
@@ -57,6 +60,7 @@ export interface ProviderCompletionRequest {
   readonly thinking: Thinking;
   readonly systemPrompt: string;
   readonly llmPrompt: string;
+  readonly files: readonly (ReferenceFile & { readonly encoding: FileEncoding; readonly content: string; readonly resolvedPath: string })[];
   readonly credentials?: Credentials;
 }
 

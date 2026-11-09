@@ -9,6 +9,7 @@ export type {
   Credentials,
   ErrorCode,
   ErrorPhase,
+  FileEncoding,
   ILlmProvider,
   LlmError,
   LlmOutput,
