@@ -33,10 +33,10 @@ function userContent(request: ProviderCompletionRequest): string | Array<Record<
 }
 
 function toolParameters(tool: ToolDefinition): Record<string, unknown> {
-  if (!tool.inputSchema || typeof tool.inputSchema !== 'object' || Array.isArray(tool.inputSchema)) {
-    throw new LlmFailure('TOOL_SCHEMA_INVALID', 'configuration', `Tool '${tool.name}' must provide an inline JSON Schema object to the provider adapter.`);
-  }
-  return tool.inputSchema as Record<string, unknown>;
+  let parsed: unknown;
+  try { parsed = JSON.parse(tool.inputSchema); } catch { throw new LlmFailure('TOOL_SCHEMA_INVALID', 'configuration', `Tool '${tool.name}' inputSchema must be valid JSON.`); }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new LlmFailure('TOOL_SCHEMA_INVALID', 'configuration', `Tool '${tool.name}' inputSchema must be a JSON Schema object.`);
+  return parsed as Record<string, unknown>;
 }
 
 function toolMessages(request: ProviderCompletionRequestV2): Array<Record<string, unknown>> {

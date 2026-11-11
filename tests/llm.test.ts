@@ -44,7 +44,7 @@ test('normalizes v2 tool declarations and bounded tool settings', async () => {
     schema: schemaV2,
     task: 'Inspect records.',
     systemPrompt: 'Use tools only when needed.',
-    tools: [{ name: 'read_record', description: 'Read one record.', inputSchema: { type: 'object' } }],
+    tools: [{ name: 'read_record', description: 'Read one record.', inputSchema: JSON.stringify({ type: 'object' }) }],
     autoInvokeTools: true,
   }, { configurationRoot: process.cwd() });
   assert.equal(normalized.schema, schemaV2);
@@ -60,8 +60,8 @@ test('rejects duplicate v2 tool names before provider use', async () => {
     task: 'Inspect records.',
     systemPrompt: 'Use tools only when needed.',
     tools: [
-      { name: 'read_record', description: 'Read one record.', inputSchema: { type: 'object' } },
-      { name: 'read_record', description: 'Read another record.', inputSchema: { type: 'object' } },
+      { name: 'read_record', description: 'Read one record.', inputSchema: JSON.stringify({ type: 'object' }) },
+      { name: 'read_record', description: 'Read another record.', inputSchema: JSON.stringify({ type: 'object' }) },
     ],
   }, { configurationRoot: process.cwd() }), /Tool names must be unique/u);
 });
@@ -83,7 +83,7 @@ const v2Request = (overrides: Record<string, unknown> = {}) => ({
   schema: schemaV2,
   task: 'Inspect records.',
   systemPrompt: 'Use tools only when needed.',
-  tools: [{ name: 'read_record', description: 'Read one record.', inputSchema: { type: 'object', required: ['logicalId'], properties: { logicalId: { type: 'string' } } } }],
+  tools: [{ name: 'read_record', description: 'Read one record.', inputSchema: JSON.stringify({ type: 'object', required: ['logicalId'], properties: { logicalId: { type: 'string' } } }) }],
   outputSchema: JSON.stringify({ type: 'object', required: ['ok'], additionalProperties: false, properties: { ok: { type: 'boolean' } } }),
   ...overrides,
 });
@@ -390,7 +390,7 @@ test('OpenRouterProvider maps v2 tools, tool results, and native tool calls', as
       llmPrompt: '<llmPrompt />',
       files: [],
       credentials: { apiKey: 'test-key' },
-      tools: [{ name: 'read_record', description: 'Read a record.', inputSchema: { type: 'object', properties: { logicalId: { type: 'string' } } } }],
+      tools: [{ name: 'read_record', description: 'Read a record.', inputSchema: JSON.stringify({ type: 'object', properties: { logicalId: { type: 'string' } } }) }],
       toolResults: [{ callId: 'call-prior', name: 'previous_tool', status: 'success', value: { ok: true } }],
     };
     const result = await provider.completeV2(request);

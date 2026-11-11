@@ -30,18 +30,11 @@
       ]
     },
     "inputSchema": {
-      "oneOf": [
-        {
-          "type": "object"
-        },
-        {
-          "type": "string",
-          "format": "uri"
-        }
-      ],
-      "description": "Inline JSON Schema object or absolute schema URI used to validate tool arguments.",
+      "type": "string",
+      "minLength": 2,
+      "description": "JSON text containing the tool argument schema. It is parsed and compiled by the library without network retrieval.",
       "examples": [
-        "https://schemas.handschuh.dev/example/read-record-input/v1"
+        "{\"type\":\"object\",\"properties\":{\"logicalId\":{\"type\":\"string\"}}}"
       ]
     }
   },
@@ -49,7 +42,7 @@
     {
       "name": "read_record",
       "description": "Read one bounded record by logical identifier.",
-      "inputSchema": "https://schemas.handschuh.dev/example/read-record-input/v1"
+      "inputSchema": "{\"type\":\"object\",\"properties\":{\"logicalId\":{\"type\":\"string\"}}}"
     }
   ]
 }

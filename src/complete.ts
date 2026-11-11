@@ -68,10 +68,8 @@ function validateToolCalls(request: NormalizedRequestV2, calls: ToolCalls, compl
       const definition = definitions.get(call.name);
       if (!definition) throw new Failure('TOOL_CALL_INVALID', 'tool-validation', `The model requested undeclared tool '${call.name}'.`);
       if (!call.arguments || typeof call.arguments !== 'object' || Array.isArray(call.arguments)) throw new Failure('TOOL_CALL_INVALID', 'tool-validation', `Tool '${call.name}' arguments must be an object.`);
-      if (typeof definition.inputSchema === 'object') {
-        const schema = parseSchema(JSON.stringify(definition.inputSchema));
-        assertMatchesSchema(call.arguments, schema, 'TOOL_SCHEMA_VALIDATION_FAILED', 'tool-validation');
-      }
+      const schema = parseSchema(definition.inputSchema);
+      assertMatchesSchema(call.arguments, schema, 'TOOL_SCHEMA_VALIDATION_FAILED', 'tool-validation');
     }
   }
 }
@@ -132,10 +130,10 @@ export async function completeV2(request: LlmRequestV2 | unknown, options: Compl
     if (calls.length > 0) {
       try { validateToolCalls(normalized, calls, toolRounds); } catch (error) {
         const failure = error instanceof Failure ? error : new Failure('TOOL_CALL_INVALID', 'tool-validation', 'The provider tool-call response was not validated.');
-        return v2Response(failure.message.includes('round limit') ? 'unvalidated' : 'output_invalid', toolAwareOutput({ output: null, tool_calls: calls }), failedAttempts, iterations, toolRounds, totalToolCalls + toolCallCount(calls), [errorFromFailure(failure)]);
+        return v2Response(failure.message.includes('round limit') ? 'unvalidated' : 'output_invalid', null, failedAttempts, iterations, toolRounds, totalToolCalls, [errorFromFailure(failure)]);
       }
       const count = toolCallCount(calls);
-      if (totalToolCalls + count > normalized.maxToolCalls) return v2Response('unvalidated', toolAwareOutput({ output: null, tool_calls: calls }), failedAttempts, iterations, toolRounds, totalToolCalls, [toolFailure('TOOL_CALL_INVALID', 'The tool-call count would exceed the configured limit.')]);
+      if (totalToolCalls + count > normalized.maxToolCalls) return v2Response('unvalidated', null, failedAttempts, iterations, toolRounds, totalToolCalls, [toolFailure('TOOL_CALL_INVALID', 'The tool-call count would exceed the configured limit.')]);
       totalToolCalls += count;
       if (!normalized.autoInvokeTools) return v2Response('tool_calls_pending', toolAwareOutput({ output: null, tool_calls: calls }), failedAttempts, iterations, toolRounds, totalToolCalls, []);
       toolResults = [];

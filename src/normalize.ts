@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { assertRequestShape, assertRequestV2Shape } from './schema.js';
+import { assertRequestShape, assertRequestV2Shape, parseSchema } from './schema.js';
 import { resolveRequiredFile, resolveSource } from './source.js';
 import { LlmFailure } from './errors.js';
 import type { LlmRequest, LlmRequestV2, NormalizedRequest, NormalizedRequestV2, ReferenceFile, Thinking } from './types.js';
@@ -74,6 +74,15 @@ export async function normalizeRequestV2(value: unknown, options: { readonly con
   const maxToolRounds = request.maxToolRounds === undefined ? TOOL_DEFAULTS.maxToolRounds : ensureBounds(request.maxToolRounds, 'maxToolRounds', 0, 10);
   const maxToolCalls = request.maxToolCalls === undefined ? TOOL_DEFAULTS.maxToolCalls : ensureBounds(request.maxToolCalls, 'maxToolCalls', 0, 128);
   const tools = [...(request.tools ?? [])];
+  for (const tool of tools) {
+    try {
+      const parsed = JSON.parse(tool.inputSchema) as unknown;
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error();
+      parseSchema(tool.inputSchema);
+    } catch {
+      throw new LlmFailure('TOOL_SCHEMA_INVALID', 'request', `Tool '${tool.name}' inputSchema must be valid JSON Schema text.`);
+    }
+  }
   if (new Set(tools.map((tool) => tool.name)).size !== tools.length) throw new LlmFailure('REQUEST_INVALID', 'request', 'Tool names must be unique.');
   return {
     schema: request.schema,

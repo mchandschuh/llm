@@ -150,8 +150,16 @@
       ],
       "properties": {
         "schema": {
-          "type": "null",
-          "description": "No structured schema applies.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uri"
+            }
+          ],
+          "description": "Null for raw output or absolute structured schema URI metadata.",
           "examples": [
             "https://schemas.handschuh.dev/llm/output/v2"
           ]
@@ -173,11 +181,20 @@
       },
       "examples": [
         {
+          "$type": "string",
           "schema": null,
-          "value": "The work is ready.",
-          "$type": "string"
+          "value": "The work is ready."
         }
-      ]
+      ],
+      "patternProperties": {
+        "^\\$type$": {
+          "const": "string",
+          "description": "Effective JSON type marker.",
+          "examples": [
+            "string"
+          ]
+        }
+      }
     },
     "ToolCall": {
       "type": "object",
@@ -274,12 +291,18 @@
       ],
       "properties": {
         "schema": {
-          "$ref": "#/$defs/SchemaMetadata",
-          "description": "Effective tool-aware output schema.",
-          "examples": [
+          "oneOf": [
             {
-              "name": "https://schemas.handschuh.dev/llm/output/v2"
+              "type": "string",
+              "format": "uri"
+            },
+            {
+              "$ref": "#/$defs/SchemaMetadata"
             }
+          ],
+          "description": "Effective tool-aware output schema URI or metadata.",
+          "examples": [
+            "https://schemas.handschuh.dev/llm/output/v2"
           ]
         },
         "value": {
@@ -310,7 +333,16 @@
               "output": null,
               "tool_calls": []
             }
-          ]
+          ],
+          "patternProperties": {
+            "^tool_calls$": {
+              "$ref": "#/$defs/ToolCalls",
+              "description": "The complete ordered collection of parallel tool call batches.",
+              "examples": [
+                []
+              ]
+            }
+          }
         },
         "$type": {
           "const": "object",
@@ -322,16 +354,25 @@
       },
       "examples": [
         {
+          "$type": "object",
           "schema": {
             "name": "https://schemas.handschuh.dev/llm/output/v2"
           },
           "value": {
             "output": null,
             "tool_calls": []
-          },
-          "$type": "object"
+          }
         }
-      ]
+      ],
+      "patternProperties": {
+        "^\\$type$": {
+          "const": "object",
+          "description": "Effective JSON type marker.",
+          "examples": [
+            "object"
+          ]
+        }
+      }
     },
     "Error": {
       "type": "object",
@@ -393,9 +434,7 @@
       "schema": "https://schemas.handschuh.dev/llm/response/v2",
       "status": "tool_calls_pending",
       "output": {
-        "schema": {
-          "name": "https://schemas.handschuh.dev/llm/output/v2"
-        },
+        "schema": "https://schemas.handschuh.dev/llm/output/v2",
         "value": {
           "output": null,
           "tool_calls": [
