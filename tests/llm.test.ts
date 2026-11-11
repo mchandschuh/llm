@@ -122,6 +122,90 @@ test('v2 automatic invocation runs calls in parallel within each batch and batch
   assert.equal(result.toolRounds, 1);
 });
 
+test('v2 automatic invocation executes multiple parallel tool call batches sequentially', async () => {
+  const provider = new V2SequenceProvider([
+    JSON.stringify({ toolCalls: [[{ id: 'call-a', name: 'read_record', arguments: { logicalId: 'a' } }, { id: 'call-b', name: 'read_record', arguments: { logicalId: 'b' } }], [{ id: 'call-c', name: 'read_record', arguments: { logicalId: 'c' } }]] }),
+    JSON.stringify({ content: '{"ok":true}', toolCalls: [] }),
+  ]);
+  const events: string[] = [];
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), {
+    provider: provider as unknown as import('../src/types.js').LlmProviderV2,
+    toolInvoker: { invoke: async (call) => { events.push(`start:${call.id}`); await new Promise((resolve) => setTimeout(resolve, call.id === 'call-a' ? 5 : 1)); events.push(`end:${call.id}`); return call.id; } },
+  });
+  assert.equal(result.status, 'success');
+  assert.deepEqual(events, ['start:call-a', 'start:call-b', 'end:call-b', 'end:call-a', 'start:call-c', 'end:call-c']);
+  assert.equal(result.toolRounds, 2);
+});
+
+test('v2 rejects undeclared tool calls before invoking any tool', async () => {
+  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-unknown', name: 'delete_everything', arguments: {} }] })]);
+  let invoked = 0;
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  assert.equal(result.status, 'output_invalid');
+  assert.equal(invoked, 0);
+  assert.equal(result.errors[0]?.code, 'TOOL_CALL_INVALID');
+});
+
+test('v2 rejects duplicate call IDs before invoking any tool', async () => {
+  const calls = [{ id: 'same-id', name: 'read_record', arguments: { logicalId: 'a' } }, { id: 'same-id', name: 'read_record', arguments: { logicalId: 'b' } }];
+  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: calls })]);
+  let invoked = 0;
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  assert.equal(result.status, 'output_invalid');
+  assert.equal(invoked, 0);
+  assert.match(result.errors[0]?.message ?? '', /unique/u);
+});
+
+test('v2 rejects invalid arguments before invoking any tool', async () => {
+  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-invalid', name: 'read_record', arguments: { wrong: true } }] })]);
+  let invoked = 0;
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  assert.equal(result.status, 'output_invalid');
+  assert.equal(invoked, 0);
+  assert.equal(result.errors[0]?.code, 'TOOL_SCHEMA_VALIDATION_FAILED');
+});
+
+test('v2 rejects empty parallel tool call batches before invoking any tool', async () => {
+  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [[]] })]);
+  let invoked = 0;
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  assert.equal(result.status, 'output_invalid');
+  assert.equal(invoked, 0);
+});
+
+test('v2 rejects maxToolCalls before invoking any tool', async () => {
+  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-a', name: 'read_record', arguments: { logicalId: 'a' } }, { id: 'call-b', name: 'read_record', arguments: { logicalId: 'b' } }] })]);
+  let invoked = 0;
+  const result = await completeV2(v2Request({ autoInvokeTools: true, maxToolCalls: 1 }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  assert.equal(result.status, 'unvalidated');
+  assert.equal(invoked, 0);
+  assert.equal(result.toolCalls, 0);
+});
+
+test('v2 requires a ToolInvoker when autoInvokeTools is enabled', async () => {
+  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-1', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2 });
+  assert.equal(result.status, 'configuration_error');
+  assert.equal(result.errors[0]?.code, 'CONFIGURATION_INVALID');
+});
+
+test('v2 converts tool failures into bounded error results and continues', async () => {
+  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-fail', name: 'read_record', arguments: { logicalId: 'a' } }] }), JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { throw new Error('secret=hidden'); } } });
+  assert.equal(result.status, 'success');
+  assert.equal(provider.calls[1]?.toolResults[0]?.status, 'error');
+  assert.doesNotMatch(JSON.stringify(provider.calls[1]?.toolResults), /secret=hidden/u);
+});
+
+test('v2 forwards the abort signal to each tool invocation', async () => {
+  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-abort', name: 'read_record', arguments: { logicalId: 'a' } }] }), JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
+  const controller = new AbortController();
+  let received: AbortSignal | undefined;
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, signal: controller.signal, toolInvoker: { invoke: async (_call, context) => { received = context.signal; return {}; } } });
+  assert.equal(result.status, 'success');
+  assert.equal(received, controller.signal);
+});
+
 test('treats long literal task and system prompt values as literals', async () => {
   const provider = new SequenceProvider(['ok']);
   const longLiteral = 'word '.repeat(100);
