@@ -28,6 +28,7 @@ export type {
   LlmError,
   LlmOutput,
   LlmProvider,
+  LlmProviderV2,
   LlmRequest,
   LlmResponse,
   NormalizedRequest,

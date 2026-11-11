@@ -8,7 +8,7 @@ import { main as cliMain } from '../src/cli.js';
 import { composePrompt } from '../src/prompt.js';
 import { normalizeRequest, normalizeRequestV2 } from '../src/normalize.js';
 import { OpenRouterProvider } from '../src/provider.js';
-import type { ILlmProvider, LlmProvider, ProviderCompletionRequest } from '../src/types.js';
+import type { ILlmProvider, LlmProvider, ProviderCompletionRequest, ProviderCompletionRequestV2 } from '../src/types.js';
 
 const schema = 'https://schemas.handschuh.dev/llm/request/v1';
 const schemaV2 = 'https://schemas.handschuh.dev/llm/request/v2';
@@ -312,6 +312,49 @@ test('OpenRouterProvider sends base64 images as image_url content parts', async 
     assert.equal(content[1].type, 'image_url');
     assert.equal(content[1].image_url?.url, `data:image/png;base64,${pngBytes.toString('base64')}`);
     assert.equal(content[1].image_url?.detail, 'high');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('OpenRouterProvider maps v2 tools, tool results, and native tool calls', async () => {
+  const originalFetch = globalThis.fetch;
+  let body: { tools?: unknown[]; messages?: Array<Record<string, unknown>> } | undefined;
+  globalThis.fetch = async (_input, init) => {
+    body = JSON.parse(String(init?.body)) as { tools?: unknown[]; messages?: Array<Record<string, unknown>> };
+    return new Response(JSON.stringify({ choices: [{ message: { content: null, tool_calls: [{ id: 'call-read-1', function: { name: 'read_record', arguments: '{"logicalId":"record-a"}' } }] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    const provider = new OpenRouterProvider();
+    const request: ProviderCompletionRequestV2 = {
+      provider: 'openrouter',
+      model: 'openai/gpt-5.6-luna',
+      thinking: 'low',
+      systemPrompt: 'Use tools.',
+      llmPrompt: '<llmPrompt />',
+      files: [],
+      credentials: { apiKey: 'test-key' },
+      tools: [{ name: 'read_record', description: 'Read a record.', inputSchema: { type: 'object', properties: { logicalId: { type: 'string' } } } }],
+      toolResults: [{ callId: 'call-prior', name: 'previous_tool', status: 'success', value: { ok: true } }],
+    };
+    const result = await provider.completeV2(request);
+    assert.deepEqual(result.toolCalls, [{ id: 'call-read-1', name: 'read_record', arguments: { logicalId: 'record-a' } }]);
+    assert.equal(result.content, null);
+    assert.equal((body?.tools?.[0] as { type?: string }).type, 'function');
+    assert.equal((body?.messages?.[2] as { role?: string; tool_call_id?: string }).role, 'tool');
+    assert.equal((body?.messages?.[2] as { tool_call_id?: string }).tool_call_id, 'call-prior');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('OpenRouterProvider rejects malformed native tool arguments', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: null, tool_calls: [{ id: 'call-bad', function: { name: 'read_record', arguments: '{' } }] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+  try {
+    await assert.rejects(() => new OpenRouterProvider().completeV2({
+      provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Use tools.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, tools: [], toolResults: [],
+    }), /invalid JSON tool arguments/u);
   } finally {
     globalThis.fetch = originalFetch;
   }

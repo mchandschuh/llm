@@ -150,6 +150,10 @@ export interface LlmProvider {
   complete(request: ProviderCompletionRequest): Promise<string>;
 }
 
+export interface LlmProviderV2 extends LlmProvider {
+  completeV2(request: ProviderCompletionRequestV2): Promise<ProviderCompletionResponse>;
+}
+
 export interface ToolInvocationContext {
   readonly callId: string;
   readonly toolName: string;
@@ -207,7 +211,10 @@ export type ErrorCode =
   | 'OUTPUT_JSON_INVALID'
   | 'OUTPUT_SCHEMA_VALIDATION_FAILED'
   | 'ATTEMPTS_EXHAUSTED'
-  | 'OUTPUT_INVALID';
+  | 'OUTPUT_INVALID'
+  | 'TOOL_CALL_INVALID'
+  | 'TOOL_SCHEMA_INVALID'
+  | 'TOOL_RESULT_INVALID';
 
 export type ErrorPhase =
   | 'request'
