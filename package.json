@@ -1,6 +1,6 @@
 {
   "name": "llm",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Provider-agnostic structured LLM completion CLI and library.",
   "type": "module",
   "private": true,
