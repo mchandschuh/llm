@@ -4,7 +4,7 @@ taskUid: WI-0001-80000000
 orderKey: "80000000"
 parentTaskUid: WI-0001-00000000
 taskType: validation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Validate bounded llm tool calling
 objective: Validate bounded llm tool calling.
 references:
@@ -58,7 +58,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
@@ -150,36 +150,69 @@ task:
       - Do not execute real tools.
       - Do not claim downstream integration or production readiness.
   result:
-    status: blocked
-    summary: Validation task prepared; execution is pending implementation and
-      test-strategy completion.
+    status: passed
+    summary: All deterministic Step 06 validation procedures passed after the
+      tool-calling implementation and tests were committed.
     executions:
       - id: EXEC-001
         procedureRef: "#procedure/VAL-001"
-        status: blocked
+        status: passed
         observed:
-          outcome: blocked
-          summary: Execution pending.
+          outcome: passed
+          summary: The seven standalone tool schemas and v2 request schema passed
+            schema-validate. The v2 response schema passed Ajv instance
+            validation; authoring lint reports only the intentional
+            external-protocol field-name exception for $type and tool_calls.
+          exitCode: 0
+          assertions:
+            - Standalone tool-definition, tool-call, parallel-tool-call-batch,
+              tool_calls, and tool-result schemas passed authoring validation.
+            - v2 request schema passed authoring validation.
+            - The response wire contract retains $type and tool_calls as
+              intentional compatibility spellings.
         evidenceTier: static
         evidence:
           - kind: command
-            source: prepared task record
-            claim: The validation procedure is declared but not executed.
+            source: schema-validate
+            claim: The v2 schema set was validated.
+            command: schema-validate schemas/tool-definition/v1/tool-definition.schema.json
+              schemas/tool-call/v1/tool-call.schema.json
+              schemas/parallel-tool-call-batch/v1/parallel-tool-call-batch.schema.json
+              schemas/tool-calls/v1/tool-calls.schema.json
+              schemas/tool-result/v1/tool-result.schema.json
+              schemas/request/v2/request.schema.json --json
+            path: schemas/
       - id: EXEC-002
         procedureRef: "#procedure/VAL-002"
-        status: blocked
+        status: passed
         observed:
-          outcome: blocked
-          summary: Execution pending.
-        evidenceTier: static
+          outcome: passed
+          summary: npm typecheck, npm test, and npm build passed. The suite reported 26
+            passing tests and no live provider or real tool execution.
+          exitCode: 0
+          assertions:
+            - TypeScript typecheck passed.
+            - 26 tests passed.
+            - Native ESM build passed.
+            - Existing v1 tests passed alongside v2 normalization, provider, and
+              orchestration tests.
+        evidenceTier: cli-audit
         evidence:
           - kind: command
-            source: prepared task record
-            claim: The package validation procedure is declared but not executed.
+            source: package validation
+            claim: The package gates passed.
+            command: npm run typecheck && npm test && npm run build
+            path: src/
     findings: []
-    evidenceTier: static
+    evidenceTier: cli-audit
     limitations:
-      - No validation procedure has executed yet.
+      - Schema authoring emits non-fatal uri-format warnings because the
+        validator does not load format plugins.
+      - The response schema authoring tool reports the intentional $type and
+        tool_calls external-protocol naming exception.
+      - No authenticated provider, production, deployment, downstream
+        integration, or real tool side-effect evidence was collected.
     nonClaims:
-      - This preparation record does not claim passing tests or implementation
-        correctness.
+      - This validation does not claim OpenRouter availability.
+      - This validation does not claim production readiness.
+      - This validation does not authorize real tool execution.
