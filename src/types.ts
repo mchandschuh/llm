@@ -214,6 +214,7 @@ export type ErrorCode =
   | 'OUTPUT_INVALID'
   | 'TOOL_CALL_INVALID'
   | 'TOOL_SCHEMA_INVALID'
+  | 'TOOL_SCHEMA_VALIDATION_FAILED'
   | 'TOOL_RESULT_INVALID';
 
 export type ErrorPhase =
@@ -223,6 +224,8 @@ export type ErrorPhase =
   | 'provider'
   | 'output-parsing'
   | 'output-validation'
+  | 'tool-validation'
+  | 'tool-invocation'
   | 'retry';
 
 export interface LlmError {

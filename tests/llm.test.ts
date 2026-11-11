@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { complete } from '../src/index.js';
+import { complete, completeV2 } from '../src/index.js';
 import { main as cliMain } from '../src/cli.js';
 import { composePrompt } from '../src/prompt.js';
 import { normalizeRequest, normalizeRequestV2 } from '../src/normalize.js';
@@ -64,6 +64,61 @@ test('rejects duplicate v2 tool names before provider use', async () => {
       { name: 'read_record', description: 'Read another record.', inputSchema: { type: 'object' } },
     ],
   }, { configurationRoot: process.cwd() }), /Tool names must be unique/u);
+});
+
+class V2SequenceProvider implements LlmProvider {
+  private readonly sequence: readonly string[];
+  readonly calls: ProviderCompletionRequest[] = [];
+  constructor(sequence: readonly string[]) { this.sequence = sequence; }
+  async complete(request: ProviderCompletionRequest): Promise<string> { this.calls.push(request); return this.sequence[this.calls.length - 1] ?? this.sequence.at(-1) ?? ''; }
+  async completeV2(request: ProviderCompletionRequestV2): Promise<import('../src/types.js').ProviderCompletionResponse> {
+    this.calls.push(request);
+    const value = JSON.parse(this.sequence[this.calls.length - 1] ?? this.sequence.at(-1) ?? '{}') as { content?: string | null; toolCalls?: unknown[] };
+    return { content: value.content ?? null, toolCalls: (value.toolCalls ?? []) as import('../src/types.js').ToolCall[] };
+  }
+}
+
+const v2Request = (overrides: Record<string, unknown> = {}) => ({
+  schema: schemaV2,
+  task: 'Inspect records.',
+  systemPrompt: 'Use tools only when needed.',
+  tools: [{ name: 'read_record', description: 'Read one record.', inputSchema: { type: 'object', required: ['logicalId'], properties: { logicalId: { type: 'string' } } } }],
+  outputSchema: JSON.stringify({ type: 'object', required: ['ok'], additionalProperties: false, properties: { ok: { type: 'boolean' } } }),
+  ...overrides,
+});
+
+test('v2 manual mode returns pending parallel tool call batches without invoking tools', async () => {
+  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-1', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
+  let invoked = 0;
+  const result = await completeV2(v2Request(), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  assert.equal(result.status, 'tool_calls_pending');
+  assert.equal(invoked, 0);
+  assert.equal(result.toolCalls, 1);
+});
+
+test('v2 tool-round-limit violation is unvalidated and invokes zero calls', async () => {
+  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-1', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
+  let invoked = 0;
+  const result = await completeV2(v2Request({ autoInvokeTools: true, maxToolRounds: 0 }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  assert.equal(result.status, 'unvalidated');
+  assert.equal(invoked, 0);
+  assert.equal(result.toolRounds, 0);
+});
+
+test('v2 automatic invocation runs calls in parallel within each batch and batches sequentially', async () => {
+  const provider = new V2SequenceProvider([
+    JSON.stringify({ toolCalls: [{ id: 'call-a', name: 'read_record', arguments: { logicalId: 'a' } }, { id: 'call-b', name: 'read_record', arguments: { logicalId: 'b' } }] }),
+    JSON.stringify({ content: '{"ok":true}', toolCalls: [] }),
+  ]);
+  const active: string[] = [];
+  let maxActive = 0;
+  const result = await completeV2(v2Request({ autoInvokeTools: true, maxToolRounds: 3 }), {
+    provider: provider as unknown as import('../src/types.js').LlmProviderV2,
+    toolInvoker: { invoke: async (call) => { active.push(call.id); maxActive = Math.max(maxActive, active.length); await new Promise((resolve) => setTimeout(resolve, call.id === 'call-a' ? 5 : 1)); active.splice(active.indexOf(call.id), 1); return { id: call.id }; } },
+  });
+  assert.equal(result.status, 'success');
+  assert.equal(maxActive, 2);
+  assert.equal(result.toolRounds, 1);
 });
 
 test('treats long literal task and system prompt values as literals', async () => {

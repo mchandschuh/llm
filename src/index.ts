@@ -1,4 +1,4 @@
-export { complete } from './complete.js';
+export { complete, completeV2 } from './complete.js';
 export { composePrompt, composeCorrectionPrompt, composeRequestPrompt } from './prompt.js';
 export { normalizeRequest, normalizeRequestV2 } from './normalize.js';
 export { OpenRouterProvider } from './provider.js';
