@@ -4,7 +4,7 @@ taskUid: WI-0001-20000000
 orderKey: "20000000"
 parentTaskUid: WI-0001-00000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement provider-native tool transport
 objective: Implement provider-native tool transport.
 references:
@@ -59,7 +59,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -104,23 +104,46 @@ task:
       - Map OpenRouter tools and tool messages.
       - Test native calls, malformed arguments, and mocked transport.
   result:
-    status: blocked
+    status: implemented
     implementation:
-      summary: Prepared provider transport implementation task; execution is pending.
+      summary: Implemented ProviderCompletionRequestV2/Response, OpenRouter native
+        tools and tool messages, and malformed-call normalization tests.
       changes:
         - id: CHANGE-001
-          type: documentation
-          summary: Prepared the governed task record; production execution is pending.
+          type: production-code
+          summary: Implemented ProviderCompletionRequestV2/Response, OpenRouter native
+            tools and tool messages, and malformed-call normalization tests.
           objectiveRefs:
             - OBJ-001
           paths:
-            - .docs/work-items/WI-0001/steps/
-      testImplementations: []
+            - src/provider.ts
+            - src/types.ts
+            - tests/llm.test.ts
+      testImplementations:
+        - testCaseRef: "#test-case/TC-005"
+          path: tests/llm.test.ts
+          selector: OpenRouterProvider maps v2 tools and malformed arguments
     verification:
-      status: not-run
+      status: passed
       objectiveRefs:
         - OBJ-001
-      tests: []
+      tests:
+        - id: EXEC-001
+          type: unit
+          testCaseRefs:
+            - "#test-case/TC-005"
+          command: npm test
+          status: passed
+          result: The package test suite passed with the step-specific tool-calling
+            assertions.
+        - id: EXEC-002
+          type: static
+          testCaseRefs:
+            - "#test-case/TC-005"
+          command: npm run typecheck && npm run build
+          status: passed
+          result: TypeScript typecheck and native ESM build passed.
     limitations:
-      - This prepared task has not executed its implementation, review, or
-        validation procedures.
+      - No live provider call or real tool side effect was performed.
+      - The complete package validation and review evidence are recorded by
+        later WI-0001 steps.
