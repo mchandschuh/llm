@@ -92,7 +92,7 @@ async function invokeParallelToolBatch(request: NormalizedRequestV2, options: Co
   }));
 }
 
-export async function completeV2(request: LlmRequestV2 | unknown, options: CompletionOptionsV2 = {}): Promise<LlmResponseV2> {
+async function completeV2Internal(request: LlmRequestV2 | unknown, options: CompletionOptionsV2 = {}): Promise<LlmResponseV2> {
   let normalized: NormalizedRequestV2;
   try {
     normalized = await normalizeRequestV2(request, options);
@@ -156,7 +156,7 @@ export async function completeV2(request: LlmRequestV2 | unknown, options: Compl
   return v2Response('output_invalid', null, failedAttempts, iterations, toolRounds, totalToolCalls, [toolFailure('OUTPUT_INVALID', 'Provider output did not satisfy the configured output schema.', 'output-validation')]);
 }
 
-export async function complete(request: LlmRequest | unknown, options: CompletionOptions = {}): Promise<LlmResponse> {
+async function completeV1Internal(request: LlmRequest | unknown, options: CompletionOptions = {}): Promise<LlmResponse> {
   let normalized: NormalizedRequest;
   try {
     normalized = await normalizeRequest(request, options);
@@ -206,4 +206,15 @@ export async function complete(request: LlmRequest | unknown, options: Completio
 
   const failure = lastOutputFailure ?? new LlmFailure('OUTPUT_INVALID', 'output-validation', 'Provider output did not satisfy the configured output schema.');
   return response('output_invalid', null, failedAttempts, iterations, [errorFromFailure(failure)]);
+}
+
+export async function complete(request: LlmRequest | LlmRequestV2 | unknown, options: CompletionOptions | CompletionOptionsV2 = {}): Promise<LlmResponse | LlmResponseV2> {
+  if (request && typeof request === 'object' && (request as { schema?: unknown }).schema === 'https://schemas.handschuh.dev/llm/request/v2') {
+    return completeV2Internal(request, options as CompletionOptionsV2);
+  }
+  return completeV1Internal(request, options as CompletionOptions);
+}
+
+export async function completeV2(request: LlmRequestV2 | unknown, options: CompletionOptionsV2 = {}): Promise<LlmResponseV2> {
+  return completeV2Internal(request, options);
 }

@@ -139,6 +139,32 @@ test('exposes the normalized completion service through ILlmProvider', async () 
   assert.equal(result.output?.$type, 'string');
 });
 
+test('unified complete dispatches v1 and v2 requests to matching response schemas', async () => {
+  const v1 = await complete({ schema, task: 'task', systemPrompt: 'system' }, { provider: new SequenceProvider(['ok']) });
+  const v2 = await complete(v2Request(), { provider: new V2SequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]) as unknown as import('../src/types.js').LlmProviderV2 });
+  assert.equal(v1.schema, 'https://schemas.handschuh.dev/llm/response/v1');
+  assert.equal(v2.schema, 'https://schemas.handschuh.dev/llm/response/v2');
+  assert.equal(v2.status, 'success');
+});
+
+test('unified complete routes malformed known v2 requests to response/v2', async () => {
+  const result = await complete({ schema: schemaV2, task: '', systemPrompt: 'system' }, { provider: new V2SequenceProvider([]) as unknown as import('../src/types.js').LlmProviderV2 });
+  assert.equal(result.schema, 'https://schemas.handschuh.dev/llm/response/v2');
+  assert.equal(result.status, 'input_invalid');
+});
+
+test('unified complete rejects an unknown request schema without mislabeling it as v2', async () => {
+  const result = await complete({ schema: 'https://schemas.handschuh.dev/llm/request/v9', task: 'task', systemPrompt: 'system' } as never, { provider: new SequenceProvider(['ok']) });
+  assert.equal(result.schema, 'https://schemas.handschuh.dev/llm/response/v1');
+  assert.equal(result.status, 'input_invalid');
+});
+
+test('ILlmProvider accepts a v2 request and returns response/v2', async () => {
+  const service: ILlmProvider = { complete };
+  const result = await service.complete(v2Request(), { provider: new V2SequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]) as unknown as import('../src/types.js').LlmProviderV2 });
+  assert.equal(result.schema, 'https://schemas.handschuh.dev/llm/response/v2');
+});
+
 test('ILlmProvider performs bounded output-schema correction iterations', async () => {
   const outputSchema = JSON.stringify({
     $id: 'https://example.test/act-result',

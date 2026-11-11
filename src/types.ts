@@ -275,6 +275,7 @@ export interface LlmResponseV2 {
  */
 export interface ILlmProvider {
   complete(request: LlmRequest, options?: CompletionOptions): Promise<LlmResponse>;
+  complete(request: LlmRequestV2, options?: CompletionOptionsV2): Promise<LlmResponseV2>;
 }
 
 export interface CompletionOptions {
@@ -287,6 +288,10 @@ export interface CompletionOptionsV2 extends CompletionOptions {
   readonly toolInvoker?: ToolInvoker;
   readonly signal?: AbortSignal;
 }
+
+export type AnyLlmRequest = LlmRequest | LlmRequestV2;
+export type AnyLlmResponse = LlmResponse | LlmResponseV2;
+export type AnyCompletionOptions = CompletionOptions | CompletionOptionsV2;
 
 export interface PromptParts {
   readonly task: string;
