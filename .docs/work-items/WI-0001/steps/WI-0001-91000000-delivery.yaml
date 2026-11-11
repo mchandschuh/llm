@@ -4,7 +4,7 @@ taskUid: WI-0001-91000000
 orderKey: "91000000"
 parentTaskUid: WI-0001-00000000
 taskType: delivery
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Record bounded llm tool-calling delivery
 objective: Record bounded llm tool-calling delivery.
 references:
@@ -59,7 +59,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/result
@@ -108,23 +108,33 @@ task:
       - Do not deploy to production.
       - Do not perform live provider calls.
   result:
-    status: blocked
-    summary: Delivery task prepared; execution is pending validation and review.
+    status: delivered
+    summary: The bounded tool-calling package changes and work-item evidence were
+      delivered through the ordered WI-0001 commit chain and a final native-ESM
+      build.
     artifacts:
       - id: ART-001
         kind: package
         path: dist/
-        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+        checksum: sha256:21ec4be6d1f17e2d3530ba13f9beefa4e4b2d0f660b9c6dd266b10c16a359837
       - id: ART-002
         kind: manifest
         path: package-lock.json
-        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+        checksum: sha256:e966ac0367f3acc05914c5db23e020c84952f5f73d8fd2a85f5bb32751b37b1a
     executions:
       - id: EXEC-001
         procedureRef: "#procedure/PROC-001"
         result:
-          status: blocked
-          summary: Execution pending.
+          status: passed
+          summary: The committed revision built successfully and required public package
+            exports were present.
+          assertions:
+            - The WI-0001 commit chain is present through review commit cd9b214.
+            - npm run build passed.
+            - dist/index.js, dist/complete.js, and dist/provider.js were
+              produced.
         command: npm run build
     limitations:
-      - No delivery procedure has executed yet.
+      - The package was delivered locally and was not published to a registry.
+      - No authenticated provider, production deployment, downstream
+        integration, or real tool side effect was performed.
