@@ -2,8 +2,10 @@
 
 ## Status
 
-`active` — implementation is being performed as ordered, scoped commits in the
-repository-local work-item record.
+`complete` for the bounded local package scope. The ordered design, implementation,
+test-strategy, validation, review, and delivery records are committed. This status does
+not claim authenticated provider availability, production readiness, or downstream
+integration.
 
 ## Authority
 
@@ -43,6 +45,31 @@ repository-local work-item record.
 Each step is designed, implemented where applicable, reviewed, tested, reviewed again,
 and committed with its exact governed subject. A later step may not silently repair an
 earlier step's scope without recording the correction.
+
+## Commit chain
+
+| Stage | Commit |
+| --- | --- |
+| Preparation | `a064f6e` — `WI-0001: prepare bounded llm tool calling` |
+| Design | `aee8c37` — `WI-0001: 01: design(llm): define bounded tool calling` |
+| Schemas/types | `695319f` — `WI-0001: 02: feat(llm): add tool calling contracts` |
+| Provider transport | `16b669d` — `WI-0001: 03: feat(llm): add provider tool transport` |
+| Orchestration | `1989dac` — `WI-0001: 04: feat(llm): add bounded tool orchestration` |
+| Test strategy | `169bfa9` — `WI-0001: 05: test(llm): define tool calling evidence` |
+| Validation | `e0c6af4` — `WI-0001: 06: test(llm): validate bounded tool calling` |
+| Review | `cd9b214` — `WI-0001: 07: review(llm): assess bounded tool calling` |
+| Delivery | `8ea39d8` — `WI-0001: 08: chore(llm): record tool calling delivery` |
+
+## Evidence summary
+
+- Existing v1 tests remain passing.
+- v2 normalization, duplicate-tool rejection, provider transport, malformed native
+  arguments, manual pending mode, zero-execution round-limit violation, and parallel
+  tool-call behavior are covered by 26 provider-free tests.
+- `npm run typecheck`, `npm test`, and `npm run build` passed after the final implementation.
+- Standalone tool schemas, v2 request schema, and task records were validated with
+  `schema-validate`. The response schema retains `$type` and `tool_calls` as intentional
+  external-protocol spellings; the authoring validator reports those naming findings.
 
 ## Explicit non-claims
 

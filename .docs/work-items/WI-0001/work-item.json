@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0001",
-  "status": "active",
+  "status": "complete",
   "title": "Add bounded tool calling to the structured llm package",
   "type": "feature",
   "objective": "Extend the standalone llm package with versioned tool definitions, normalized tool calls, parallel tool call batches, optional automatic tool invocation, OpenRouter tool transport, and schema-validated tool-aware responses while preserving llm/request/v1 and llm/response/v1 behavior.",
