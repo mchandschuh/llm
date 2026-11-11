@@ -4,7 +4,7 @@ taskUid: WI-0001-70000000
 orderKey: "70000000"
 parentTaskUid: WI-0001-00000000
 taskType: test-strategy
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Define deterministic tool-calling evidence strategy
 objective: Define deterministic tool-calling evidence strategy.
 references:
@@ -55,7 +55,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/result
@@ -412,7 +412,7 @@ task:
       - TC-007
     recommendedTestCaseRefs: []
     evidenceLimitations:
-      - This strategy defines evidence but does not claim that tests have
-        executed.
+      - The strategy defines deterministic evidence but does not itself claim
+        that tests passed.
       - No live provider, production, deployment, or real tool execution
         evidence is in scope.
