@@ -1,6 +1,6 @@
 import { composeCorrectionPrompt, composeRequestPrompt } from './prompt.js';
 import { OpenRouterProvider } from './provider.js';
-import { assertMatchesSchema, parseSchema, parseTaskJson, validateResponse } from './schema.js';
+import { assertMatchesSchema, parseSchema, parseTaskJson, validateResponse, validateResponseV2 } from './schema.js';
 import { boundedMessage, errorFromFailure, LlmFailure } from './errors.js';
 import { normalizeRequest } from './normalize.js';
 import type { CompletionOptions, CompletionOptionsV2, LlmError, LlmOutput, LlmRequest, LlmRequestV2, LlmResponse, LlmResponseV2, LlmProvider, LlmProviderV2, NormalizedRequest, NormalizedRequestV2, ProviderCompletionResponse, ToolCall, ToolCalls, ToolResult } from './types.js';
@@ -40,11 +40,12 @@ function validationMessages(failure: LlmFailure): string[] {
 
 function v2Response(status: LlmResponseV2['status'], output: LlmResponseV2['output'], failedAttempts: number, iterations: number, toolRounds: number, toolCalls: number, errors: readonly LlmError[]): LlmResponseV2 {
   const result: LlmResponseV2 = { schema: RESPONSE_SCHEMA_V2, status, output, failedAttempts, iterations, toolRounds, toolCalls, errors: errors.slice(0, 10) };
+  validateResponseV2(result);
   return result;
 }
 
 function toolAwareOutput(value: { readonly output: unknown; readonly tool_calls: ToolCalls }): LlmResponseV2['output'] {
-  return { type: 'object', schema: 'https://schemas.handschuh.dev/llm/output/v2', value };
+  return { $type: 'object', schema: { name: 'https://schemas.handschuh.dev/llm/output/v2' }, value };
 }
 
 function toolFailure(code: string, message: string, phase: LlmError['phase'] = 'tool-validation'): LlmError {
@@ -127,7 +128,7 @@ export async function completeV2(request: LlmRequestV2 | unknown, options: Compl
       if (failedAttempts >= normalized.maxFailedAttempts) return v2Response('attempts_exhausted', null, failedAttempts, iterations, toolRounds, totalToolCalls, [errorFromFailure(new Failure('ATTEMPTS_EXHAUSTED', 'retry', 'The provider failure-attempt limit was exhausted.'))]);
       continue;
     }
-    const calls: ToolCalls = providerResult.toolCalls.length > 0 ? [providerResult.toolCalls] : [];
+    const calls: ToolCalls = providerResult.toolCalls;
     if (calls.length > 0) {
       try { validateToolCalls(normalized, calls, toolRounds); } catch (error) {
         const failure = error instanceof Failure ? error : new Failure('TOOL_CALL_INVALID', 'tool-validation', 'The provider tool-call response was not validated.');
@@ -145,7 +146,7 @@ export async function completeV2(request: LlmRequestV2 | unknown, options: Compl
     }
     try {
       const text = providerResult.content ?? '';
-      if (!outputSchema) return v2Response('success', { type: 'object', schema: 'https://schemas.handschuh.dev/llm/output/v2', value: { output: text, tool_calls: [] } }, failedAttempts, iterations, toolRounds, totalToolCalls, []);
+      if (!outputSchema) return v2Response('success', { $type: 'string', schema: null, value: text }, failedAttempts, iterations, toolRounds, totalToolCalls, []);
       const parsed = JSON.parse(text) as unknown;
       assertMatchesSchema(parsed, outputSchema, 'OUTPUT_SCHEMA_VALIDATION_FAILED', 'output-validation');
       return v2Response('success', toolAwareOutput({ output: parsed, tool_calls: [] }), failedAttempts, iterations, toolRounds, totalToolCalls, []);

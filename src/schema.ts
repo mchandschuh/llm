@@ -88,7 +88,7 @@ export function parseTaskJson(source: string): unknown {
   }
 }
 
-export function assertMatchesSchema(value: unknown, loaded: LoadedSchema, code: 'TASK_SCHEMA_VALIDATION_FAILED' | 'OUTPUT_SCHEMA_VALIDATION_FAILED', phase: 'request' | 'output-validation'): void {
+export function assertMatchesSchema(value: unknown, loaded: LoadedSchema, code: 'TASK_SCHEMA_VALIDATION_FAILED' | 'OUTPUT_SCHEMA_VALIDATION_FAILED' | 'TOOL_SCHEMA_VALIDATION_FAILED', phase: 'request' | 'output-validation' | 'tool-validation'): void {
   if (!loaded.validator(value)) {
     const errors = validationErrors(loaded.validator.errors)
       .map((error) => `${error.instancePath || '/'} ${error.message}`)

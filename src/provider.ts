@@ -131,7 +131,7 @@ export class OpenRouterProvider implements LlmProviderV2 {
       const toolCalls = normalizedToolCalls(message);
       const content = contentOrNull(message);
       if (content === null && toolCalls.length === 0) throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider returned neither content nor tool calls.');
-      return { content, toolCalls };
+      return { content, toolCalls: toolCalls.length > 0 ? [toolCalls] : [] };
     } catch (error) {
       if (error instanceof LlmFailure) throw error;
       throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', boundedMessage('The provider returned an invalid response envelope.'));

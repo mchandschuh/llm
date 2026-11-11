@@ -73,8 +73,9 @@ class V2SequenceProvider implements LlmProvider {
   async complete(request: ProviderCompletionRequest): Promise<string> { this.calls.push(request); return this.sequence[this.calls.length - 1] ?? this.sequence.at(-1) ?? ''; }
   async completeV2(request: ProviderCompletionRequestV2): Promise<import('../src/types.js').ProviderCompletionResponse> {
     this.calls.push(request);
-    const value = JSON.parse(this.sequence[this.calls.length - 1] ?? this.sequence.at(-1) ?? '{}') as { content?: string | null; toolCalls?: unknown[] };
-    return { content: value.content ?? null, toolCalls: (value.toolCalls ?? []) as import('../src/types.js').ToolCall[] };
+    const value = JSON.parse(this.sequence[this.calls.length - 1] ?? this.sequence.at(-1) ?? '{}') as { content?: string | null; toolCalls?: unknown[] | unknown[][] };
+    const rawCalls = value.toolCalls ?? [];
+    return { content: value.content ?? null, toolCalls: Array.isArray(rawCalls[0]) ? rawCalls as import('../src/types.js').ToolCalls : (rawCalls.length > 0 ? [rawCalls as import('../src/types.js').ToolCall[]] : []) };
   }
 }
 
@@ -393,7 +394,7 @@ test('OpenRouterProvider maps v2 tools, tool results, and native tool calls', as
       toolResults: [{ callId: 'call-prior', name: 'previous_tool', status: 'success', value: { ok: true } }],
     };
     const result = await provider.completeV2(request);
-    assert.deepEqual(result.toolCalls, [{ id: 'call-read-1', name: 'read_record', arguments: { logicalId: 'record-a' } }]);
+    assert.deepEqual(result.toolCalls, [[{ id: 'call-read-1', name: 'read_record', arguments: { logicalId: 'record-a' } }]]);
     assert.equal(result.content, null);
     assert.equal((body?.tools?.[0] as { type?: string }).type, 'function');
     assert.equal((body?.messages?.[2] as { role?: string; tool_call_id?: string }).role, 'tool');

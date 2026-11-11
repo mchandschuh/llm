@@ -144,7 +144,7 @@
       "additionalProperties": false,
       "description": "Raw text returned when no structured output schema applies.",
       "required": [
-        "type",
+        "$type",
         "schema",
         "value"
       ],
@@ -163,9 +163,9 @@
             "The work is ready."
           ]
         },
-        "type": {
+        "$type": {
           "const": "string",
-          "description": "Output type marker.",
+          "description": "Effective JSON type marker.",
           "examples": [
             "string"
           ]
@@ -175,7 +175,7 @@
         {
           "schema": null,
           "value": "The work is ready.",
-          "type": "string"
+          "$type": "string"
         }
       ]
     },
@@ -268,17 +268,18 @@
       "additionalProperties": false,
       "description": "Typed output containing business output and the complete tool_calls collection.",
       "required": [
-        "type",
+        "$type",
         "schema",
         "value"
       ],
       "properties": {
         "schema": {
-          "type": "string",
-          "format": "uri",
-          "description": "Effective tool-aware output schema URI.",
+          "$ref": "#/$defs/SchemaMetadata",
+          "description": "Effective tool-aware output schema.",
           "examples": [
-            "https://schemas.handschuh.dev/llm/output/v2"
+            {
+              "name": "https://schemas.handschuh.dev/llm/output/v2"
+            }
           ]
         },
         "value": {
@@ -311,9 +312,9 @@
             }
           ]
         },
-        "type": {
+        "$type": {
           "const": "object",
-          "description": "Output type marker.",
+          "description": "Effective JSON type marker.",
           "examples": [
             "object"
           ]
@@ -321,12 +322,14 @@
       },
       "examples": [
         {
-          "schema": "https://schemas.handschuh.dev/llm/output/v2",
+          "schema": {
+            "name": "https://schemas.handschuh.dev/llm/output/v2"
+          },
           "value": {
             "output": null,
             "tool_calls": []
           },
-          "type": "object"
+          "$type": "object"
         }
       ]
     },
@@ -390,7 +393,9 @@
       "schema": "https://schemas.handschuh.dev/llm/response/v2",
       "status": "tool_calls_pending",
       "output": {
-        "schema": "https://schemas.handschuh.dev/llm/output/v2",
+        "schema": {
+          "name": "https://schemas.handschuh.dev/llm/output/v2"
+        },
         "value": {
           "output": null,
           "tool_calls": [
@@ -405,7 +410,7 @@
             ]
           ]
         },
-        "type": "object"
+        "$type": "object"
       },
       "failedAttempts": 0,
       "iterations": 1,

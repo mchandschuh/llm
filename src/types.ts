@@ -143,7 +143,7 @@ export interface ProviderCompletionRequestV2 extends ProviderCompletionRequest {
 
 export interface ProviderCompletionResponse {
   readonly content: string | null;
-  readonly toolCalls: readonly ToolCall[];
+  readonly toolCalls: ToolCalls;
 }
 
 export interface LlmProvider {
@@ -186,8 +186,8 @@ export interface RawOutput {
 export type LlmOutput = StructuredOutput | RawOutput;
 
 export interface ToolAwareOutput {
-  readonly type: 'object';
-  readonly schema: string;
+  readonly $type: 'object';
+  readonly schema: SchemaMetadata;
   readonly value: {
     readonly output: unknown;
     readonly tool_calls: ToolCalls;
