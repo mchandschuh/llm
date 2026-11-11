@@ -1,0 +1,185 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0001
+taskUid: WI-0001-80000000
+orderKey: "80000000"
+parentTaskUid: WI-0001-00000000
+taskType: validation
+processingStatus: unprocessed
+title: Validate bounded llm tool calling
+objective: Validate bounded llm tool calling.
+references:
+  required:
+    - .docs/work-items/WI-0001/work-item.json
+    - package.json
+    - src/types.ts
+    - src/complete.ts
+    - src/provider.ts
+    - src/schema.ts
+    - schemas/request/v1/request.schema.json
+    - schemas/response/v1/response.schema.json
+  informational:
+    - README.md
+    - SKILL.md
+dependsOn:
+  - WI-0001-30000000
+  - WI-0001-70000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0001/steps/
+  commitSubject: "WI-0001: 06: test(llm): validate bounded tool calling"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments:
+        - run
+        - build
+      expectedExitCode: 0
+    - id: test
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Validate the completed tool-calling implementation and records with
+      deterministic schema, test, build, and CLI procedures.
+    inputs:
+      - id: INPUT-IMPLEMENTATION
+        kind: implementation
+        ref: WI-0001|30000000#result/R-001
+        purpose: Implementation result.
+        required: true
+      - id: INPUT-STRATEGY
+        kind: testStrategy
+        ref: WI-0001|70000000#result/R-001
+        purpose: Required test cases.
+        required: true
+    targets:
+      - id: TARGET-PACKAGE
+        kind: repositoryState
+        ref: "#repository-state/HEAD"
+        purpose: Current package source and artifacts.
+        required: true
+    objectiveRefs:
+      - WI-0001|70000000#objective/OBJ-001
+    testCaseRefs:
+      - WI-0001|70000000#test-case/TC-001
+      - WI-0001|70000000#test-case/TC-002
+      - WI-0001|70000000#test-case/TC-003
+      - WI-0001|70000000#test-case/TC-004
+      - WI-0001|70000000#test-case/TC-005
+      - WI-0001|70000000#test-case/TC-006
+      - WI-0001|70000000#test-case/TC-007
+    procedures:
+      - id: VAL-001
+        sequence: 1
+        name: schema-validation
+        description: Validate v2 schemas and representative instances.
+        reason: Contracts must be syntactically and semantically valid.
+        targetRefs:
+          - "#target/TARGET-PACKAGE"
+        objectiveRefs:
+          - WI-0001|70000000#objective/OBJ-001
+        testCaseRefs:
+          - WI-0001|70000000#test-case/TC-001
+        method:
+          executionMode: executable
+          target: llm schemas
+          steps:
+            - Run schema-validate against schema files and fixtures.
+          command: schema-validate --root . schemas/request/v2/request.schema.json
+            schemas/response/v2/response.schema.json
+        expected:
+          outcome: passed
+        evidenceTier: static
+        required: true
+      - id: VAL-002
+        sequence: 2
+        name: package-validation
+        description: Run tests, typecheck, build, and provider-free CLI checks.
+        reason: Implementation must pass deterministic package gates.
+        targetRefs:
+          - "#target/TARGET-PACKAGE"
+        objectiveRefs:
+          - WI-0001|70000000#objective/OBJ-001
+        testCaseRefs:
+          - WI-0001|70000000#test-case/TC-002
+          - WI-0001|70000000#test-case/TC-003
+          - WI-0001|70000000#test-case/TC-004
+          - WI-0001|70000000#test-case/TC-005
+          - WI-0001|70000000#test-case/TC-006
+          - WI-0001|70000000#test-case/TC-007
+        method:
+          executionMode: executable
+          target: llm package
+          steps:
+            - Run npm test.
+            - Run npm run typecheck.
+            - Run npm run build.
+            - Run llm --help and llm --version without credentials.
+          command: npm test && npm run typecheck && npm run build && node ./bin/cli.js
+            --help
+        expected:
+          outcome: passed
+        evidenceTier: cli-audit
+        required: true
+    nonGoals:
+      - Do not perform live provider calls.
+      - Do not execute real tools.
+      - Do not claim downstream integration or production readiness.
+  result:
+    status: blocked
+    summary: Validation task prepared; execution is pending implementation and
+      test-strategy completion.
+    executions:
+      - id: EXEC-001
+        procedureRef: "#procedure/VAL-001"
+        status: blocked
+        observed:
+          outcome: blocked
+          summary: Execution pending.
+        evidenceTier: static
+        evidence:
+          - kind: command
+            source: prepared task record
+            claim: The validation procedure is declared but not executed.
+      - id: EXEC-002
+        procedureRef: "#procedure/VAL-002"
+        status: blocked
+        observed:
+          outcome: blocked
+          summary: Execution pending.
+        evidenceTier: static
+        evidence:
+          - kind: command
+            source: prepared task record
+            claim: The package validation procedure is declared but not executed.
+    findings: []
+    evidenceTier: static
+    limitations:
+      - No validation procedure has executed yet.
+    nonClaims:
+      - This preparation record does not claim passing tests or implementation
+        correctness.

@@ -1,0 +1,172 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0001",
+  "status": "active",
+  "title": "Add bounded tool calling to the structured llm package",
+  "type": "feature",
+  "objective": "Extend the standalone llm package with versioned tool definitions, normalized tool calls, parallel tool call batches, optional automatic tool invocation, OpenRouter tool transport, and schema-validated tool-aware responses while preserving llm/request/v1 and llm/response/v1 behavior.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0001-llm-tool-calling",
+      "created": false,
+      "rationale": "The work item is implemented as a serial set of scoped commits on the current repository branch unless an operator creates a topic branch before delivery."
+    }
+  },
+  "baseline": "2d5b20625570a33a16b644dd38d6e5e759f81856",
+  "request": {
+    "source": "conversation",
+    "text": "Review llm/* and add bounded tool calling. Support declaring available tools, invoking tools during an llm invocation, autoInvokeTools, parallel tool call batches represented as tool_calls, and common schemas for tool calls, parallel tool call batches, and the complete tool_calls array. A tool-round limit violation is an unvalidated response and must execute no tool calls. Design, implement, review, test, review, and commit each prepared work-item step.",
+    "sha256": "9d9530a6caae684f99068508eed46048bfa3f5e4ebba4152571d20ae0f8b9864"
+  },
+  "scope": [
+    {
+      "name": "versioned-tool-contracts",
+      "description": "Add versioned request/response contracts and reusable schemas for tool definitions, tool calls, parallel tool call batches, tool results, and tool-aware output.",
+      "reason": "The existing v1 request and response objects are closed contracts and must remain backward compatible."
+    },
+    {
+      "name": "provider-tool-transport",
+      "description": "Normalize provider-native tool declarations, tool calls, and tool results through an injected provider boundary and the OpenRouter adapter.",
+      "reason": "Provider wire formats must not leak into callers or tool-invocation policy."
+    },
+    {
+      "name": "bounded-tool-orchestration",
+      "description": "Support manual pending tool calls and optional automatic invocation with sequential batches, parallel calls inside each batch, bounded rounds, bounded calls, abort handling, and fail-closed validation.",
+      "reason": "Tool execution must be deterministic, bounded, and safe when a model requests invalid or excessive work."
+    },
+    {
+      "name": "offline-evidence",
+      "description": "Add provider-injected, mocked-transport, schema, typecheck, build, CLI, and documentation evidence without live provider calls or real tool execution.",
+      "reason": "The package must prove the public boundary without credentials or external side effects."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "v1-contract-mutation",
+      "description": "Do not add tool fields to llm/request/v1 or change llm/response/v1 semantics.",
+      "reason": "Existing consumers depend on the closed v1 contracts.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "unrestricted-execution",
+      "description": "Do not discover tools, execute shell text, resolve arbitrary module paths, make network calls from the tool invoker, or persist tool results.",
+      "reason": "The llm package declares and invokes only the caller-supplied in-memory ToolInvoker boundary.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "downstream-agent-migration",
+      "description": "Do not migrate Vector AgentWork, Cline compatibility, or other downstream consumers in this work item.",
+      "reason": "This work item owns the reusable llm package boundary only.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0001_REQ_001",
+        "name": "preserve-v1",
+        "description": "Existing llm/request/v1 and llm/response/v1 requests, providers, response statuses, and tests remain compatible.",
+        "reason": "The new capability must not silently break current structured-completion consumers.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0001_REQ_001_AC_001",
+            "description": "The existing test suite passes and v1 request/response schema validation remains unchanged."
+          }
+        ]
+      },
+      {
+        "id": "WI-0001_REQ_002",
+        "name": "declare-tools",
+        "description": "A v2 request can declare bounded named tools with descriptions and JSON input schemas, plus autoInvokeTools and a bounded tool-round limit.",
+        "reason": "The model must receive an explicit available-tool contract.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0001_REQ_002_AC_001",
+            "description": "Duplicate names, invalid tool schemas, invalid bounds, and auto-invocation without an invoker fail before provider invocation."
+          }
+        ]
+      },
+      {
+        "id": "WI-0001_REQ_003",
+        "name": "parallel-tool-call-batches",
+        "description": "The public complete tool_calls array contains ordered parallel tool call batches; calls within a batch may run concurrently and batches run sequentially.",
+        "reason": "The contract must reinforce parallel invocation while preserving dependencies between batches.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0001_REQ_003_AC_001",
+            "description": "The schemas and tests use the term parallel tool call batch, preserve input order, and prove inner parallelism with outer sequential ordering."
+          }
+        ]
+      },
+      {
+        "id": "WI-0001_REQ_004",
+        "name": "validate-before-invoke",
+        "description": "Every provider-returned tool-call response is fully validated, including the tool-round budget, before any tool call is executed.",
+        "reason": "A round-limit violation must never partially execute a model response.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0001_REQ_004_AC_001",
+            "description": "When the returned tool_calls structure exceeds the configured tool-round limit, the response is unvalidated, no tool invoker call occurs, and the result identifies the limit violation."
+          }
+        ]
+      },
+      {
+        "id": "WI-0001_REQ_005",
+        "name": "manual-and-auto-modes",
+        "description": "autoInvokeTools false returns validated pending tool calls without executing them; autoInvokeTools true executes only validated calls through the injected invoker and continues bounded model rounds.",
+        "reason": "Callers need both approval/manual orchestration and bounded automatic orchestration modes.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0001_REQ_005_AC_001",
+            "description": "Manual mode returns tool_calls_pending and automatic mode returns terminal success, tool-round exhaustion, or sanitized invocation failure according to the bounded lifecycle."
+          }
+        ]
+      },
+      {
+        "id": "WI-0001_REQ_006",
+        "name": "openrouter-transport",
+        "description": "The OpenRouter adapter maps tool definitions and tool results to provider-native messages and normalizes native tool calls without exposing provider wire details to callers.",
+        "reason": "The built-in provider must support the public contract.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0001_REQ_006_AC_001",
+            "description": "Mocked fetch tests verify declarations, tool calls, tool results, malformed arguments, and credentials without a live request."
+          }
+        ]
+      },
+      {
+        "id": "WI-0001_REQ_007",
+        "name": "bounded-safe-evidence",
+        "description": "Tool invocation is bounded, abortable, sanitized, and covered by deterministic tests, schema validation, typecheck, build, and provider-free CLI checks.",
+        "reason": "A tool-capable library must not become an unbounded agent or leak sensitive data.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0001_REQ_007_AC_001",
+            "description": "The final evidence records passing tests and explicit non-claims for live provider, production, deployment, and downstream integration behavior."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0001/steps/"
+}

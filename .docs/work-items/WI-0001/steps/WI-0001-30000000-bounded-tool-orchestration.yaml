@@ -1,0 +1,144 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0001
+taskUid: WI-0001-30000000
+orderKey: "30000000"
+parentTaskUid: WI-0001-00000000
+taskType: implementation
+processingStatus: unprocessed
+title: Implement bounded tool orchestration
+objective: Implement bounded tool orchestration.
+references:
+  required:
+    - .docs/work-items/WI-0001/work-item.json
+    - package.json
+    - src/types.ts
+    - src/complete.ts
+    - src/provider.ts
+    - src/schema.ts
+    - schemas/request/v1/request.schema.json
+    - schemas/response/v1/response.schema.json
+  informational:
+    - README.md
+    - SKILL.md
+dependsOn:
+  - WI-0001-20000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/complete.ts
+    - src/prompt.ts
+    - src/types.ts
+    - tests/llm.test.ts
+  commitSubject: "WI-0001: 04: feat(llm): add bounded tool orchestration"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments:
+        - run
+        - build
+      expectedExitCode: 0
+    - id: test
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement bounded manual and automatic tool orchestration with
+      sequential parallel tool call batches.
+    changeTypes:
+      - production-code
+      - test-code
+      - schema
+      - documentation
+    changeIntent: feature
+    inputs:
+      - id: INPUT-REQ-001
+        kind: requirement
+        ref: WI-0001|00000000#requirement/WI-0001_REQ_003
+        purpose: Define batch ordering and parallel invocation.
+        required: true
+      - id: INPUT-REQ-002
+        kind: requirement
+        ref: WI-0001|00000000#requirement/WI-0001_REQ_004
+        purpose: Define zero execution on round-limit violation.
+        required: true
+      - id: INPUT-REQ-003
+        kind: requirement
+        ref: WI-0001|00000000#requirement/WI-0001_REQ_005
+        purpose: Define manual and automatic modes.
+        required: true
+      - id: INPUT-DESIGN-001
+        kind: design
+        ref: WI-0001|00000000#result/R-001
+        purpose: Use the bounded lifecycle design.
+        required: true
+    objectives:
+      - id: OBJ-001
+        statement: Implement bounded manual and automatic tool orchestration with
+          sequential parallel tool call batches.
+        inputRefs:
+          - INPUT-REQ-001
+          - INPUT-REQ-002
+          - INPUT-REQ-003
+          - INPUT-DESIGN-001
+        testCaseRefs:
+          - "#test-case/TC-002"
+          - "#test-case/TC-003"
+          - "#test-case/TC-004"
+    ownedPaths:
+      - src/complete.ts
+      - src/prompt.ts
+      - src/types.ts
+      - tests/llm.test.ts
+    nonGoals:
+      - Do not modify llm/request/v1 or llm/response/v1.
+      - Do not make live provider calls or execute real tools.
+    steps:
+      - Implement complete tool-call lifecycle and pending response.
+      - Validate the whole returned structure and round budget before invocation.
+      - Execute calls within each parallel tool call batch concurrently and
+        batches sequentially.
+      - Add bounded, abortable, sanitized result handling and regression tests.
+  result:
+    status: blocked
+    implementation:
+      summary: Prepared orchestration implementation task; execution is pending.
+      changes:
+        - id: CHANGE-001
+          type: documentation
+          summary: Prepared the governed task record; production execution is pending.
+          objectiveRefs:
+            - OBJ-001
+          paths:
+            - .docs/work-items/WI-0001/steps/
+      testImplementations: []
+    verification:
+      status: not-run
+      objectiveRefs:
+        - OBJ-001
+      tests: []
+    limitations:
+      - This prepared task has not executed its implementation, review, or
+        validation procedures.

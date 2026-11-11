@@ -1,0 +1,126 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0001
+taskUid: WI-0001-20000000
+orderKey: "20000000"
+parentTaskUid: WI-0001-00000000
+taskType: implementation
+processingStatus: unprocessed
+title: Implement provider-native tool transport
+objective: Implement provider-native tool transport.
+references:
+  required:
+    - .docs/work-items/WI-0001/work-item.json
+    - package.json
+    - src/types.ts
+    - src/complete.ts
+    - src/provider.ts
+    - src/schema.ts
+    - schemas/request/v1/request.schema.json
+    - schemas/response/v1/response.schema.json
+  informational:
+    - README.md
+    - SKILL.md
+dependsOn:
+  - WI-0001-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/provider.ts
+    - src/types.ts
+    - tests/llm.test.ts
+  commitSubject: "WI-0001: 03: feat(llm): add provider tool transport"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments:
+        - run
+        - build
+      expectedExitCode: 0
+    - id: test
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement provider-native tool declaration, tool-call, and tool-result
+      transport.
+    changeTypes:
+      - production-code
+      - test-code
+      - schema
+      - documentation
+    changeIntent: feature
+    inputs:
+      - id: INPUT-REQ-001
+        kind: requirement
+        ref: WI-0001|00000000#requirement/WI-0001_REQ_006
+        purpose: Define OpenRouter transport behavior.
+        required: true
+      - id: INPUT-DESIGN-001
+        kind: design
+        ref: WI-0001|00000000#result/R-001
+        purpose: Use the provider normalization design.
+        required: true
+    objectives:
+      - id: OBJ-001
+        statement: Implement provider-native tool declaration, tool-call, and
+          tool-result transport.
+        inputRefs:
+          - INPUT-REQ-001
+          - INPUT-DESIGN-001
+        testCaseRefs:
+          - "#test-case/TC-005"
+    ownedPaths:
+      - src/provider.ts
+      - src/types.ts
+      - tests/llm.test.ts
+    nonGoals:
+      - Do not modify llm/request/v1 or llm/response/v1.
+      - Do not make live provider calls or execute real tools.
+    steps:
+      - Extend the provider request and response boundary.
+      - Map OpenRouter tools and tool messages.
+      - Test native calls, malformed arguments, and mocked transport.
+  result:
+    status: blocked
+    implementation:
+      summary: Prepared provider transport implementation task; execution is pending.
+      changes:
+        - id: CHANGE-001
+          type: documentation
+          summary: Prepared the governed task record; production execution is pending.
+          objectiveRefs:
+            - OBJ-001
+          paths:
+            - .docs/work-items/WI-0001/steps/
+      testImplementations: []
+    verification:
+      status: not-run
+      objectiveRefs:
+        - OBJ-001
+      tests: []
+    limitations:
+      - This prepared task has not executed its implementation, review, or
+        validation procedures.

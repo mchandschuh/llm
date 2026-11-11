@@ -1,0 +1,141 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0001
+taskUid: WI-0001-10000000
+orderKey: "10000000"
+parentTaskUid: WI-0001-00000000
+taskType: implementation
+processingStatus: unprocessed
+title: Implement versioned tool-calling schemas and public types
+objective: Implement versioned tool-calling schemas and public types.
+references:
+  required:
+    - .docs/work-items/WI-0001/work-item.json
+    - package.json
+    - src/types.ts
+    - src/complete.ts
+    - src/provider.ts
+    - src/schema.ts
+    - schemas/request/v1/request.schema.json
+    - schemas/response/v1/response.schema.json
+  informational:
+    - README.md
+    - SKILL.md
+dependsOn:
+  - WI-0001-00000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - schemas/
+    - src/types.ts
+    - src/schema.ts
+    - src/normalize.ts
+    - tests/llm.test.ts
+  commitSubject: "WI-0001: 02: feat(llm): add tool calling contracts"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments:
+        - run
+        - build
+      expectedExitCode: 0
+    - id: test
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement versioned tool-calling schemas and public TypeScript types.
+    changeTypes:
+      - production-code
+      - test-code
+      - schema
+      - documentation
+    changeIntent: feature
+    inputs:
+      - id: INPUT-REQ-001
+        kind: requirement
+        ref: WI-0001|00000000#requirement/WI-0001_REQ_002
+        purpose: Define available tools and auto-invocation inputs.
+        required: true
+      - id: INPUT-REQ-002
+        kind: requirement
+        ref: WI-0001|00000000#requirement/WI-0001_REQ_003
+        purpose: Define parallel tool call batch and tool_calls semantics.
+        required: true
+      - id: INPUT-REQ-003
+        kind: requirement
+        ref: WI-0001|00000000#requirement/WI-0001_REQ_004
+        purpose: Define pre-invocation validation and limit violation behavior.
+        required: true
+      - id: INPUT-DESIGN-001
+        kind: design
+        ref: WI-0001|00000000#result/R-001
+        purpose: Use the completed design boundary.
+        required: true
+    objectives:
+      - id: OBJ-001
+        statement: Implement versioned tool-calling schemas and public TypeScript types.
+        inputRefs:
+          - INPUT-REQ-001
+          - INPUT-REQ-002
+          - INPUT-REQ-003
+          - INPUT-DESIGN-001
+        testCaseRefs:
+          - "#test-case/TC-001"
+          - "#test-case/TC-006"
+    ownedPaths:
+      - schemas/
+      - src/types.ts
+      - src/schema.ts
+      - src/normalize.ts
+      - tests/llm.test.ts
+    nonGoals:
+      - Do not modify llm/request/v1 or llm/response/v1.
+      - Do not make live provider calls or execute real tools.
+    steps:
+      - Add tool schemas and v2 request/output/response contracts.
+      - Add public types and bundled schema registration.
+      - Add deterministic schema/type regression tests.
+  result:
+    status: blocked
+    implementation:
+      summary: Prepared schema/type implementation task; execution is pending.
+      changes:
+        - id: CHANGE-001
+          type: documentation
+          summary: Prepared the governed task record; production execution is pending.
+          objectiveRefs:
+            - OBJ-001
+          paths:
+            - .docs/work-items/WI-0001/steps/
+      testImplementations: []
+    verification:
+      status: not-run
+      objectiveRefs:
+        - OBJ-001
+      tests: []
+    limitations:
+      - This prepared task has not executed its implementation, review, or
+        validation procedures.

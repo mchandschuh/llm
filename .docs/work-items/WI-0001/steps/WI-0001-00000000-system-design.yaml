@@ -1,0 +1,196 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0001
+taskUid: WI-0001-00000000
+orderKey: "00000000"
+parentTaskUid: null
+taskType: design
+processingStatus: unprocessed
+title: Define the bounded llm tool-calling design
+objective: Define the public request, provider, invocation, validation, and
+  response boundaries for bounded tool calling while preserving v1.
+references:
+  required:
+    - .docs/work-items/WI-0001/work-item.json
+    - src/types.ts
+    - src/complete.ts
+    - src/provider.ts
+    - schemas/request/v1/request.schema.json
+    - schemas/response/v1/response.schema.json
+  informational:
+    - README.md
+    - SKILL.md
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0001/steps/
+  commitSubject: "WI-0001: 01: design(llm): define bounded tool calling"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: schema-audit
+      executable: schema-validate
+      arguments:
+        - --root
+        - /home/michael/.cline/skills/sdlc/schemas
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
+  intent:
+    summary: Define the public request, provider, invocation, and response
+      boundaries for bounded tool calling while preserving v1.
+    objectives:
+      - Separate v1 compatibility from v2 tool-capable contracts.
+      - Define parallel tool call batch semantics and sequential batch ordering.
+      - Define validation-before-invoke behavior, including zero execution on
+        tool-round-limit violation.
+      - Define provider normalization, tool result handling, bounds, errors, and
+        evidence obligations.
+    inScope:
+      - Versioned v2 request and response contracts.
+      - Tool definition, tool call, parallel tool call batch, tool_calls, and
+        tool result schemas.
+      - OpenRouter transport mapping.
+      - Injected ToolInvoker and bounded orchestration.
+      - Provider-free tests and review evidence.
+    outOfScope:
+      - v1 schema mutation.
+      - Vector or Cline integration.
+      - Shell or arbitrary module execution.
+      - Live provider calls.
+      - Production deployment.
+    policy:
+      id: component-design
+      version: "1"
+    profile: implementable
+    scope: component
+    facets:
+      - structure
+      - behavior
+      - contract
+      - policy
+    references:
+      - id: REF-001
+        type: artifact
+        locator: sdlc://repo/local%2Fgithub%2Fllm/WI-0001%7C00000000#artifact/work-item
+        description: Authoritative tool-calling work item.
+      - id: REF-002
+        type: document
+        locator: src/types.ts
+        description: Current public TypeScript boundary.
+      - id: REF-003
+        type: document
+        locator: src/complete.ts
+        description: Current completion lifecycle.
+      - id: REF-004
+        type: document
+        locator: src/provider.ts
+        description: Current OpenRouter adapter.
+      - id: REF-005
+        type: document
+        locator: schemas/request/v1/request.schema.json
+        description: Closed v1 request contract.
+      - id: REF-006
+        type: document
+        locator: schemas/response/v1/response.schema.json
+        description: Closed v1 response contract.
+    provenance:
+      referenceRefs:
+        - REF-001
+        - REF-002
+        - REF-003
+        - REF-004
+        - REF-005
+        - REF-006
+      basis: The design is derived from the work-item requirements and current package
+        boundary.
+      confidence: 95
+    considerations:
+      - id: C-001
+        kind: boundary
+        statement: v1 request and response contracts remain unchanged.
+        evaluation: Use v2 contracts for tools and retain the existing v1 validation path.
+        referenceRefs:
+          - REF-005
+          - REF-006
+        status: accepted
+        impact: 100
+        confidence: 99
+      - id: C-002
+        kind: constraint
+        statement: A tool-round limit violation must execute no calls.
+        evaluation: Validate complete tool_calls and budget before entering any
+          invocation loop.
+        referenceRefs:
+          - REF-001
+          - REF-003
+        status: accepted
+        impact: 100
+        confidence: 99
+      - id: C-003
+        kind: decision
+        statement: The public term is parallel tool call batch.
+        evaluation: Use this exact phrase in schemas, types, docs, and tests.
+        referenceRefs:
+          - REF-001
+        status: accepted
+        impact: 95
+        confidence: 99
+    activities: []
+  result:
+    summary: Design pending execution; the prepared boundary requires versioned v2
+      contracts, explicit parallel tool call batches, injected invocation, and
+      fail-closed pre-invocation validation.
+    model:
+      name: llm-tool-calling
+      kind: interface
+      description: Versioned request, provider, orchestration, and response boundaries
+        for bounded model-requested tool calls.
+      notation: flow-oriented
+      version: "1"
+    elements: []
+    relations: []
+    views: []
+    artifacts: []
+    outcomes: []
+    outputs: []
+    verificationObligations:
+      - id: VER-001
+        kind: contract-test
+        status: planned
+        sourceRefs:
+          - REF-001
+        method:
+          type: inspection
+          steps:
+            - Inspect v2 schemas and public types for the parallel tool call
+              batch terminology and v1 compatibility.
+        requiredFor:
+          - implementable
+        description: Verify that public contract names and compatibility rules are explicit.
+      - id: VER-002
+        kind: unit-test
+        status: planned
+        sourceRefs:
+          - REF-001
+        method:
+          type: inspection
+          steps:
+            - Inspect the planned lifecycle for tool-round limit validation
+              before invocation.
+        requiredFor:
+          - implementable
+        description: Verify that a limit violation is unvalidated and executes zero calls.
+    unresolvedQuestions: []

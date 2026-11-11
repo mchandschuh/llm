@@ -1,0 +1,141 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0001
+taskUid: WI-0001-90000000
+orderKey: "90000000"
+parentTaskUid: WI-0001-00000000
+taskType: review
+processingStatus: unprocessed
+title: Review bounded llm tool calling
+objective: Review bounded llm tool calling.
+references:
+  required:
+    - .docs/work-items/WI-0001/work-item.json
+    - package.json
+    - src/types.ts
+    - src/complete.ts
+    - src/provider.ts
+    - src/schema.ts
+    - schemas/request/v1/request.schema.json
+    - schemas/response/v1/response.schema.json
+  informational:
+    - README.md
+    - SKILL.md
+dependsOn:
+  - WI-0001-80000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0001/steps/
+  commitSubject: "WI-0001: 07: review(llm): assess bounded tool calling"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments:
+        - run
+        - build
+      expectedExitCode: 0
+    - id: test
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review the exact implementation and validation results for scope,
+      compatibility, safety, terminology, and evidence gates.
+    reviewKind: code
+    target:
+      taskType: implementation
+      taskRef: WI-0001|30000000
+      result:
+        ref: WI-0001|30000000#result/R-001
+        sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    gateId: tool-calling-implementation
+    policyRef:
+      ref: README.md
+      sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    criteria:
+      - id: CRIT-001
+        statement: The implementation stays within the llm package and preserves v1.
+        purpose: Prevent scope expansion and compatibility regressions.
+        required: true
+        evidenceRefs:
+          - WI-0001|80000000#result/R-001
+      - id: CRIT-002
+        statement: The entire tool_calls response and round budget are validated before
+          any invocation.
+        purpose: Prevent partial execution of invalid responses.
+        required: true
+        evidenceRefs:
+          - WI-0001|80000000#result/R-001
+      - id: CRIT-003
+        statement: Parallel tool call batches execute calls concurrently and batches
+          sequentially.
+        purpose: Verify requested concurrency semantics.
+        required: true
+        evidenceRefs:
+          - WI-0001|80000000#result/R-001
+    evidenceRequirements:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0001|80000000#result/R-001
+        purpose: Provide package validation evidence.
+        required: true
+        minimumTier: unit
+    nonGoals:
+      - id: NON-001
+        statement: This review does not authorize deployment or claim live provider
+          behavior.
+    context:
+      - id: CTX-001
+        kind: repository-guidance
+        ref: README.md
+        purpose: Package public boundary and development commands.
+        required: true
+  result:
+    status: blocked
+    decision: abstained
+    summary: Review task prepared; execution is pending implementation and
+      validation results.
+    actor:
+      id: wi-0001-reviewer
+      role: code-reviewer
+      authorityRef: WI-0001
+    criteriaEvaluations: []
+    findings: []
+    evidence: []
+    limitations:
+      - The implementation and validation reviews have not executed.
+    nonClaims:
+      - No acceptance decision is made by this preparation record.
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: EXEC-REVIEW-001
+      status: blocked
+      startedAt: 2026-11-11T00:00:00Z
+      finishedAt: 2026-11-11T00:00:00Z

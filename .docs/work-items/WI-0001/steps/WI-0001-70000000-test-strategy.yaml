@@ -1,0 +1,418 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0001
+taskUid: WI-0001-70000000
+orderKey: "70000000"
+parentTaskUid: WI-0001-00000000
+taskType: test-strategy
+processingStatus: unprocessed
+title: Define deterministic tool-calling evidence strategy
+objective: Define deterministic tool-calling evidence strategy.
+references:
+  required:
+    - .docs/work-items/WI-0001/work-item.json
+    - src/complete.ts
+    - src/provider.ts
+    - src/schema.ts
+    - src/types.ts
+    - tests/llm.test.ts
+  informational:
+    - README.md
+    - SKILL.md
+dependsOn:
+  - WI-0001-00000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0001/steps/
+  commitSubject: "WI-0001: 05: test(llm): define tool calling evidence"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments:
+        - run
+        - build
+      expectedExitCode: 0
+    - id: test
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/result
+  intent:
+    summary: Define deterministic evidence for the v2 tool-calling contracts,
+      provider transport, bounded orchestration, and zero-execution round-limit
+      invariant.
+    inputs:
+      - id: INPUT-WORK-ITEM
+        kind: task
+        ref: WI-0001|00000000#work-item/WI-0001
+        purpose: Scope and acceptance criteria.
+        required: true
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0001|00000000#result/R-001
+        purpose: Design boundary and invariants.
+        required: true
+      - id: INPUT-SOURCES
+        kind: artifact
+        ref: "#artifact/llm-completion-source"
+        purpose: Current completion lifecycle.
+        required: true
+    requirements:
+      - id: REQ-001
+        kind: requirement
+        statement: Cover WI-0001|00000000#requirement/WI-0001_REQ_001.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+      - id: REQ-002
+        kind: requirement
+        statement: Cover WI-0001|00000000#requirement/WI-0001_REQ_002.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+      - id: REQ-003
+        kind: requirement
+        statement: Cover WI-0001|00000000#requirement/WI-0001_REQ_003.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+      - id: REQ-004
+        kind: requirement
+        statement: Cover WI-0001|00000000#requirement/WI-0001_REQ_004.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+      - id: REQ-005
+        kind: requirement
+        statement: Cover WI-0001|00000000#requirement/WI-0001_REQ_005.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+      - id: REQ-006
+        kind: requirement
+        statement: Cover WI-0001|00000000#requirement/WI-0001_REQ_006.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+      - id: REQ-007
+        kind: requirement
+        statement: Cover WI-0001|00000000#requirement/WI-0001_REQ_007.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+    invariants:
+      - id: INV-001
+        statement: A tool-round limit violation executes zero tool calls.
+        inputRefs:
+          - INPUT-DESIGN
+        required: true
+      - id: INV-002
+        statement: Calls within a parallel tool call batch may run concurrently while
+          outer batches remain sequential.
+        inputRefs:
+          - INPUT-DESIGN
+        required: true
+      - id: INV-003
+        statement: v1 requests and responses remain backward compatible.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+    objectives:
+      - id: OBJ-001
+        statement: Prove schema, provider, orchestration, compatibility, and packaging
+          behavior.
+        inputRefs:
+          - INPUT-WORK-ITEM
+          - INPUT-DESIGN
+        requirementRefs:
+          - REQ-001
+          - REQ-002
+          - REQ-003
+          - REQ-004
+          - REQ-005
+          - REQ-006
+          - REQ-007
+        invariantRefs:
+          - INV-001
+          - INV-002
+          - INV-003
+    nonGoals:
+      - Live provider calls.
+      - Real filesystem, network, shell, or module tool execution.
+      - Downstream Vector integration.
+  result:
+    status: defined
+    testCases:
+      - id: TC-001
+        title: v2 schemas reject malformed tools and accept valid parallel tool call
+          batches
+        type: unit
+        requirementLevel: required
+        purpose: v2 schemas reject malformed tools and accept valid parallel tool call
+          batches
+        procedure:
+          executionMode: executable
+          target: llm package deterministic test boundary
+          steps:
+            - Prepare the fake provider and invoker fixture.
+            - Execute the case.
+            - Inspect result, ordering, and invocation count.
+        expectedOutcome: The case produces the stated bounded result.
+        passCriteria: All assertions pass without a live provider or real tool side effect.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-FAKE-PROVIDER
+        limitations:
+          - Does not establish authenticated provider or production behavior.
+      - id: TC-002
+        title: manual mode returns pending calls without invoking tools
+        type: unit
+        requirementLevel: required
+        purpose: manual mode returns pending calls without invoking tools
+        procedure:
+          executionMode: executable
+          target: llm package deterministic test boundary
+          steps:
+            - Prepare the fake provider and invoker fixture.
+            - Execute the case.
+            - Inspect result, ordering, and invocation count.
+        expectedOutcome: The case produces the stated bounded result.
+        passCriteria: All assertions pass without a live provider or real tool side effect.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-FAKE-PROVIDER
+        limitations:
+          - Does not establish authenticated provider or production behavior.
+      - id: TC-003
+        title: round-limit violation returns unvalidated response and invokes zero tools
+        type: unit
+        requirementLevel: required
+        purpose: round-limit violation returns unvalidated response and invokes zero
+          tools
+        procedure:
+          executionMode: executable
+          target: llm package deterministic test boundary
+          steps:
+            - Prepare the fake provider and invoker fixture.
+            - Execute the case.
+            - Inspect result, ordering, and invocation count.
+        expectedOutcome: The case produces the stated bounded result.
+        passCriteria: All assertions pass without a live provider or real tool side effect.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-FAKE-PROVIDER
+        limitations:
+          - Does not establish authenticated provider or production behavior.
+      - id: TC-004
+        title: parallel tool call batch concurrency and sequential batch ordering
+        type: unit
+        requirementLevel: required
+        purpose: parallel tool call batch concurrency and sequential batch ordering
+        procedure:
+          executionMode: executable
+          target: llm package deterministic test boundary
+          steps:
+            - Prepare the fake provider and invoker fixture.
+            - Execute the case.
+            - Inspect result, ordering, and invocation count.
+        expectedOutcome: The case produces the stated bounded result.
+        passCriteria: All assertions pass without a live provider or real tool side effect.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-FAKE-PROVIDER
+        limitations:
+          - Does not establish authenticated provider or production behavior.
+      - id: TC-005
+        title: OpenRouter tool declaration/call/result mapping through mocked fetch
+        type: component
+        requirementLevel: required
+        purpose: OpenRouter tool declaration/call/result mapping through mocked fetch
+        procedure:
+          executionMode: executable
+          target: llm package deterministic test boundary
+          steps:
+            - Prepare the fake provider and invoker fixture.
+            - Execute the case.
+            - Inspect result, ordering, and invocation count.
+        expectedOutcome: The case produces the stated bounded result.
+        passCriteria: All assertions pass without a live provider or real tool side effect.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-FAKE-PROVIDER
+        limitations:
+          - Does not establish authenticated provider or production behavior.
+      - id: TC-006
+        title: v1 compatibility remains green
+        type: unit
+        requirementLevel: required
+        purpose: v1 compatibility remains green
+        procedure:
+          executionMode: executable
+          target: llm package deterministic test boundary
+          steps:
+            - Prepare the fake provider and invoker fixture.
+            - Execute the case.
+            - Inspect result, ordering, and invocation count.
+        expectedOutcome: The case produces the stated bounded result.
+        passCriteria: All assertions pass without a live provider or real tool side effect.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-FAKE-PROVIDER
+        limitations:
+          - Does not establish authenticated provider or production behavior.
+      - id: TC-007
+        title: typecheck/build/provider-free CLI validation
+        type: cli
+        requirementLevel: required
+        purpose: typecheck/build/provider-free CLI validation
+        procedure:
+          executionMode: executable
+          target: llm package deterministic test boundary
+          steps:
+            - Prepare the fake provider and invoker fixture.
+            - Execute the case.
+            - Inspect result, ordering, and invocation count.
+        expectedOutcome: The case produces the stated bounded result.
+        passCriteria: All assertions pass without a live provider or real tool side effect.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - FIX-FAKE-PROVIDER
+        limitations:
+          - Does not establish authenticated provider or production behavior.
+    fixtures:
+      - id: FIX-FAKE-PROVIDER
+        name: fake-provider-and-invoker
+        purpose: Deterministic provider sequences and invocation spies.
+        setup: Inject fake provider responses and an invoker that records calls without
+          side effects.
+        teardown: Discard captured requests, responses, and invocation state.
+        sourceRefs:
+          - "#artifact/llm-completion-source"
+    coverage:
+      - id: COV-001
+        requirementRefs:
+          - REQ-001
+        invariantRefs:
+          - INV-001
+          - INV-002
+          - INV-003
+        objectiveRefs:
+          - OBJ-001
+        testCaseRefs:
+          - TC-001
+        rationale: The mapped deterministic test covers the requirement and shared
+          invariants.
+      - id: COV-002
+        requirementRefs:
+          - REQ-002
+        invariantRefs:
+          - INV-001
+          - INV-002
+          - INV-003
+        objectiveRefs:
+          - OBJ-001
+        testCaseRefs:
+          - TC-002
+        rationale: The mapped deterministic test covers the requirement and shared
+          invariants.
+      - id: COV-003
+        requirementRefs:
+          - REQ-003
+        invariantRefs:
+          - INV-001
+          - INV-002
+          - INV-003
+        objectiveRefs:
+          - OBJ-001
+        testCaseRefs:
+          - TC-003
+        rationale: The mapped deterministic test covers the requirement and shared
+          invariants.
+      - id: COV-004
+        requirementRefs:
+          - REQ-004
+        invariantRefs:
+          - INV-001
+          - INV-002
+          - INV-003
+        objectiveRefs:
+          - OBJ-001
+        testCaseRefs:
+          - TC-004
+        rationale: The mapped deterministic test covers the requirement and shared
+          invariants.
+      - id: COV-005
+        requirementRefs:
+          - REQ-005
+        invariantRefs:
+          - INV-001
+          - INV-002
+          - INV-003
+        objectiveRefs:
+          - OBJ-001
+        testCaseRefs:
+          - TC-005
+        rationale: The mapped deterministic test covers the requirement and shared
+          invariants.
+      - id: COV-006
+        requirementRefs:
+          - REQ-006
+        invariantRefs:
+          - INV-001
+          - INV-002
+          - INV-003
+        objectiveRefs:
+          - OBJ-001
+        testCaseRefs:
+          - TC-006
+        rationale: The mapped deterministic test covers the requirement and shared
+          invariants.
+      - id: COV-007
+        requirementRefs:
+          - REQ-007
+        invariantRefs:
+          - INV-001
+          - INV-002
+          - INV-003
+        objectiveRefs:
+          - OBJ-001
+        testCaseRefs:
+          - TC-007
+        rationale: The mapped deterministic test covers the requirement and shared
+          invariants.
+    minimumRequiredTestCaseRefs:
+      - TC-001
+      - TC-002
+      - TC-003
+      - TC-004
+      - TC-005
+      - TC-006
+      - TC-007
+    recommendedTestCaseRefs: []
+    evidenceLimitations:
+      - This strategy defines evidence but does not claim that tests have
+        executed.
+      - No live provider, production, deployment, or real tool execution
+        evidence is in scope.
