@@ -1,8 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { Ajv2020, type ErrorObject, type ValidateFunction } from 'ajv/dist/2020.js';
+import addFormatsModule from 'ajv-formats';
 import { boundedMessage, LlmFailure } from './errors.js';
 import type { LlmRequestV2, LlmResponse, LlmResponseV2 } from './types.js';
+
+const addFormats = addFormatsModule as unknown as (ajv: Ajv2020) => Ajv2020;
 
 const requestSchemaPath = fileURLToPath(new URL('../schemas/request/v1/request.schema.json', import.meta.url));
 const responseSchemaPathValue = fileURLToPath(new URL('../schemas/response/v1/response.schema.json', import.meta.url));
@@ -12,10 +15,17 @@ const requestSchema = JSON.parse(await readFile(requestSchemaPath, 'utf8')) as R
 const responseSchema = JSON.parse(await readFile(responseSchemaPathValue, 'utf8')) as Record<string, unknown>;
 const requestSchemaV2 = JSON.parse(await readFile(requestSchemaV2Path, 'utf8')) as Record<string, unknown>;
 const responseSchemaV2 = JSON.parse(await readFile(responseSchemaV2Path, 'utf8')) as Record<string, unknown>;
-const requestValidator = new Ajv2020({ allErrors: true, strict: false }).compile(requestSchema);
-const responseValidator = new Ajv2020({ allErrors: true, strict: false }).compile(responseSchema);
-const requestValidatorV2 = new Ajv2020({ allErrors: true, strict: false }).compile(requestSchemaV2);
-const responseValidatorV2 = new Ajv2020({ allErrors: true, strict: false }).compile(responseSchemaV2);
+
+function createSchemaValidator(): Ajv2020 {
+  const ajv = new Ajv2020({ allErrors: true, strict: false });
+  addFormats(ajv);
+  return ajv;
+}
+
+const requestValidator = createSchemaValidator().compile(requestSchema);
+const responseValidator = createSchemaValidator().compile(responseSchema);
+const requestValidatorV2 = createSchemaValidator().compile(requestSchemaV2);
+const responseValidatorV2 = createSchemaValidator().compile(responseSchemaV2);
 
 export interface SchemaValidationError {
   readonly instancePath: string;
@@ -72,7 +82,7 @@ export function parseSchema(source: string, path?: string): LoadedSchema {
   }
   try {
     const schema = parsed as Record<string, unknown>;
-    const validator = new Ajv2020({ allErrors: true, strict: false }).compile(schema);
+    const validator = createSchemaValidator().compile(schema);
     const name = typeof schema.$id === 'string' ? schema.$id : path ?? 'inline-schema';
     return { schema, name, path, validator };
   } catch {

@@ -390,6 +390,20 @@ test('rejects malformed or schema-invalid task before provider invocation', asyn
   assert.equal(provider.calls.length, 0);
 });
 
+test('validates uri formats in configured schemas without provider use for invalid values', async () => {
+  const taskSchema = JSON.stringify({ type: 'string', format: 'uri' });
+  const validProvider = new SequenceProvider(['ok']);
+  const valid = await complete({ schema, task: '"https://example.test/task"', systemPrompt: 'Return text.', taskSchema }, { provider: validProvider });
+  assert.equal(valid.status, 'success');
+  assert.equal(validProvider.calls.length, 1);
+
+  const invalidProvider = new SequenceProvider(['ok']);
+  const invalid = await complete({ schema, task: '"not a uri"', systemPrompt: 'Return text.', taskSchema }, { provider: invalidProvider });
+  assert.equal(invalid.status, 'input_invalid');
+  assert.equal(invalid.errors[0]?.code, 'TASK_SCHEMA_VALIDATION_FAILED');
+  assert.equal(invalidProvider.calls.length, 0);
+});
+
 test('composes deterministic ordered XML with safe CDATA and output schema last', () => {
   const first = composePrompt({ task: 'a ]]> b', taskSchema: '{"type":"object"}', files: [{ name: 'one', path: 'one.md', type: 'text/markdown', purpose: 'context', content: '<unsafe>' }], outputSchema: '{"type":"object"}' });
   const second = composePrompt({ task: 'a ]]> b', taskSchema: '{"type":"object"}', files: [{ name: 'one', path: 'one.md', type: 'text/markdown', purpose: 'context', content: '<unsafe>' }], outputSchema: '{"type":"object"}' });
