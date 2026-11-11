@@ -289,7 +289,7 @@
           "minLength": 2,
           "description": "JSON text containing the tool argument schema.",
           "examples": [
-            "{\"type\":\"object\",\"properties\":{\"logicalId\":{\"type\":\"string\"}}}"
+            "https://schemas.handschuh.dev/example/read-record-input/v1"
           ]
         }
       },
