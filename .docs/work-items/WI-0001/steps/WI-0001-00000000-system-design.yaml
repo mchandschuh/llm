@@ -4,7 +4,7 @@ taskUid: WI-0001-00000000
 orderKey: "00000000"
 parentTaskUid: null
 taskType: design
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Define the bounded llm tool-calling design
 objective: Define the public request, provider, invocation, validation, and
   response boundaries for bounded tool calling while preserving v1.
@@ -44,7 +44,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
@@ -148,11 +148,63 @@ task:
         status: accepted
         impact: 95
         confidence: 99
-    activities: []
+    activities:
+      - id: ACT-001
+        type: analysis
+        summary: Inspect current v1 request, provider, completion, schema, and prompt
+          boundaries.
+        status: completed
+        referenceRefs: &a1
+          - REF-001
+          - REF-002
+          - REF-003
+          - REF-004
+          - REF-005
+          - REF-006
+        provenance:
+          referenceRefs: *a1
+          basis: Current package source and v1 contracts were inspected before selecting
+            the v2 boundary.
+          confidence: 98
+      - id: ACT-002
+        type: decision
+        summary: Select versioned v2 contracts and name the nested collection parallel
+          tool call batch.
+        status: completed
+        referenceRefs:
+          - REF-001
+          - REF-005
+          - REF-006
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-005
+            - REF-006
+          basis: The request explicitly requires the terminology and the existing
+            contracts are closed.
+          confidence: 99
+      - id: ACT-003
+        type: modeling
+        summary: Model validation-before-invoke, sequential outer batches, parallel
+          inner calls, and bounded failure paths.
+        status: completed
+        referenceRefs:
+          - REF-001
+          - REF-003
+          - REF-004
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-003
+            - REF-004
+          basis: The lifecycle follows the current bounded completion loop and the
+            requested concurrency semantics.
+          confidence: 97
   result:
-    summary: Design pending execution; the prepared boundary requires versioned v2
-      contracts, explicit parallel tool call batches, injected invocation, and
-      fail-closed pre-invocation validation.
+    summary: "Design reviewed twice: v1 compatibility, parallel tool call batch
+      terminology, complete pre-invocation validation, zero execution on
+      tool-round-limit violation, injected invocation, provider normalization,
+      bounded orchestration, and provider-free evidence are explicit."
     model:
       name: llm-tool-calling
       kind: interface
@@ -160,18 +212,294 @@ task:
         for bounded model-requested tool calls.
       notation: flow-oriented
       version: "1"
-    elements: []
-    relations: []
-    views: []
-    artifacts: []
-    outcomes: []
-    outputs: []
+    elements:
+      - id: E-001
+        type: request-contract
+        name: request-v2
+        description: Closed request/v2 contract containing tool definitions,
+          autoInvokeTools, and bounded tool-round settings.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-005
+          basis: The design item is derived from the work-item requirement and current
+            package sources.
+          confidence: 96
+      - id: E-002
+        type: provider-boundary
+        name: provider-tool-adapter
+        description: Provider-independent adapter boundary that carries declarations,
+          normalized tool calls, and tool results.
+        provenance:
+          referenceRefs:
+            - REF-002
+            - REF-004
+          basis: The design item is derived from the work-item requirement and current
+            package sources.
+          confidence: 96
+      - id: E-003
+        type: orchestration
+        name: tool-orchestrator
+        description: Bounded completion loop that validates a complete tool_calls
+          response before invocation and executes parallel tool call batches
+          sequentially.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-003
+          basis: The design item is derived from the work-item requirement and current
+            package sources.
+          confidence: 96
+      - id: E-004
+        type: invocation-boundary
+        name: tool-invoker
+        description: Injected in-memory ToolInvoker that receives only validated named
+          calls and bounded context.
+        provenance:
+          referenceRefs:
+            - REF-001
+          basis: The design item is derived from the work-item requirement and current
+            package sources.
+          confidence: 96
+      - id: E-005
+        type: response-contract
+        name: response-v2
+        description: Closed response/v2 contract with success, pending, unvalidated, and
+          bounded tool failure outcomes.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-006
+          basis: The design item is derived from the work-item requirement and current
+            package sources.
+          confidence: 96
+    relations:
+      - id: REL-001
+        type: normalizes-to
+        source:
+          type: element
+          id: E-001
+        target:
+          type: element
+          id: E-002
+        description: The request contract is normalized into provider-native tool
+          declarations and public tool-call values.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+          basis: The design item is derived from the work-item requirement and current
+            package sources.
+          confidence: 96
+      - id: REL-002
+        type: delegates-to
+        source:
+          type: element
+          id: E-002
+        target:
+          type: element
+          id: E-003
+        description: The provider response supplies content or a complete tool_calls
+          structure to the bounded orchestrator.
+        provenance:
+          referenceRefs:
+            - REF-003
+            - REF-004
+          basis: The design item is derived from the work-item requirement and current
+            package sources.
+          confidence: 96
+      - id: REL-003
+        type: invokes
+        source:
+          type: element
+          id: E-003
+        target:
+          type: element
+          id: E-004
+        description: Only a fully validated response within the tool-round budget may
+          invoke the injected ToolInvoker.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-003
+          basis: The design item is derived from the work-item requirement and current
+            package sources.
+          confidence: 96
+      - id: REL-004
+        type: produces
+        source:
+          type: element
+          id: E-003
+        target:
+          type: element
+          id: E-005
+        description: The orchestrator returns a validated terminal, pending,
+          unvalidated, or bounded failure response.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-006
+          basis: The design item is derived from the work-item requirement and current
+            package sources.
+          confidence: 96
+    views:
+      - id: V-001
+        type: lifecycle
+        name: request-to-response
+        description: The bounded v2 lifecycle from request validation through provider
+          response, pre-invocation validation, optional parallel tool call
+          batches, and terminal response.
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+          - E-004
+          - E-005
+        relationRefs:
+          - REL-001
+          - REL-002
+          - REL-003
+          - REL-004
+        provenance:
+          referenceRefs: *a1
+          basis: The design item is derived from the work-item requirement and current
+            package sources.
+          confidence: 96
+    artifacts:
+      - id: A-001
+        type: schema
+        name: tool-calling-contracts
+        description: Versioned JSON schemas for tool definitions, tool calls, parallel
+          tool call batches, complete tool_calls arrays, tool results,
+          request/v2, output/v2, and response/v2.
+        locator: schemas/
+        format: json-schema
+        status: proposed
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-005
+            - REF-006
+          basis: The design item is derived from the work-item requirement and current
+            package sources.
+          confidence: 96
+      - id: A-002
+        type: document
+        name: tool-calling-public-guidance
+        description: Public package documentation describing manual and automatic
+          invocation, bounds, and no-side-effect evidence limits.
+        locator: README.md
+        format: markdown
+        status: proposed
+        provenance:
+          referenceRefs:
+            - REF-001
+          basis: The design item is derived from the work-item requirement and current
+            package sources.
+          confidence: 96
+    outcomes:
+      - id: O-001
+        type: designDecision
+        statement: Introduce request/v2 and response/v2 rather than changing the closed
+          v1 contracts.
+        status: accepted
+        impact: 100
+        confidence: 99
+        referenceRefs:
+          - REF-005
+          - REF-006
+        elementRefs:
+          - E-001
+          - E-005
+        suggestedTaskType: implementation
+      - id: O-002
+        type: designDecision
+        statement: Use parallel tool call batch as the public term for each inner batch
+          of concurrently invokable calls.
+        status: accepted
+        impact: 95
+        confidence: 99
+        referenceRefs:
+          - REF-001
+        elementRefs:
+          - E-003
+        suggestedTaskType: implementation
+      - id: O-003
+        type: designDecision
+        statement: A tool-round limit violation is an unvalidated response and executes
+          zero tool calls from that response.
+        status: accepted
+        impact: 100
+        confidence: 99
+        referenceRefs:
+          - REF-001
+          - REF-003
+        elementRefs:
+          - E-003
+          - E-004
+        suggestedTaskType: implementation
+      - id: O-004
+        type: implementationHandoff
+        statement: Implement schema/types, provider transport, and orchestration as
+          serial owned steps before validation and review.
+        status: accepted
+        impact: 90
+        confidence: 98
+        referenceRefs:
+          - REF-001
+        suggestedTaskType: implementation
+    outputs:
+      - id: OUT-001
+        category: boundary
+        status: complete
+        sourceRefs:
+          - REF-001
+          - REF-005
+          - REF-006
+        description: Versioned v1/v2 compatibility boundary.
+      - id: OUT-002
+        category: interface-contract
+        status: complete
+        sourceRefs:
+          - REF-001
+          - REF-002
+          - REF-004
+        description: Tool definition, tool-call, parallel tool call batch, tool result,
+          provider, invoker, and response interfaces.
+      - id: OUT-003
+        category: state-and-invariants
+        status: complete
+        sourceRefs:
+          - REF-001
+          - REF-003
+        description: Pre-invocation validation, zero execution on round-limit violation,
+          and sequential-batch/parallel-call semantics.
+      - id: OUT-004
+        category: implementation-handoff
+        status: complete
+        sourceRefs:
+          - REF-001
+        description: Serial implementation, test, validation, review, and delivery handoff.
+      - id: OUT-005
+        category: implementation-handoff
+        status: complete
+        sourceRefs:
+          - REF-001
+          - REF-002
+          - REF-003
+          - REF-004
+          - REF-005
+          - REF-006
+        description: First and second design reviews completed with no unresolved design
+          findings.
     verificationObligations:
       - id: VER-001
         kind: contract-test
         status: planned
         sourceRefs:
           - REF-001
+          - REF-005
+          - REF-006
         method:
           type: inspection
           steps:
@@ -185,12 +513,46 @@ task:
         status: planned
         sourceRefs:
           - REF-001
+          - REF-003
         method:
           type: inspection
           steps:
-            - Inspect the planned lifecycle for tool-round limit validation
-              before invocation.
+            - Inspect the completion lifecycle for complete response validation
+              and tool-round budget validation before invocation.
         requiredFor:
           - implementable
         description: Verify that a limit violation is unvalidated and executes zero calls.
+      - id: VER-003
+        kind: unit-test
+        status: planned
+        sourceRefs:
+          - REF-001
+          - REF-004
+        method:
+          type: inspection
+          steps:
+            - Inspect and later test parallel calls within one batch and
+              sequential ordering across batches.
+        requiredFor:
+          - implementable
+        description: Verify requested concurrency semantics without real side effects.
+      - id: VER-004
+        kind: inspection
+        status: planned
+        sourceRefs:
+          - REF-001
+          - REF-002
+          - REF-003
+          - REF-004
+          - REF-005
+          - REF-006
+        method:
+          type: inspection
+          steps:
+            - Review the design result against all seven requirements and the
+              explicit non-goals.
+        requiredFor:
+          - implementable
+        description: Confirm that the reviewed design covers the complete requested
+          boundary without downstream scope expansion.
     unresolvedQuestions: []
