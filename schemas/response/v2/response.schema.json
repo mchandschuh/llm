@@ -1,0 +1,417 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.handschuh.dev/llm/response/v2",
+  "title": "LLM Response v2",
+  "description": "A closed terminal or pending response envelope for bounded tool-capable completion.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "status",
+    "output",
+    "failedAttempts",
+    "iterations",
+    "toolRounds",
+    "toolCalls",
+    "errors"
+  ],
+  "properties": {
+    "schema": {
+      "const": "https://schemas.handschuh.dev/llm/response/v2",
+      "description": "The versioned v2 response contract identifier.",
+      "examples": [
+        "https://schemas.handschuh.dev/llm/response/v2"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "tool_calls_pending",
+        "tool_rounds_exhausted",
+        "tool_invocation_error",
+        "input_invalid",
+        "configuration_error",
+        "provider_error",
+        "output_invalid",
+        "attempts_exhausted",
+        "unvalidated"
+      ],
+      "description": "Terminal or pending outcome. unvalidated means no tool calls from the rejected response were executed.",
+      "examples": [
+        "tool_calls_pending"
+      ]
+    },
+    "output": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ToolAwareOutput"
+        },
+        {
+          "$ref": "#/$defs/RawOutput"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Validated business output, tool-aware pending output, raw text, or null.",
+      "examples": [
+        null
+      ]
+    },
+    "failedAttempts": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Failed provider invocations.",
+      "examples": [
+        0
+      ]
+    },
+    "iterations": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Successful provider roundtrips.",
+      "examples": [
+        1
+      ]
+    },
+    "toolRounds": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Completed automatic model/tool/model rounds.",
+      "examples": [
+        0
+      ]
+    },
+    "toolCalls": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 128,
+      "description": "Individual tool calls executed or returned as pending.",
+      "examples": [
+        1
+      ]
+    },
+    "errors": {
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "$ref": "#/$defs/Error"
+      },
+      "description": "Bounded sanitized diagnostics.",
+      "examples": [
+        []
+      ]
+    }
+  },
+  "$defs": {
+    "SchemaMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Schema identity attached to typed output.",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Schema identifier.",
+          "examples": [
+            "https://schemas.handschuh.dev/llm/output/v2"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional repository-relative schema path.",
+          "examples": [
+            "schemas/output/v2/tool-aware-output.schema.json"
+          ]
+        }
+      },
+      "examples": [
+        {
+          "name": "https://schemas.handschuh.dev/llm/output/v2"
+        }
+      ]
+    },
+    "RawOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Raw text returned when no structured output schema applies.",
+      "required": [
+        "type",
+        "schema",
+        "value"
+      ],
+      "properties": {
+        "schema": {
+          "type": "null",
+          "description": "No structured schema applies.",
+          "examples": [
+            "https://schemas.handschuh.dev/llm/output/v2"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "description": "Raw provider text.",
+          "examples": [
+            "The work is ready."
+          ]
+        },
+        "type": {
+          "const": "string",
+          "description": "Output type marker.",
+          "examples": [
+            "string"
+          ]
+        }
+      },
+      "examples": [
+        {
+          "schema": null,
+          "value": "The work is ready.",
+          "type": "string"
+        }
+      ]
+    },
+    "ToolCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One normalized model-requested tool call.",
+      "required": [
+        "id",
+        "name",
+        "arguments"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+          "description": "Call identifier.",
+          "examples": [
+            "call-read-1"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$",
+          "description": "Tool name.",
+          "examples": [
+            "read_record"
+          ]
+        },
+        "arguments": {
+          "type": "object",
+          "description": "Parsed call arguments.",
+          "examples": [
+            {
+              "logicalId": "record-a"
+            }
+          ]
+        }
+      },
+      "examples": [
+        {
+          "id": "call-read-1",
+          "name": "read_record",
+          "arguments": {
+            "logicalId": "record-a"
+          }
+        }
+      ]
+    },
+    "ToolCalls": {
+      "type": "array",
+      "maxItems": 10,
+      "description": "Ordered collection of parallel tool call batches.",
+      "items": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 32,
+        "description": "Parallel tool call batch; calls inside may run concurrently.",
+        "items": {
+          "$ref": "#/$defs/ToolCall"
+        },
+        "examples": [
+          [
+            {
+              "id": "call-read-1",
+              "name": "read_record",
+              "arguments": {
+                "logicalId": "record-a"
+              }
+            }
+          ]
+        ]
+      },
+      "examples": [
+        [
+          [
+            {
+              "id": "call-read-1",
+              "name": "read_record",
+              "arguments": {
+                "logicalId": "record-a"
+              }
+            }
+          ]
+        ]
+      ]
+    },
+    "ToolAwareOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Typed output containing business output and the complete tool_calls collection.",
+      "required": [
+        "type",
+        "schema",
+        "value"
+      ],
+      "properties": {
+        "schema": {
+          "type": "string",
+          "format": "uri",
+          "description": "Effective tool-aware output schema URI.",
+          "examples": [
+            "https://schemas.handschuh.dev/llm/output/v2"
+          ]
+        },
+        "value": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Business output and public tool_calls collection.",
+          "required": [
+            "output",
+            "tool_calls"
+          ],
+          "properties": {
+            "output": {
+              "description": "Validated business output or null while calls are pending.",
+              "examples": [
+                null
+              ]
+            },
+            "tool_calls": {
+              "$ref": "#/$defs/ToolCalls",
+              "description": "The complete ordered collection of parallel tool call batches.",
+              "examples": [
+                []
+              ]
+            }
+          },
+          "examples": [
+            {
+              "output": null,
+              "tool_calls": []
+            }
+          ]
+        },
+        "type": {
+          "const": "object",
+          "description": "Output type marker.",
+          "examples": [
+            "object"
+          ]
+        }
+      },
+      "examples": [
+        {
+          "schema": "https://schemas.handschuh.dev/llm/output/v2",
+          "value": {
+            "output": null,
+            "tool_calls": []
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "Error": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One bounded sanitized diagnostic.",
+      "required": [
+        "code",
+        "message",
+        "phase"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_.-]{0,63}$",
+          "description": "Stable error code.",
+          "examples": [
+            "TOOL_ROUND_LIMIT_EXCEEDED"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Bounded error message.",
+          "examples": [
+            "The tool-round limit was exceeded."
+          ]
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "request",
+            "configuration",
+            "source-resolution",
+            "provider",
+            "output-parsing",
+            "output-validation",
+            "tool-validation",
+            "tool-invocation",
+            "retry"
+          ],
+          "description": "Processing phase.",
+          "examples": [
+            "tool-validation"
+          ]
+        }
+      },
+      "examples": [
+        {
+          "code": "TOOL_ROUND_LIMIT_EXCEEDED",
+          "message": "The tool-round limit was exceeded.",
+          "phase": "tool-validation"
+        }
+      ]
+    }
+  },
+  "examples": [
+    {
+      "schema": "https://schemas.handschuh.dev/llm/response/v2",
+      "status": "tool_calls_pending",
+      "output": {
+        "schema": "https://schemas.handschuh.dev/llm/output/v2",
+        "value": {
+          "output": null,
+          "tool_calls": [
+            [
+              {
+                "id": "call-read-1",
+                "name": "read_record",
+                "arguments": {
+                  "logicalId": "record-a"
+                }
+              }
+            ]
+          ]
+        },
+        "type": "object"
+      },
+      "failedAttempts": 0,
+      "iterations": 1,
+      "toolRounds": 0,
+      "toolCalls": 1,
+      "errors": []
+    }
+  ]
+}

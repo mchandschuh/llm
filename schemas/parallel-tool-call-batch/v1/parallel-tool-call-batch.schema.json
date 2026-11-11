@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.handschuh.dev/llm/parallel-tool-call-batch/v1",
+  "title": "LLM Parallel Tool Call Batch v1",
+  "description": "One ordered batch of one or more tool calls that may be invoked in parallel. Batches in the enclosing tool_calls array execute sequentially.",
+  "type": "array",
+  "minItems": 1,
+  "maxItems": 32,
+  "uniqueItems": true,
+  "items": {"$ref": "#/$defs/ToolCall"},
+  "$defs": {
+    "ToolCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One normalized call in this parallel tool call batch.",
+      "required": ["id", "name", "arguments"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$", "description": "Call identifier.", "examples": ["call-read-1"]},
+        "name": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$", "description": "Declared tool name.", "examples": ["read_record"]},
+        "arguments": {"type": "object", "description": "Parsed and validated tool arguments.", "examples": [{"logicalId": "record-a"}]}
+      },
+      "examples": [{"id": "call-read-1", "name": "read_record", "arguments": {"logicalId": "record-a"}}]
+    }
+  },
+  "examples": [
+    [
+      {"id": "call-read-1", "name": "read_record", "arguments": {"logicalId": "record-a"}},
+      {"id": "call-read-2", "name": "read_record", "arguments": {"logicalId": "record-b"}}
+    ]
+  ]
+}

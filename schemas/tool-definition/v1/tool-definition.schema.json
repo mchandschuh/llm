@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.handschuh.dev/llm/tool-definition/v1",
+  "title": "LLM Tool Definition v1",
+  "description": "A bounded description of one tool available to a model. It contains no executable code, path, command, credential, or provider-specific callback.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "description",
+    "inputSchema"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$",
+      "description": "Stable caller-selected tool name used to match a model request to an injected invoker.",
+      "examples": [
+        "read_record",
+        "compare_records"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "description": "Bounded human-readable explanation of the tool's purpose and safe use.",
+      "examples": [
+        "Read one bounded record by logical identifier."
+      ]
+    },
+    "inputSchema": {
+      "oneOf": [
+        {
+          "type": "object"
+        },
+        {
+          "type": "string",
+          "format": "uri"
+        }
+      ],
+      "description": "Inline JSON Schema object or absolute schema URI used to validate tool arguments.",
+      "examples": [
+        "https://schemas.handschuh.dev/example/read-record-input/v1"
+      ]
+    }
+  },
+  "examples": [
+    {
+      "name": "read_record",
+      "description": "Read one bounded record by logical identifier.",
+      "inputSchema": "https://schemas.handschuh.dev/example/read-record-input/v1"
+    }
+  ]
+}

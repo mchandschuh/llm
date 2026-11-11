@@ -6,11 +6,12 @@ import { test } from 'node:test';
 import { complete } from '../src/index.js';
 import { main as cliMain } from '../src/cli.js';
 import { composePrompt } from '../src/prompt.js';
-import { normalizeRequest } from '../src/normalize.js';
+import { normalizeRequest, normalizeRequestV2 } from '../src/normalize.js';
 import { OpenRouterProvider } from '../src/provider.js';
 import type { ILlmProvider, LlmProvider, ProviderCompletionRequest } from '../src/types.js';
 
 const schema = 'https://schemas.handschuh.dev/llm/request/v1';
+const schemaV2 = 'https://schemas.handschuh.dev/llm/request/v2';
 const outputSchema = JSON.stringify({ $id: 'https://example.test/output', type: 'object', required: ['ok'], additionalProperties: false, properties: { ok: { type: 'boolean' } } });
 const pngBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
 
@@ -36,6 +37,33 @@ test('normalizes closed request defaults', async () => {
   assert.equal(normalized.thinking, 'high');
   assert.equal(normalized.maxFailedAttempts, 3);
   assert.equal(normalized.maxIterations, 3);
+});
+
+test('normalizes v2 tool declarations and bounded tool settings', async () => {
+  const normalized = await normalizeRequestV2({
+    schema: schemaV2,
+    task: 'Inspect records.',
+    systemPrompt: 'Use tools only when needed.',
+    tools: [{ name: 'read_record', description: 'Read one record.', inputSchema: { type: 'object' } }],
+    autoInvokeTools: true,
+  }, { configurationRoot: process.cwd() });
+  assert.equal(normalized.schema, schemaV2);
+  assert.equal(normalized.maxToolRounds, 3);
+  assert.equal(normalized.maxToolCalls, 128);
+  assert.equal(normalized.autoInvokeTools, true);
+  assert.equal(normalized.tools[0]?.name, 'read_record');
+});
+
+test('rejects duplicate v2 tool names before provider use', async () => {
+  await assert.rejects(() => normalizeRequestV2({
+    schema: schemaV2,
+    task: 'Inspect records.',
+    systemPrompt: 'Use tools only when needed.',
+    tools: [
+      { name: 'read_record', description: 'Read one record.', inputSchema: { type: 'object' } },
+      { name: 'read_record', description: 'Read another record.', inputSchema: { type: 'object' } },
+    ],
+  }, { configurationRoot: process.cwd() }), /Tool names must be unique/u);
 });
 
 test('treats long literal task and system prompt values as literals', async () => {

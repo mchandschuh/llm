@@ -2,14 +2,20 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { Ajv2020, type ErrorObject, type ValidateFunction } from 'ajv/dist/2020.js';
 import { boundedMessage, LlmFailure } from './errors.js';
-import type { LlmResponse } from './types.js';
+import type { LlmRequestV2, LlmResponse, LlmResponseV2 } from './types.js';
 
 const requestSchemaPath = fileURLToPath(new URL('../schemas/request/v1/request.schema.json', import.meta.url));
 const responseSchemaPathValue = fileURLToPath(new URL('../schemas/response/v1/response.schema.json', import.meta.url));
+const requestSchemaV2Path = fileURLToPath(new URL('../schemas/request/v2/request.schema.json', import.meta.url));
+const responseSchemaV2Path = fileURLToPath(new URL('../schemas/response/v2/response.schema.json', import.meta.url));
 const requestSchema = JSON.parse(await readFile(requestSchemaPath, 'utf8')) as Record<string, unknown>;
 const responseSchema = JSON.parse(await readFile(responseSchemaPathValue, 'utf8')) as Record<string, unknown>;
+const requestSchemaV2 = JSON.parse(await readFile(requestSchemaV2Path, 'utf8')) as Record<string, unknown>;
+const responseSchemaV2 = JSON.parse(await readFile(responseSchemaV2Path, 'utf8')) as Record<string, unknown>;
 const requestValidator = new Ajv2020({ allErrors: true, strict: false }).compile(requestSchema);
 const responseValidator = new Ajv2020({ allErrors: true, strict: false }).compile(responseSchema);
+const requestValidatorV2 = new Ajv2020({ allErrors: true, strict: false }).compile(requestSchemaV2);
+const responseValidatorV2 = new Ajv2020({ allErrors: true, strict: false }).compile(responseSchemaV2);
 
 export interface SchemaValidationError {
   readonly instancePath: string;
@@ -32,6 +38,18 @@ export function assertRequestShape(value: unknown): asserts value is Record<stri
 export function validateResponse(value: LlmResponse): void {
   if (!responseValidator(value)) {
     throw new Error(`Internal response contract failure: ${validationErrors(responseValidator.errors).map((error) => `${error.instancePath || '/'} ${error.message}`).join('; ')}`);
+  }
+}
+
+export function assertRequestV2Shape(value: unknown): asserts value is LlmRequestV2 {
+  if (!requestValidatorV2(value)) {
+    throw new LlmFailure('REQUEST_INVALID', 'request', `Request validation failed: ${validationErrors(requestValidatorV2.errors).map((error) => `${error.instancePath || '/'} ${error.message}`).join('; ')}`);
+  }
+}
+
+export function validateResponseV2(value: LlmResponseV2): void {
+  if (!responseValidatorV2(value)) {
+    throw new Error(`Internal response v2 contract failure: ${validationErrors(responseValidatorV2.errors).map((error) => `${error.instancePath || '/'} ${error.message}`).join('; ')}`);
   }
 }
 

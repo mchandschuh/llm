@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.handschuh.dev/llm/tool-call/v1",
+  "title": "LLM Tool Call v1",
+  "description": "One normalized model-requested tool call. Arguments are already parsed as an object before a caller may invoke the tool.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "arguments"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+      "description": "Provider or runtime call identifier used to correlate the tool result.",
+      "examples": ["call-read-1"]
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$",
+      "description": "Declared tool name selected by the model.",
+      "examples": ["read_record"]
+    },
+    "arguments": {
+      "type": "object",
+      "description": "Parsed JSON object validated against the matching tool definition's inputSchema.",
+      "examples": [{"logicalId": "record-a"}]
+    }
+  },
+  "examples": [{"id": "call-read-1", "name": "read_record", "arguments": {"logicalId": "record-a"}}]
+}

@@ -1,5 +1,12 @@
 export const REQUEST_SCHEMA = 'https://schemas.handschuh.dev/llm/request/v1' as const;
 export const RESPONSE_SCHEMA = 'https://schemas.handschuh.dev/llm/response/v1' as const;
+export const REQUEST_SCHEMA_V2 = 'https://schemas.handschuh.dev/llm/request/v2' as const;
+export const RESPONSE_SCHEMA_V2 = 'https://schemas.handschuh.dev/llm/response/v2' as const;
+export const TOOL_DEFINITION_SCHEMA = 'https://schemas.handschuh.dev/llm/tool-definition/v1' as const;
+export const TOOL_CALL_SCHEMA = 'https://schemas.handschuh.dev/llm/tool-call/v1' as const;
+export const PARALLEL_TOOL_CALL_BATCH_SCHEMA = 'https://schemas.handschuh.dev/llm/parallel-tool-call-batch/v1' as const;
+export const TOOL_CALLS_SCHEMA = 'https://schemas.handschuh.dev/llm/tool-calls/v1' as const;
+export const TOOL_RESULT_SCHEMA = 'https://schemas.handschuh.dev/llm/tool-result/v1' as const;
 
 export type Thinking = 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
 
@@ -33,6 +40,51 @@ export interface LlmRequest {
   readonly outputSchema?: string;
 }
 
+export interface ToolDefinition {
+  readonly name: string;
+  readonly description: string;
+  readonly inputSchema: Readonly<Record<string, unknown>> | string;
+}
+
+export interface ToolCall {
+  readonly id: string;
+  readonly name: string;
+  readonly arguments: Readonly<Record<string, unknown>>;
+}
+
+export type ParallelToolCallBatch = readonly ToolCall[];
+export type ToolCalls = readonly ParallelToolCallBatch[];
+
+export interface ToolResult {
+  readonly callId: string;
+  readonly name: string;
+  readonly status: 'success' | 'error';
+  readonly value?: unknown;
+  readonly error?: {
+    readonly code: string;
+    readonly message: string;
+  };
+}
+
+export interface LlmRequestV2 {
+  readonly schema: typeof REQUEST_SCHEMA_V2;
+  readonly provider?: string;
+  readonly model?: string;
+  readonly thinking?: Thinking;
+  readonly maxFailedAttempts?: number;
+  readonly maxIterations?: number;
+  readonly maxToolRounds?: number;
+  readonly maxToolCalls?: number;
+  readonly credentials?: Credentials;
+  readonly task: string;
+  readonly systemPrompt: string;
+  readonly taskSchema?: string;
+  readonly files?: readonly ReferenceFile[];
+  readonly tools?: readonly ToolDefinition[];
+  readonly autoInvokeTools?: boolean;
+  readonly outputSchema?: string;
+}
+
 export interface ResolvedSource {
   readonly value: string;
   readonly path?: string;
@@ -54,6 +106,26 @@ export interface NormalizedRequest {
   readonly configurationRoot: string;
 }
 
+export interface NormalizedRequestV2 {
+  readonly schema: typeof REQUEST_SCHEMA_V2;
+  readonly provider: string;
+  readonly model: string;
+  readonly thinking: Thinking;
+  readonly maxFailedAttempts: number;
+  readonly maxIterations: number;
+  readonly maxToolRounds: number;
+  readonly maxToolCalls: number;
+  readonly credentials?: Credentials;
+  readonly task: ResolvedSource;
+  readonly systemPrompt: ResolvedSource;
+  readonly taskSchema?: ResolvedSource;
+  readonly files: readonly (ReferenceFile & { readonly encoding: FileEncoding; readonly content: string; readonly resolvedPath: string })[];
+  readonly tools: readonly ToolDefinition[];
+  readonly autoInvokeTools: boolean;
+  readonly outputSchema?: ResolvedSource;
+  readonly configurationRoot: string;
+}
+
 export interface ProviderCompletionRequest {
   readonly provider: string;
   readonly model: string;
@@ -64,8 +136,30 @@ export interface ProviderCompletionRequest {
   readonly credentials?: Credentials;
 }
 
+export interface ProviderCompletionRequestV2 extends ProviderCompletionRequest {
+  readonly tools: readonly ToolDefinition[];
+  readonly toolResults: readonly ToolResult[];
+}
+
+export interface ProviderCompletionResponse {
+  readonly content: string | null;
+  readonly toolCalls: readonly ToolCall[];
+}
+
 export interface LlmProvider {
   complete(request: ProviderCompletionRequest): Promise<string>;
+}
+
+export interface ToolInvocationContext {
+  readonly callId: string;
+  readonly toolName: string;
+  readonly round: number;
+  readonly batchIndex: number;
+  readonly signal: AbortSignal;
+}
+
+export interface ToolInvoker {
+  invoke(call: ToolCall, context: ToolInvocationContext): Promise<unknown>;
 }
 
 export interface SchemaMetadata {
@@ -86,6 +180,15 @@ export interface RawOutput {
 }
 
 export type LlmOutput = StructuredOutput | RawOutput;
+
+export interface ToolAwareOutput {
+  readonly type: 'object';
+  readonly schema: string;
+  readonly value: {
+    readonly output: unknown;
+    readonly tool_calls: ToolCalls;
+  };
+}
 
 export type ResponseStatus =
   | 'success'
@@ -130,6 +233,29 @@ export interface LlmResponse {
   readonly errors: readonly LlmError[];
 }
 
+export type ResponseStatusV2 =
+  | 'success'
+  | 'tool_calls_pending'
+  | 'tool_rounds_exhausted'
+  | 'tool_invocation_error'
+  | 'input_invalid'
+  | 'configuration_error'
+  | 'provider_error'
+  | 'output_invalid'
+  | 'attempts_exhausted'
+  | 'unvalidated';
+
+export interface LlmResponseV2 {
+  readonly schema: typeof RESPONSE_SCHEMA_V2;
+  readonly status: ResponseStatusV2;
+  readonly output: ToolAwareOutput | RawOutput | null;
+  readonly failedAttempts: number;
+  readonly iterations: number;
+  readonly toolRounds: number;
+  readonly toolCalls: number;
+  readonly errors: readonly LlmError[];
+}
+
 /**
  * High-level completion service boundary for consumers such as sdlc.
  *
@@ -145,6 +271,11 @@ export interface CompletionOptions {
   readonly provider?: LlmProvider;
   readonly configurationFilePath?: string;
   readonly configurationRoot?: string;
+}
+
+export interface CompletionOptionsV2 extends CompletionOptions {
+  readonly toolInvoker?: ToolInvoker;
+  readonly signal?: AbortSignal;
 }
 
 export interface PromptParts {

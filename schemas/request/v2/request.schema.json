@@ -1,0 +1,328 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.handschuh.dev/llm/request/v2",
+  "title": "LLM Request v2",
+  "description": "A closed provider-agnostic request configuration for one bounded completion that may declare tools and optionally invoke validated tool calls.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "task",
+    "systemPrompt"
+  ],
+  "properties": {
+    "schema": {
+      "const": "https://schemas.handschuh.dev/llm/request/v2",
+      "description": "The versioned v2 request contract identifier.",
+      "examples": [
+        "https://schemas.handschuh.dev/llm/request/v2"
+      ]
+    },
+    "provider": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9._-]*$",
+      "default": "openrouter",
+      "description": "Provider adapter identity.",
+      "examples": [
+        "openrouter"
+      ]
+    },
+    "model": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$",
+      "default": "openai/gpt-5.6-luna",
+      "description": "Provider-specific model identifier.",
+      "examples": [
+        "openai/gpt-5.6-luna"
+      ]
+    },
+    "thinking": {
+      "type": "string",
+      "enum": [
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "default": "high",
+      "description": "Provider-independent reasoning effort.",
+      "examples": [
+        "high"
+      ]
+    },
+    "maxFailedAttempts": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "default": 3,
+      "description": "Maximum failed provider attempts.",
+      "examples": [
+        3
+      ]
+    },
+    "maxIterations": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 3,
+      "description": "Maximum successful provider roundtrips.",
+      "examples": [
+        3
+      ]
+    },
+    "maxToolRounds": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "default": 3,
+      "description": "Maximum model-to-tool-to-model rounds. A response that exceeds this budget is unvalidated and executes zero tool calls.",
+      "examples": [
+        3
+      ]
+    },
+    "maxToolCalls": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 128,
+      "default": 128,
+      "description": "Maximum individual tool calls across the invocation.",
+      "examples": [
+        128
+      ]
+    },
+    "credentials": {
+      "$ref": "#/$defs/Credentials",
+      "description": "Optional in-memory provider credentials.",
+      "examples": [
+        {
+          "apiKey": "in-memory-example-key"
+        }
+      ]
+    },
+    "task": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Literal task content or mediated repository file reference.",
+      "examples": [
+        "Inspect records."
+      ]
+    },
+    "systemPrompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "System instructions passed separately to the provider.",
+      "examples": [
+        "Use tools only when needed."
+      ]
+    },
+    "taskSchema": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional task JSON Schema literal or mediated file reference.",
+      "examples": [
+        "https://schemas.handschuh.dev/example/task/v1"
+      ]
+    },
+    "files": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/ReferenceFile"
+      },
+      "description": "Ordered mediated reference files.",
+      "examples": [
+        []
+      ]
+    },
+    "tools": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/ToolDefinition"
+      },
+      "description": "Tools available to the model.",
+      "examples": [
+        []
+      ]
+    },
+    "autoInvokeTools": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, invoke only fully validated calls through the injected ToolInvoker; when false, return tool_calls_pending.",
+      "examples": [
+        false
+      ]
+    },
+    "outputSchema": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional business output JSON Schema literal or mediated file reference.",
+      "examples": [
+        "https://schemas.handschuh.dev/example/output/v1"
+      ]
+    }
+  },
+  "$defs": {
+    "Credentials": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "apiKey": {
+          "type": "string",
+          "minLength": 1,
+          "examples": [
+            "in-memory-example-key"
+          ],
+          "description": "In-memory API key."
+        },
+        "accessToken": {
+          "type": "string",
+          "minLength": 1,
+          "examples": [
+            "in-memory-example-token"
+          ],
+          "description": "In-memory access token."
+        }
+      },
+      "required": [],
+      "description": "Optional in-memory provider credentials.",
+      "examples": [
+        {
+          "apiKey": "in-memory-example-key"
+        }
+      ]
+    },
+    "ReferenceFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "path",
+        "type",
+        "purpose"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "examples": [
+            "record"
+          ],
+          "description": "Stable reference-file label."
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*(?:^|/)\\.env(?:\\..*)?(?:/|$)).+$",
+          "examples": [
+            "records/example.json"
+          ],
+          "description": "Mediated repository-relative file path."
+        },
+        "type": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9!#$&^_.+-]*\\/[a-z0-9!#$&^_.+-]+$",
+          "examples": [
+            "application/json"
+          ],
+          "description": "MIME type of the reference file."
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "utf8",
+            "base64"
+          ],
+          "examples": [
+            "utf8"
+          ],
+          "description": "Optional content encoding."
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1,
+          "examples": [
+            "Example reference"
+          ],
+          "description": "Reason the file is supplied."
+        }
+      },
+      "description": "One mediated repository reference file.",
+      "examples": [
+        {
+          "name": "record",
+          "path": "records/example.json",
+          "type": "application/json",
+          "purpose": "Example reference"
+        }
+      ]
+    },
+    "ToolDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "description",
+        "inputSchema"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$",
+          "examples": [
+            "read_record"
+          ],
+          "description": "Stable tool name."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "examples": [
+            "Read one record."
+          ],
+          "description": "Bounded tool purpose."
+        },
+        "inputSchema": {
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "string",
+              "format": "uri"
+            }
+          ],
+          "description": "Inline JSON Schema object or absolute schema URI used to validate tool arguments.",
+          "examples": [
+            "https://schemas.handschuh.dev/example/read-record-input/v1"
+          ]
+        }
+      },
+      "description": "A bounded tool declaration available to the model.",
+      "examples": [
+        {
+          "name": "read_record",
+          "description": "Read one record.",
+          "inputSchema": "https://schemas.handschuh.dev/example/read-record-input/v1"
+        }
+      ]
+    }
+  },
+  "examples": [
+    {
+      "schema": "https://schemas.handschuh.dev/llm/request/v2",
+      "task": "Inspect records.",
+      "systemPrompt": "Use tools only when needed.",
+      "tools": [
+        {
+          "name": "read_record",
+          "description": "Read a record.",
+          "inputSchema": "https://schemas.handschuh.dev/example/read-record-input/v1"
+        }
+      ],
+      "autoInvokeTools": false
+    }
+  ]
+}
