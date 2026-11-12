@@ -282,6 +282,7 @@ export interface CompletionOptions {
   readonly provider?: LlmProvider;
   readonly configurationFilePath?: string;
   readonly configurationRoot?: string;
+  readonly debug?: import('./debug.js').DebugSink;
 }
 
 export interface CompletionOptionsV2 extends CompletionOptions {

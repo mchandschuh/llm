@@ -7,6 +7,7 @@ import type { CompletionOptions, CompletionOptionsV2, LlmError, LlmOutput, LlmRe
 import { RESPONSE_SCHEMA, RESPONSE_SCHEMA_V2 } from './types.js';
 import { normalizeRequestV2 } from './normalize.js';
 import { LlmFailure as Failure } from './errors.js';
+import { emitDebug } from './debug.js';
 
 function response(status: LlmResponse['status'], output: LlmOutput | null, failedAttempts: number, iterations: number, errors: readonly LlmError[]): LlmResponse {
   const result: LlmResponse = { schema: RESPONSE_SCHEMA, status, output, failedAttempts, iterations, errors: errors.slice(0, 10) };
@@ -92,7 +93,7 @@ async function invokeParallelToolBatch(request: NormalizedRequestV2, options: Co
   }));
 }
 
-async function completeV2Internal(request: LlmRequestV2 | unknown, options: CompletionOptionsV2 = {}): Promise<LlmResponseV2> {
+async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: CompletionOptionsV2 = {}): Promise<LlmResponseV2> {
   let normalized: NormalizedRequestV2;
   try {
     normalized = await normalizeRequestV2(request, options);
@@ -118,7 +119,11 @@ async function completeV2Internal(request: LlmRequestV2 | unknown, options: Comp
   while (iterations < normalized.maxIterations) {
     let providerResult: ProviderCompletionResponse;
     try {
-      providerResult = await provider.completeV2({ provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials, tools: normalized.tools, toolResults });
+      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials, tools: normalized.tools, toolResults };
+      emitDebug(options.debug, 'llm.request', request);
+      emitDebug(options.debug, 'llm.provider.request', providerRequest);
+      providerResult = await provider.completeV2(providerRequest);
+      emitDebug(options.debug, 'llm.provider.response', providerResult);
       iterations += 1;
     } catch (error) {
       const failure = error instanceof Failure ? error : new Failure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider request failed before a usable response was returned.');
@@ -156,6 +161,12 @@ async function completeV2Internal(request: LlmRequestV2 | unknown, options: Comp
   return v2Response('output_invalid', null, failedAttempts, iterations, toolRounds, totalToolCalls, [toolFailure('OUTPUT_INVALID', 'Provider output did not satisfy the configured output schema.', 'output-validation')]);
 }
 
+async function completeV2Internal(request: LlmRequestV2 | unknown, options: CompletionOptionsV2 = {}): Promise<LlmResponseV2> {
+  const result = await completeV2InternalImpl(request, options);
+  emitDebug(options.debug, 'llm.response', result);
+  return result;
+}
+
 async function completeV1Internal(request: LlmRequest | unknown, options: CompletionOptions = {}): Promise<LlmResponse> {
   let normalized: NormalizedRequest;
   try {
@@ -167,12 +178,16 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
     if (normalized.outputSchema) parseSchema(normalized.outputSchema.value, normalized.outputSchema.path);
   } catch (error) {
     const failure = error instanceof LlmFailure ? error : new LlmFailure('REQUEST_INVALID', 'request', 'Request preparation failed.');
-    return response(failureStatus(failure), null, 0, 0, [errorFromFailure(failure)]);
+    const result = response(failureStatus(failure), null, 0, 0, [errorFromFailure(failure)]);
+    emitDebug(options.debug, 'llm.response', result);
+    return result;
   }
 
   const provider: LlmProvider = options.provider ?? new OpenRouterProvider();
   if (!options.provider && normalized.provider !== 'openrouter') {
-    return response('configuration_error', null, 0, 0, [errorFromFailure(new LlmFailure('CONFIGURATION_INVALID', 'configuration', `No provider adapter is registered for ${normalized.provider}.`))]);
+    const result = response('configuration_error', null, 0, 0, [errorFromFailure(new LlmFailure('CONFIGURATION_INVALID', 'configuration', `No provider adapter is registered for ${normalized.provider}.`))]);
+    emitDebug(options.debug, 'llm.response', result);
+    return result;
   }
   const outputSchema = normalized.outputSchema ? parseSchema(normalized.outputSchema.value, normalized.outputSchema.path) : undefined;
   let failedAttempts = 0;
@@ -183,19 +198,26 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
   while (iterations < normalized.maxIterations) {
     let raw: string;
     try {
-      raw = await provider.complete({ provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials });
+      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials };
+      emitDebug(options.debug, 'llm.request', request);
+      emitDebug(options.debug, 'llm.provider.request', providerRequest);
+      raw = await provider.complete(providerRequest);
+      emitDebug(options.debug, 'llm.provider.response', raw);
       iterations += 1;
     } catch (error) {
       const failure = error instanceof LlmFailure ? error : new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider request failed before a usable response was returned.');
-      if (failure.code === 'CONFIGURATION_INVALID') return response('configuration_error', null, failedAttempts, iterations, [errorFromFailure(failure)]);
       failedAttempts += 1;
       if (failedAttempts >= normalized.maxFailedAttempts) {
-        return response('attempts_exhausted', null, failedAttempts, iterations, [errorFromFailure(new LlmFailure('ATTEMPTS_EXHAUSTED', 'retry', 'The provider failure-attempt limit was exhausted.'))]);
+        const result = response('attempts_exhausted', null, failedAttempts, iterations, [errorFromFailure(new LlmFailure('ATTEMPTS_EXHAUSTED', 'retry', 'The provider failure-attempt limit was exhausted.'))]);
+        emitDebug(options.debug, 'llm.response', result);
+        return result;
       }
       continue;
     }
     try {
-      return response('success', outputFromText(raw, outputSchema, normalized.outputSchema), failedAttempts, iterations, []);
+      const result = response('success', outputFromText(raw, outputSchema, normalized.outputSchema), failedAttempts, iterations, []);
+      emitDebug(options.debug, 'llm.response', result);
+      return result;
     } catch (error) {
       const failure = error instanceof LlmFailure ? error : new LlmFailure('OUTPUT_INVALID', 'output-validation', 'Provider output did not satisfy the configured output schema.');
       lastOutputFailure = failure;
@@ -205,7 +227,9 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
   }
 
   const failure = lastOutputFailure ?? new LlmFailure('OUTPUT_INVALID', 'output-validation', 'Provider output did not satisfy the configured output schema.');
-  return response('output_invalid', null, failedAttempts, iterations, [errorFromFailure(failure)]);
+  const result = response('output_invalid', null, failedAttempts, iterations, [errorFromFailure(failure)]);
+  emitDebug(options.debug, 'llm.response', result);
+  return result;
 }
 
 export async function complete(request: LlmRequest | LlmRequestV2 | unknown, options: CompletionOptions | CompletionOptionsV2 = {}): Promise<LlmResponse | LlmResponseV2> {

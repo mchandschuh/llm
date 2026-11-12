@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { stderrDebugSink } from './debug.js';
 
 const packagePath = resolve(dirname(fileURLToPath(import.meta.url)), '../package.json');
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -17,6 +18,7 @@ async function version(): Promise<string> {
 function help(): number {
   console.log('Usage: llm <request.json>');
   console.log('       llm --config <request.json>');
+  console.log('       llm --debug <request.json>');
   console.log('       llm --help');
   console.log('\nRun one provider-backed completion from a JSON request configuration.');
   console.log('The --help path loads package metadata only and does not initialize a provider.');
@@ -52,13 +54,15 @@ function help(): number {
 }
 
 export async function main(args: readonly string[] = process.argv.slice(2)): Promise<number> {
-  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') return help();
-  if (args[0] === '--version' || args[0] === '-v') {
+  const debug = args.includes('--debug');
+  const cleanArgs = args.filter((arg) => arg !== '--debug');
+  if (cleanArgs.length === 0 || cleanArgs[0] === '--help' || cleanArgs[0] === '-h') return help();
+  if (cleanArgs[0] === '--version' || cleanArgs[0] === '-v') {
     console.log(await version());
     return 0;
   }
-  const path = args[0] === '--config' ? args[1] : args[0];
-  if (!path || (args[0] === '--config' && args.length !== 2) || (args[0] !== '--config' && args.length !== 1)) {
+  const path = cleanArgs[0] === '--config' ? cleanArgs[1] : cleanArgs[0];
+  if (!path || (cleanArgs[0] === '--config' && cleanArgs.length !== 2) || (cleanArgs[0] !== '--config' && cleanArgs.length !== 1)) {
     console.error('Usage: llm <request.json>');
     return 2;
   }
@@ -66,7 +70,7 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
     const configurationFilePath = resolve(process.cwd(), path);
     const request = JSON.parse(await readFile(configurationFilePath, 'utf8')) as import('./types.js').LlmRequest | import('./types.js').LlmRequestV2;
     const { complete } = await import('./complete.js');
-    const result = await complete(request, { configurationFilePath });
+    const result = await complete(request, { configurationFilePath, ...(debug ? { debug: stderrDebugSink() } : {}) });
     console.log(JSON.stringify(result, null, 2));
     return result.status === 'success' ? 0 : 1;
   } catch {

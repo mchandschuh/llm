@@ -567,3 +567,31 @@ test('help documents minimal request and response contracts', async () => {
   assert.match(text, /"failedAttempts": 0/);
   assert.match(text, /"iterations": 1/);
 });
+
+test('debug sink emits bounded redacted request and response events', async () => {
+  const events: Array<{ event: string; data?: unknown }> = [];
+  const provider: LlmProvider = { async complete() { return 'debug response'; } };
+  const result = await complete({
+    schema,
+    task: 'debug task',
+    systemPrompt: 'debug system',
+    credentials: { apiKey: 'secret-key' },
+  }, { provider, debug: (event) => events.push(event) });
+  assert.equal(result.status, 'success');
+  assert.deepEqual(events.map((event) => event.event), ['llm.request', 'llm.provider.request', 'llm.provider.response', 'llm.response']);
+  assert.match(JSON.stringify(events), /debug task/u);
+  assert.doesNotMatch(JSON.stringify(events), /secret-key/u);
+  assert.match(JSON.stringify(events), /redacted/u);
+});
+
+test('CLI --debug preserves stdout response and writes JSONL diagnostics to stderr', async () => {
+  const originalError = console.error;
+  const errors: string[] = [];
+  console.error = (...args: unknown[]) => errors.push(args.join(' '));
+  try {
+    assert.equal(await cliMain(['--debug', '--help']), 0);
+  } finally {
+    console.error = originalError;
+  }
+  assert.deepEqual(errors, []);
+});
