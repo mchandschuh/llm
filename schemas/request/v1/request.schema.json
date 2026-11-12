@@ -88,12 +88,25 @@
       ]
     },
     "task": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Task data supplied to the model as a literal string or as a repository-approved file reference. When taskSchema is configured, the resolved content must be JSON and must validate against that schema before provider invocation.",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "Plain-text task content or a repository-approved file reference."
+        },
+        {
+          "type": "object",
+          "description": "Structured task data. When taskSchema is configured, this object must validate against it."
+        }
+      ],
+      "description": "Task data supplied as plain text, a permitted text-file reference, or a structured JSON object. Structured tasks remain objects at the request boundary.",
       "examples": [
         "{\"workItemId\":\"WI-0002\",\"operation\":\"assess-readiness\"}",
-        ".docs/work-items/WI-0002/work-item.json"
+        ".docs/work-items/WI-0002/work-item.json",
+        {
+          "workItemId": "WI-0002",
+          "operation": "assess-readiness"
+        }
       ]
     },
     "systemPrompt": {
@@ -106,11 +119,13 @@
       ]
     },
     "taskSchema": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Optional task-data JSON Schema supplied as literal content or as a repository-approved file reference. When configured, the resolved task must parse as JSON and validate against it before provider invocation.",
+      "type": "object",
+      "description": "Optional inline task-data JSON Schema object. The task value is validated directly against this schema before provider invocation.",
       "examples": [
-        "https://schemas.handschuh.dev/example/assessment-input/v1"
+        {
+          "$id": "https://schemas.handschuh.dev/example/assessment-input/v1",
+          "type": "object"
+        }
       ]
     },
     "files": {
@@ -142,11 +157,13 @@
       ]
     },
     "outputSchema": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Optional required-response JSON Schema supplied as literal content or as a repository-approved file reference. When configured, provider output must be JSON and must validate against the resolved schema before a successful response is returned.",
+      "type": "object",
+      "description": "Optional inline required-response JSON Schema object. Provider output must be JSON and must validate against it before a successful response is returned.",
       "examples": [
-        "https://schemas.handschuh.dev/example/assessment-output/v1"
+        {
+          "$id": "https://schemas.handschuh.dev/example/assessment-output/v1",
+          "type": "object"
+        }
       ]
     }
   },

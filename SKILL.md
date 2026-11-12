@@ -134,9 +134,12 @@ properties are rejected.
 
 - `schema` is required and must be exactly
   `https://schemas.handschuh.dev/llm/request/v1`.
-- `task` and `systemPrompt` are required non-empty strings. If a value names an
-  existing permitted regular file under the configuration root, its UTF-8
-  contents are loaded; otherwise the value is treated as a literal string.
+- `task` may be a non-empty string or a structured JSON object. String tasks may
+  name an existing permitted regular file under the configuration root; object
+  tasks remain objects at the request boundary and are validated directly.
+- `systemPrompt` is a required non-empty string. If it names an existing
+  permitted regular file under the configuration root, its UTF-8 contents are
+  loaded; otherwise it is treated as literal text.
 - `provider` defaults to `openrouter`.
 - `model` defaults to `openai/gpt-5.6-luna`.
 - `thinking` accepts `minimal`, `low`, `medium`, `high`, or `xhigh`, and defaults
@@ -145,11 +148,10 @@ properties are rejected.
   `10`. It counts provider invocations that fail before returning usable text.
 - `maxIterations` defaults to `3` and must be an integer from `1` through `10`.
   It counts successful provider roundtrips, including correction attempts.
-- `taskSchema` is optional inline JSON Schema text or a permitted file reference.
-  When present, the resolved task must be valid JSON and satisfy this schema
-  before the provider is called.
-- `outputSchema` is optional inline JSON Schema text or a permitted file
-  reference. When present, provider output must be JSON and satisfy it.
+- `taskSchema` is an optional inline JSON Schema object. When present, the task
+  value is validated directly against this schema before the provider is called.
+- `outputSchema` is an optional inline JSON Schema object. When present, provider
+  output must be JSON and satisfy it.
 - `files` is an ordered list of `{ name, path, type, purpose, encoding? }`
   reference descriptors. `type` is always a MIME type such as `text/markdown`,
   `application/json`, or `image/png`. Every `path` must resolve to a permitted
@@ -304,15 +306,15 @@ const provider: LlmProvider = {
 const result = await complete(
   {
     schema: 'https://schemas.handschuh.dev/llm/request/v1',
-    task: '{"operation":"test"}',
+    task: { operation: 'test' },
     systemPrompt: 'Return the requested result.',
-    outputSchema: JSON.stringify({
+    outputSchema: {
       $id: 'https://example.test/output',
       type: 'object',
       required: ['ok'],
       additionalProperties: false,
       properties: { ok: { type: 'boolean' } },
-    }),
+    },
   },
   { provider },
 );

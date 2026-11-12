@@ -25,6 +25,10 @@ export interface ReferenceFile {
   readonly encoding?: FileEncoding;
 }
 
+export type JsonObject = Readonly<Record<string, unknown>>;
+export type TaskValue = string | JsonObject;
+export type InlineJsonSchema = JsonObject;
+
 export interface LlmRequest {
   readonly schema: typeof REQUEST_SCHEMA;
   readonly provider?: string;
@@ -33,11 +37,11 @@ export interface LlmRequest {
   readonly maxFailedAttempts?: number;
   readonly maxIterations?: number;
   readonly credentials?: Credentials;
-  readonly task: string;
+  readonly task: TaskValue;
   readonly systemPrompt: string;
-  readonly taskSchema?: string;
+  readonly taskSchema?: InlineJsonSchema;
   readonly files?: readonly ReferenceFile[];
-  readonly outputSchema?: string;
+  readonly outputSchema?: InlineJsonSchema;
 }
 
 export interface ToolDefinition {
@@ -76,13 +80,13 @@ export interface LlmRequestV2 {
   readonly maxToolRounds?: number;
   readonly maxToolCalls?: number;
   readonly credentials?: Credentials;
-  readonly task: string;
+  readonly task: TaskValue;
   readonly systemPrompt: string;
-  readonly taskSchema?: string;
+  readonly taskSchema?: InlineJsonSchema;
   readonly files?: readonly ReferenceFile[];
   readonly tools?: readonly ToolDefinition[];
   readonly autoInvokeTools?: boolean;
-  readonly outputSchema?: string;
+  readonly outputSchema?: InlineJsonSchema;
 }
 
 export interface ResolvedSource {
@@ -98,11 +102,11 @@ export interface NormalizedRequest {
   readonly maxFailedAttempts: number;
   readonly maxIterations: number;
   readonly credentials?: Credentials;
-  readonly task: ResolvedSource;
+  readonly task: TaskValue;
   readonly systemPrompt: ResolvedSource;
-  readonly taskSchema?: ResolvedSource;
+  readonly taskSchema?: InlineJsonSchema;
   readonly files: readonly (ReferenceFile & { readonly encoding: FileEncoding; readonly content: string; readonly resolvedPath: string })[];
-  readonly outputSchema?: ResolvedSource;
+  readonly outputSchema?: InlineJsonSchema;
   readonly configurationRoot: string;
 }
 
@@ -116,13 +120,13 @@ export interface NormalizedRequestV2 {
   readonly maxToolRounds: number;
   readonly maxToolCalls: number;
   readonly credentials?: Credentials;
-  readonly task: ResolvedSource;
+  readonly task: TaskValue;
   readonly systemPrompt: ResolvedSource;
-  readonly taskSchema?: ResolvedSource;
+  readonly taskSchema?: InlineJsonSchema;
   readonly files: readonly (ReferenceFile & { readonly encoding: FileEncoding; readonly content: string; readonly resolvedPath: string })[];
   readonly tools: readonly ToolDefinition[];
   readonly autoInvokeTools: boolean;
-  readonly outputSchema?: ResolvedSource;
+  readonly outputSchema?: InlineJsonSchema;
   readonly configurationRoot: string;
 }
 

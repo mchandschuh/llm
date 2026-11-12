@@ -28,14 +28,22 @@ function schemaPath(source: string): string | undefined {
   return source.startsWith('https://') ? undefined : source;
 }
 
+function inlineSchema(value: unknown, name: string): Record<string, unknown> | undefined {
+  if (value === undefined) return undefined;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new LlmFailure('REQUEST_INVALID', 'request', `${name} must be an inline JSON Schema object.`);
+  }
+  return value as Record<string, unknown>;
+}
+
 export async function normalizeRequest(value: unknown, options: { readonly configurationFilePath?: string; readonly configurationRoot?: string } = {}): Promise<NormalizedRequest> {
   assertRequestShape(value);
   const request = value as unknown as LlmRequest;
   const root = resolve(options.configurationRoot ?? (options.configurationFilePath ? resolve(options.configurationFilePath, '..') : process.cwd()));
-  const task = await resolveSource(request.task, root);
+  const task = typeof request.task === 'string' ? (await resolveSource(request.task, root)).value : request.task;
   const systemPrompt = await resolveSource(request.systemPrompt, root);
-  const taskSchema = request.taskSchema ? await resolveSource(request.taskSchema, root) : undefined;
-  const outputSchema = request.outputSchema ? await resolveSource(request.outputSchema, root) : undefined;
+  const taskSchema = inlineSchema(request.taskSchema, 'taskSchema');
+  const outputSchema = inlineSchema(request.outputSchema, 'outputSchema');
   const files: Array<ReferenceFile & { readonly encoding: 'utf8' | 'base64'; readonly content: string; readonly resolvedPath: string }> = [];
   for (const file of request.files ?? []) {
     const resolved = await resolveRequiredFile(file.path, root, file.type, file.encoding);
@@ -62,10 +70,10 @@ export async function normalizeRequestV2(value: unknown, options: { readonly con
   assertRequestV2Shape(value);
   const request = value as LlmRequestV2;
   const root = resolve(options.configurationRoot ?? (options.configurationFilePath ? resolve(options.configurationFilePath, '..') : process.cwd()));
-  const task = await resolveSource(request.task, root);
+  const task = typeof request.task === 'string' ? (await resolveSource(request.task, root)).value : request.task;
   const systemPrompt = await resolveSource(request.systemPrompt, root);
-  const taskSchema = request.taskSchema ? await resolveSource(request.taskSchema, root) : undefined;
-  const outputSchema = request.outputSchema ? await resolveSource(request.outputSchema, root) : undefined;
+  const taskSchema = inlineSchema(request.taskSchema, 'taskSchema');
+  const outputSchema = inlineSchema(request.outputSchema, 'outputSchema');
   const files: Array<ReferenceFile & { readonly encoding: 'utf8' | 'base64'; readonly content: string; readonly resolvedPath: string }> = [];
   for (const file of request.files ?? []) {
     const resolved = await resolveRequiredFile(file.path, root, file.type, file.encoding);

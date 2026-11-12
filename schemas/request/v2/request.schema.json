@@ -101,11 +101,24 @@
       ]
     },
     "task": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Literal task content or mediated repository file reference.",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "Plain-text task content or a mediated repository file reference."
+        },
+        {
+          "type": "object",
+          "description": "Structured task data. When taskSchema is configured, this object must validate against it."
+        }
+      ],
+      "description": "Task data supplied as plain text, a mediated text-file reference, or a structured JSON object.",
       "examples": [
-        "Inspect records."
+        "Inspect records.",
+        {
+          "operation": "inspect",
+          "target": "records"
+        }
       ]
     },
     "systemPrompt": {
@@ -117,11 +130,13 @@
       ]
     },
     "taskSchema": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Optional task JSON Schema literal or mediated file reference.",
+      "type": "object",
+      "description": "Optional inline task JSON Schema object.",
       "examples": [
-        "https://schemas.handschuh.dev/example/task/v1"
+        {
+          "$id": "https://schemas.handschuh.dev/example/task/v1",
+          "type": "object"
+        }
       ]
     },
     "files": {
@@ -156,11 +171,13 @@
       ]
     },
     "outputSchema": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Optional business output JSON Schema literal or mediated file reference.",
+      "type": "object",
+      "description": "Optional inline business output JSON Schema object.",
       "examples": [
-        "https://schemas.handschuh.dev/example/output/v1"
+        {
+          "$id": "https://schemas.handschuh.dev/example/output/v1",
+          "type": "object"
+        }
       ]
     }
   },

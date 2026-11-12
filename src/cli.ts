@@ -25,13 +25,13 @@ function help(): number {
   console.log(`\nMinimal request (${requestSchemaPath}):`);
   console.log('{');
   console.log('  "schema": "https://schemas.handschuh.dev/llm/request/v1",');
-  console.log('  "task": "Summarize the current work item.",');
+  console.log('  "task": { "operation": "summarize", "target": "current work item" },');
   console.log('  "systemPrompt": "Return a concise plain-text summary."');
   console.log('}');
   console.log(`\nTool-capable request (${requestSchemaV2Path}):`);
   console.log('{');
   console.log('  "schema": "https://schemas.handschuh.dev/llm/request/v2",');
-  console.log('  "task": "Inspect the current records.",');
+  console.log('  "task": { "operation": "inspect", "target": "current records" },');
   console.log('  "systemPrompt": "Use declared tools when needed.",');
   console.log('  "tools": [],');
   console.log('  "autoInvokeTools": false');

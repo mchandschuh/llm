@@ -12,7 +12,7 @@ import type { ILlmProvider, LlmProvider, ProviderCompletionRequest, ProviderComp
 
 const schema = 'https://schemas.handschuh.dev/llm/request/v1';
 const schemaV2 = 'https://schemas.handschuh.dev/llm/request/v2';
-const outputSchema = JSON.stringify({ $id: 'https://example.test/output', type: 'object', required: ['ok'], additionalProperties: false, properties: { ok: { type: 'boolean' } } });
+const outputSchema = { $id: 'https://example.test/output', type: 'object', required: ['ok'], additionalProperties: false, properties: { ok: { type: 'boolean' } } };
 const pngBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
 
 class SequenceProvider implements LlmProvider {
@@ -27,7 +27,7 @@ class SequenceProvider implements LlmProvider {
 }
 
 function request(overrides: Record<string, unknown> = {}) {
-  return { schema, task: '{"operation":"test"}', systemPrompt: 'Return the requested result.', outputSchema, ...overrides };
+  return { schema, task: { operation: 'test' }, systemPrompt: 'Return the requested result.', outputSchema, ...overrides };
 }
 
 test('normalizes closed request defaults', async () => {
@@ -52,6 +52,31 @@ test('normalizes v2 tool declarations and bounded tool settings', async () => {
   assert.equal(normalized.maxToolCalls, 128);
   assert.equal(normalized.autoInvokeTools, true);
   assert.equal(normalized.tools[0]?.name, 'read_record');
+});
+
+test('preserves structured v1 and v2 tasks and inline schemas at the request boundary', async () => {
+  const v1Task = { operation: 'assess', target: 'WI-0004' };
+  const v1TaskSchema = { type: 'object', required: ['operation', 'target'], additionalProperties: false, properties: { operation: { type: 'string' }, target: { type: 'string' } } };
+  const v1OutputSchema = { type: 'object', required: ['ok'], additionalProperties: false, properties: { ok: { type: 'boolean' } } };
+  const v1Provider = new SequenceProvider(['{"ok":true}']);
+  const v1Events: Array<{ event: string; data?: unknown }> = [];
+  const v1 = await complete({ schema, task: v1Task, taskSchema: v1TaskSchema, outputSchema: v1OutputSchema, systemPrompt: 'Return JSON.' }, { provider: v1Provider, debug: (event) => v1Events.push(event) });
+  assert.equal(v1.status, 'success');
+  const v1Request = v1Events.find((event) => event.event === 'llm.request')?.data as Record<string, unknown>;
+  assert.deepEqual(v1Request.task, v1Task);
+  assert.deepEqual(v1Request.taskSchema, v1TaskSchema);
+  assert.deepEqual(v1Request.outputSchema, v1OutputSchema);
+  assert.match(v1Provider.calls[0]!.llmPrompt, /"operation":"assess"/u);
+
+  const v2Provider = new V2SequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
+  const v2Events: Array<{ event: string; data?: unknown }> = [];
+  const v2Task = { operation: 'inspect', target: 'records' };
+  const v2 = await completeV2(v2Request({ task: v2Task, outputSchema: v1OutputSchema }), { provider: v2Provider as unknown as import('../src/types.js').LlmProviderV2, debug: (event) => v2Events.push(event) });
+  assert.equal(v2.status, 'success');
+  const v2RequestEvent = v2Events.find((event) => event.event === 'llm.request')?.data as Record<string, unknown>;
+  assert.deepEqual(v2RequestEvent.task, v2Task);
+  assert.equal(typeof v2RequestEvent.taskSchema, 'object');
+  assert.deepEqual(v2RequestEvent.outputSchema, v1OutputSchema);
 });
 
 test('rejects duplicate v2 tool names before provider use', async () => {
@@ -81,10 +106,11 @@ class V2SequenceProvider implements LlmProvider {
 
 const v2Request = (overrides: Record<string, unknown> = {}) => ({
   schema: schemaV2,
-  task: 'Inspect records.',
+  task: { operation: 'inspect', target: 'records' },
   systemPrompt: 'Use tools only when needed.',
+  taskSchema: { type: 'object', required: ['operation', 'target'], additionalProperties: false, properties: { operation: { const: 'inspect' }, target: { type: 'string' } } },
   tools: [{ name: 'read_record', description: 'Read one record.', inputSchema: JSON.stringify({ type: 'object', required: ['logicalId'], properties: { logicalId: { type: 'string' } } }) }],
-  outputSchema: JSON.stringify({ type: 'object', required: ['ok'], additionalProperties: false, properties: { ok: { type: 'boolean' } } }),
+    outputSchema: { type: 'object', required: ['ok'], additionalProperties: false, properties: { ok: { type: 'boolean' } } },
   ...overrides,
 });
 
@@ -243,6 +269,24 @@ test('unified complete rejects an unknown request schema without mislabeling it 
   assert.equal(result.status, 'input_invalid');
 });
 
+test('reports v1 and v2 request-schema violations before provider invocation', async () => {
+  const v1Provider = new SequenceProvider(['ok']);
+  const v1 = await complete({ ...request(), extra: true }, { provider: v1Provider });
+  assert.equal(v1.schema, 'https://schemas.handschuh.dev/llm/response/v1');
+  assert.equal(v1.status, 'input_invalid');
+  assert.equal(v1.errors[0]?.code, 'REQUEST_INVALID');
+  assert.match(v1.errors[0]?.message ?? '', /additional properties/u);
+  assert.equal(v1Provider.calls.length, 0);
+
+  const v2Provider = new V2SequenceProvider([]);
+  const v2 = await complete(v2Request({ extra: true }), { provider: v2Provider as unknown as import('../src/types.js').LlmProviderV2 });
+  assert.equal(v2.schema, 'https://schemas.handschuh.dev/llm/response/v2');
+  assert.equal(v2.status, 'input_invalid');
+  assert.equal(v2.errors[0]?.code, 'REQUEST_INVALID');
+  assert.match(v2.errors[0]?.message ?? '', /additional properties/u);
+  assert.equal(v2Provider.calls.length, 0);
+});
+
 test('ILlmProvider accepts a v2 request and returns response/v2', async () => {
   const service: ILlmProvider = { complete };
   const result = await service.complete(v2Request(), { provider: new V2SequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]) as unknown as import('../src/types.js').LlmProviderV2 });
@@ -250,7 +294,7 @@ test('ILlmProvider accepts a v2 request and returns response/v2', async () => {
 });
 
 test('ILlmProvider performs bounded output-schema correction iterations', async () => {
-  const outputSchema = JSON.stringify({
+  const outputSchema = {
     $id: 'https://example.test/act-result',
     type: 'object',
     required: ['status', 'summary'],
@@ -259,14 +303,14 @@ test('ILlmProvider performs bounded output-schema correction iterations', async 
       status: { const: 'completed' },
       summary: { type: 'string', minLength: 1 },
     },
-  });
-  const taskSchema = JSON.stringify({
+  };
+  const taskSchema = {
     $id: 'https://example.test/act-task',
     type: 'object',
     required: ['target'],
     additionalProperties: false,
     properties: { target: { type: 'string', minLength: 1 } },
-  });
+  };
   const service: ILlmProvider = { complete };
   const provider = new SequenceProvider([
     '{"status":"completed"}',
@@ -275,7 +319,7 @@ test('ILlmProvider performs bounded output-schema correction iterations', async 
   const result = await service.complete(
     {
       schema,
-      task: '{"target":"B0056-04"}',
+      task: { target: 'B0056-04' },
       taskSchema,
       systemPrompt: 'Return only the structured Act result.',
       outputSchema,
@@ -301,7 +345,7 @@ test('ILlmProvider performs bounded output-schema correction iterations', async 
   const exhausted = await service.complete(
     {
       schema,
-      task: '{"target":"B0056-04"}',
+      task: { target: 'B0056-04' },
       taskSchema,
       systemPrompt: 'Return only the structured Act result.',
       outputSchema,
@@ -312,6 +356,22 @@ test('ILlmProvider performs bounded output-schema correction iterations', async 
   assert.equal(exhausted.status, 'output_invalid');
   assert.equal(exhausted.iterations, 2);
   assert.equal(exhaustedProvider.calls.length, 2);
+});
+
+test('v2 includes output-schema violations in correction retries', async () => {
+  const provider = new V2SequenceProvider([
+    JSON.stringify({ content: '{\"ok\":\"wrong type\"}', toolCalls: [] }),
+    JSON.stringify({ content: '{\"ok\":true}', toolCalls: [] }),
+  ]);
+  const result = await completeV2(v2Request({ maxIterations: 2 }), {
+    provider: provider as unknown as import('../src/types.js').LlmProviderV2,
+  });
+
+  assert.equal(result.status, 'success');
+  assert.equal(result.iterations, 2);
+  assert.equal(provider.calls.length, 2);
+  assert.match(provider.calls[1]?.llmPrompt ?? '', /correctionInstruction/u);
+  assert.match(provider.calls[1]?.llmPrompt ?? '', /must be boolean/u);
 });
 
 test('rejects unknown and out-of-range request settings before provider invocation', async () => {
@@ -329,7 +389,7 @@ test('resolves regular files and rejects traversal, forbidden files, directories
   await mkdir(join(root, 'dir'));
   await symlink(join(root, 'task.json'), join(root, 'link.json'));
   const normalized = await normalizeRequest({ schema, task: 'task.json', systemPrompt: 'literal system', files: [{ name: 'task', path: 'task.json', type: 'application/json', purpose: 'test' }] }, { configurationRoot: root });
-  assert.equal(normalized.task.path, 'task.json');
+  assert.equal(normalized.task, '{"ok":true}');
   await assert.rejects(() => normalizeRequest({ schema, task: '../outside', systemPrompt: 'system' }, { configurationRoot: root }));
   await assert.rejects(() => normalizeRequest({ schema, task: '.env', systemPrompt: 'system' }, { configurationRoot: root }));
   await assert.rejects(() => normalizeRequest({ schema, task: 'dir', systemPrompt: 'system' }, { configurationRoot: root }));
@@ -381,24 +441,24 @@ test('requires file.type to be a concrete MIME type', async () => {
 
 test('rejects malformed or schema-invalid task before provider invocation', async () => {
   const provider = new SequenceProvider(['{"ok":true}']);
-  const taskSchema = JSON.stringify({ type: 'object', required: ['required'], additionalProperties: false, properties: { required: { type: 'boolean' } } });
-  const malformed = await complete({ schema, task: '{', systemPrompt: 'system', taskSchema }, { provider });
+  const taskSchema = { type: 'object', required: ['required'], additionalProperties: false, properties: { required: { type: 'boolean' } } };
+  const malformed = await complete({ schema, task: { required: 'wrong' }, systemPrompt: 'system', taskSchema }, { provider });
   assert.equal(malformed.status, 'input_invalid');
   assert.equal(provider.calls.length, 0);
-  const result = await complete({ schema, task: '{"wrong":true}', systemPrompt: 'system', taskSchema }, { provider });
+  const result = await complete({ schema, task: { wrong: true }, systemPrompt: 'system', taskSchema }, { provider });
   assert.equal(result.status, 'input_invalid');
   assert.equal(provider.calls.length, 0);
 });
 
 test('validates uri formats in configured schemas without provider use for invalid values', async () => {
-  const taskSchema = JSON.stringify({ type: 'string', format: 'uri' });
+  const taskSchema = { type: 'string', format: 'uri' };
   const validProvider = new SequenceProvider(['ok']);
-  const valid = await complete({ schema, task: '"https://example.test/task"', systemPrompt: 'Return text.', taskSchema }, { provider: validProvider });
+  const valid = await complete({ schema, task: 'https://example.test/task', systemPrompt: 'Return text.', taskSchema }, { provider: validProvider });
   assert.equal(valid.status, 'success');
   assert.equal(validProvider.calls.length, 1);
 
   const invalidProvider = new SequenceProvider(['ok']);
-  const invalid = await complete({ schema, task: '"not a uri"', systemPrompt: 'Return text.', taskSchema }, { provider: invalidProvider });
+  const invalid = await complete({ schema, task: 'not a uri', systemPrompt: 'Return text.', taskSchema }, { provider: invalidProvider });
   assert.equal(invalid.status, 'input_invalid');
   assert.equal(invalid.errors[0]?.code, 'TASK_SCHEMA_VALIDATION_FAILED');
   assert.equal(invalidProvider.calls.length, 0);
@@ -563,6 +623,7 @@ test('help documents minimal request and response contracts', async () => {
   assert.match(text, /Minimal request \(.*llm\/schemas\/request\/v1\/request\.schema\.json\)/);
   assert.match(text, /Successful raw-text response \(.*llm\/schemas\/response\/v1\/response\.schema\.json\)/);
   assert.match(text, /"schema": "https:\/\/schemas\.handschuh\.dev\/llm\/request\/v1"/);
+  assert.match(text, /"task": \{ "operation": "summarize"/);
   assert.match(text, /"status": "success"/);
   assert.match(text, /"failedAttempts": 0/);
   assert.match(text, /"iterations": 1/);

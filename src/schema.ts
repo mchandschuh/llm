@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { Ajv2020, type ErrorObject, type ValidateFunction } from 'ajv/dist/2020.js';
 import addFormatsModule from 'ajv-formats';
 import { boundedMessage, LlmFailure } from './errors.js';
-import type { LlmRequestV2, LlmResponse, LlmResponseV2 } from './types.js';
+import type { InlineJsonSchema, LlmRequestV2, LlmResponse, LlmResponseV2 } from './types.js';
 
 const addFormats = addFormatsModule as unknown as (ajv: Ajv2020) => Ajv2020;
 
@@ -70,12 +70,16 @@ export interface LoadedSchema {
   readonly validator: ValidateFunction;
 }
 
-export function parseSchema(source: string, path?: string): LoadedSchema {
+export function parseSchema(source: string | InlineJsonSchema, path?: string): LoadedSchema {
   let parsed: unknown;
-  try {
-    parsed = JSON.parse(source);
-  } catch {
-    throw new LlmFailure('CONFIGURATION_INVALID', 'configuration', 'A configured JSON Schema is not valid JSON.');
+  if (typeof source === 'string') {
+    try {
+      parsed = JSON.parse(source);
+    } catch {
+      throw new LlmFailure('CONFIGURATION_INVALID', 'configuration', 'A configured JSON Schema is not valid JSON.');
+    }
+  } else {
+    parsed = source;
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new LlmFailure('CONFIGURATION_INVALID', 'configuration', 'A configured JSON Schema must be a JSON object.');
@@ -87,14 +91,6 @@ export function parseSchema(source: string, path?: string): LoadedSchema {
     return { schema, name, path, validator };
   } catch {
     throw new LlmFailure('CONFIGURATION_INVALID', 'configuration', 'A configured JSON Schema could not be compiled.');
-  }
-}
-
-export function parseTaskJson(source: string): unknown {
-  try {
-    return JSON.parse(source);
-  } catch {
-    throw new LlmFailure('TASK_SCHEMA_VALIDATION_FAILED', 'request', 'Task content is not valid JSON.');
   }
 }
 

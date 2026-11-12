@@ -1,4 +1,4 @@
-import type { FileEncoding, NormalizedRequest, PromptParts, ReferenceFile } from './types.js';
+import type { FileEncoding, InlineJsonSchema, NormalizedRequest, PromptParts, ReferenceFile, TaskValue } from './types.js';
 
 function attribute(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -6,6 +6,10 @@ function attribute(value: string): string {
 
 function cdata(value: string): string {
   return `<![CDATA[${value.replaceAll(']]>', ']]]]><![CDATA[>')}]]>`;
+}
+
+function text(value: TaskValue | InlineJsonSchema): string {
+  return typeof value === 'string' ? value : JSON.stringify(value);
 }
 
 function fileXml(file: ReferenceFile & { readonly content: string }): string {
@@ -36,28 +40,40 @@ export function composePrompt(parts: PromptParts): string {
 
 export function composeRequestPrompt(request: NormalizedRequest): string {
   return composePrompt({
-    task: request.task.value,
-    taskSchema: request.taskSchema?.value,
+    task: text(request.task),
+    taskSchema: request.taskSchema ? JSON.stringify(request.taskSchema) : undefined,
     files: request.files,
-    outputSchema: request.outputSchema?.value,
+    outputSchema: request.outputSchema ? JSON.stringify(request.outputSchema) : undefined,
   });
 }
 
 export function composeCorrectionPrompt(request: NormalizedRequest, previousResult: string, validationErrors: readonly string[]): string {
   const correctionSchema = JSON.stringify({
     $schema: 'https://json-schema.org/draft/2020-12/schema',
+    title: 'LLM Output Correction Task',
+    description: 'A bounded correction request containing the original task, rejected provider output, and schema violations that must be fixed.',
     type: 'object',
     additionalProperties: false,
     required: ['originalTask', 'previousResult', 'validationErrors', 'correctionInstruction'],
     properties: {
-      originalTask: { description: 'The original task data.', type: 'string' },
-      previousResult: { description: 'The prior provider result.', type: 'string' },
-      validationErrors: { type: 'array', items: { type: 'string' } },
-      correctionInstruction: { type: 'string' },
+      originalTask: { description: 'The original task data supplied to the provider.', type: 'string' },
+      previousResult: { description: 'The complete provider result that failed output validation.', type: 'string' },
+      validationErrors: {
+        description: 'The bounded, sanitized schema violations identified by the host validator.',
+        type: 'array',
+        items: { description: 'One schema violation expressed as a bounded path and message.', type: 'string' },
+      },
+      correctionInstruction: { description: 'The instruction to return only output that satisfies the configured outputSchema.', type: 'string' },
     },
+    examples: [{
+      originalTask: '{"operation":"summarize"}',
+      previousResult: '{"ok":"wrong type"}',
+      validationErrors: ['/ok must be boolean'],
+      correctionInstruction: 'Return only JSON that satisfies the outputSchema.',
+    }],
   });
   const correctionTask = JSON.stringify({
-    originalTask: request.task.value,
+    originalTask: text(request.task),
     previousResult,
     validationErrors: validationErrors.slice(0, 10),
     correctionInstruction: 'Return only JSON that satisfies the outputSchema.',
@@ -66,6 +82,6 @@ export function composeCorrectionPrompt(request: NormalizedRequest, previousResu
     task: correctionTask,
     taskSchema: correctionSchema,
     files: request.files,
-    outputSchema: request.outputSchema?.value,
+    outputSchema: request.outputSchema ? JSON.stringify(request.outputSchema) : undefined,
   });
 }

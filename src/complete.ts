@@ -1,6 +1,6 @@
 import { composeCorrectionPrompt, composeRequestPrompt } from './prompt.js';
 import { OpenRouterProvider } from './provider.js';
-import { assertMatchesSchema, parseSchema, parseTaskJson, validateResponse, validateResponseV2 } from './schema.js';
+import { assertMatchesSchema, parseSchema, validateResponse, validateResponseV2 } from './schema.js';
 import { boundedMessage, errorFromFailure, LlmFailure } from './errors.js';
 import { normalizeRequest } from './normalize.js';
 import type { CompletionOptions, CompletionOptionsV2, LlmError, LlmOutput, LlmRequest, LlmRequestV2, LlmResponse, LlmResponseV2, LlmProvider, LlmProviderV2, NormalizedRequest, NormalizedRequestV2, ProviderCompletionResponse, ToolCall, ToolCalls, ToolResult } from './types.js';
@@ -98,10 +98,10 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
   try {
     normalized = await normalizeRequestV2(request, options);
     if (normalized.taskSchema) {
-      const schema = parseSchema(normalized.taskSchema.value, normalized.taskSchema.path);
-      assertMatchesSchema(parseTaskJson(normalized.task.value), schema, 'TASK_SCHEMA_VALIDATION_FAILED', 'request');
+      const schema = parseSchema(normalized.taskSchema);
+      assertMatchesSchema(normalized.task, schema, 'TASK_SCHEMA_VALIDATION_FAILED', 'request');
     }
-    if (normalized.outputSchema) parseSchema(normalized.outputSchema.value, normalized.outputSchema.path);
+    if (normalized.outputSchema) parseSchema(normalized.outputSchema);
   } catch (error) {
     const failure = error instanceof Failure ? error : new Failure('REQUEST_INVALID', 'request', 'Request preparation failed.');
     return v2Response(failureStatus(failure) as LlmResponseV2['status'], null, 0, 0, 0, 0, [errorFromFailure(failure)]);
@@ -115,7 +115,7 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
   let totalToolCalls = 0;
   let prompt = composeRequestPrompt(normalized as unknown as NormalizedRequest);
   let toolResults: ToolResult[] = [];
-  const outputSchema = normalized.outputSchema ? parseSchema(normalized.outputSchema.value, normalized.outputSchema.path) : undefined;
+  const outputSchema = normalized.outputSchema ? parseSchema(normalized.outputSchema) : undefined;
   while (iterations < normalized.maxIterations) {
     let providerResult: ProviderCompletionResponse;
     try {
@@ -156,6 +156,7 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
     } catch (error) {
       const failure = error instanceof Failure ? error : new Failure('OUTPUT_INVALID', 'output-validation', 'Provider output did not satisfy the configured output schema.');
       if (iterations >= normalized.maxIterations) return v2Response('output_invalid', null, failedAttempts, iterations, toolRounds, totalToolCalls, [errorFromFailure(failure)]);
+      prompt = composeCorrectionPrompt(normalized as unknown as NormalizedRequest, providerResult.content ?? '', validationMessages(failure));
     }
   }
   return v2Response('output_invalid', null, failedAttempts, iterations, toolRounds, totalToolCalls, [toolFailure('OUTPUT_INVALID', 'Provider output did not satisfy the configured output schema.', 'output-validation')]);
@@ -172,10 +173,10 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
   try {
     normalized = await normalizeRequest(request, options);
     if (normalized.taskSchema) {
-      const schema = parseSchema(normalized.taskSchema.value, normalized.taskSchema.path);
-      assertMatchesSchema(parseTaskJson(normalized.task.value), schema, 'TASK_SCHEMA_VALIDATION_FAILED', 'request');
+      const schema = parseSchema(normalized.taskSchema);
+      assertMatchesSchema(normalized.task, schema, 'TASK_SCHEMA_VALIDATION_FAILED', 'request');
     }
-    if (normalized.outputSchema) parseSchema(normalized.outputSchema.value, normalized.outputSchema.path);
+    if (normalized.outputSchema) parseSchema(normalized.outputSchema);
   } catch (error) {
     const failure = error instanceof LlmFailure ? error : new LlmFailure('REQUEST_INVALID', 'request', 'Request preparation failed.');
     const result = response(failureStatus(failure), null, 0, 0, [errorFromFailure(failure)]);
@@ -189,7 +190,7 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
     emitDebug(options.debug, 'llm.response', result);
     return result;
   }
-  const outputSchema = normalized.outputSchema ? parseSchema(normalized.outputSchema.value, normalized.outputSchema.path) : undefined;
+  const outputSchema = normalized.outputSchema ? parseSchema(normalized.outputSchema) : undefined;
   let failedAttempts = 0;
   let iterations = 0;
   let prompt = composeRequestPrompt(normalized);
