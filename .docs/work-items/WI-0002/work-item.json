@@ -1,0 +1,95 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0002",
+  "status": "planned",
+  "title": "Expose executed tool results in llm response/v2",
+  "type": "feature",
+  "objective": "Extend llm/response/v2 so callers can inspect the bounded, ordered results of automatically executed tool calls without changing llm/request/v1 or llm/response/v1.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0002-llm-response-tool-results",
+      "created": false,
+      "rationale": "The work item is processed as a serial set of scoped commits on the current repository branch; the branch name records the intended change boundary without requiring a topic branch."
+    }
+  },
+  "baseline": "b796ae4e0835478d6020cdc06913f61cd92dedf7",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare a new .docs/work-items/* - commit the new work item. Process the new work item, making commits as you go.",
+    "sha256": "3943748ba03e3f45dedae035692e231c02e9d916426e1b6192dde72ed3f28668"
+  },
+  "scope": [
+    {
+      "name": "response-v2-tool-results",
+      "description": "Expose the existing ToolResult records in the response/v2 envelope, preserve result order across automatic tool rounds, and validate the new closed response contract.",
+      "reason": "Tool results currently reach the provider transport but are not available to callers after completion, limiting observability and downstream handling."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "v1-contract-mutation",
+      "description": "Do not change llm/request/v1 or llm/response/v1 fields or behavior.",
+      "reason": "The existing v1 contracts are closed public compatibility boundaries.",
+      "forbiddenFileWrites": [
+        "schemas/request/v1/",
+        "schemas/response/v1/"
+      ],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "provider-orchestration-expansion",
+      "description": "Do not add new provider wire formats, new invocation policies, persistence, live provider calls, or real external tool side effects.",
+      "reason": "This work item exposes results from the existing bounded orchestration path only.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0002_REQ_001",
+        "name": "response-type-results",
+        "description": "The public response/v2 TypeScript contract and JSON Schema include a required bounded toolResults collection whose entries use the existing ToolResult shape.",
+        "reason": "Consumers need a typed and schema-validated way to inspect executed tool outcomes.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0002_REQ_001_AC_001",
+            "description": "LlmResponseV2 exposes toolResults as a readonly ToolResult collection, response/v2 requires the field, and published response examples validate."
+          }
+        ]
+      },
+      {
+        "id": "WI-0002_REQ_002",
+        "name": "ordered-result-history",
+        "description": "Automatic completion returns every executed tool result in deterministic call and round order, while pending or non-executing paths return an empty collection.",
+        "reason": "Result order is needed to correlate outcomes with tool calls and to distinguish executed work from pending work.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0002_REQ_002_AC_001",
+            "description": "Deterministic tests prove successful results are retained across one or more rounds in order, manual mode reports no executed results, and tool failures are retained as sanitized error results."
+          }
+        ]
+      },
+      {
+        "id": "WI-0002_REQ_003",
+        "name": "bounded-compatible-validation",
+        "description": "The new response field remains bounded and does not weaken existing response validation, v1 compatibility, or sensitive-error sanitization.",
+        "reason": "A public observability field must preserve the package's existing closed-contract, safety, and boundedness guarantees.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0002_REQ_003_AC_001",
+            "description": "Typecheck, full provider-free tests, build, response-schema validation, and diff inspection pass; no live provider or real tool side effect is claimed."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0002/steps/"
+}
