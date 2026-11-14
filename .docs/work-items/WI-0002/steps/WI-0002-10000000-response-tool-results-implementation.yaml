@@ -1,0 +1,196 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0002
+taskUid: WI-0002-10000000
+orderKey: "10000000"
+parentTaskUid: WI-0002-00000000
+taskType: implementation
+processingStatus: processing_completed
+title: Implement response/v2 tool-result capture
+objective: Apply the designed response/v2 tool-result contract to the public types, runtime response construction, schema, and deterministic tests.
+references:
+  required:
+    - .docs/work-items/WI-0002/work-item.json
+    - .docs/work-items/WI-0002/steps/WI-0002-00000000-response-contract-design.yaml
+    - src/types.ts
+    - src/complete.ts
+    - schemas/response/v2/response.schema.json
+    - schemas/tool-result/v1/tool-result.schema.json
+    - tests/llm.test.ts
+  informational:
+    - package.json
+    - src/schema.ts
+dependsOn:
+  - WI-0002-00000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/complete.ts
+    - src/types.ts
+    - schemas/response/v2/response.schema.json
+    - tests/llm.test.ts
+    - .docs/work-items/WI-0002/steps/
+  commitSubject: "WI-0002: 02: feat(llm): expose response tool results"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: test
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments:
+        - run
+        - build
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement the designed response/v2 tool-result exposure without changing v1 contracts or provider wire behavior.
+    changeTypes:
+      - production-code
+      - test-code
+      - schema
+    changeIntent: feature
+    inputs:
+      - id: INPUT-WORK-ITEM
+        kind: requirement
+        ref: WI-0002|00000000#requirement/WI-0002_REQ_001
+        purpose: Define the public response/v2 toolResults contract.
+        required: true
+      - id: INPUT-ORDERING
+        kind: requirement
+        ref: WI-0002|00000000#requirement/WI-0002_REQ_002
+        purpose: Define ordered automatic result history and empty pending semantics.
+        required: true
+      - id: INPUT-BOUNDS
+        kind: requirement
+        ref: WI-0002|00000000#requirement/WI-0002_REQ_003
+        purpose: Preserve bounded validation, sanitization, and compatibility behavior.
+        required: true
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0002|00000000#result/R-001
+        purpose: Use the completed response contract design and implementation handoff.
+        required: true
+    objectives:
+      - id: OBJ-001
+        statement: Expose a required bounded ToolResult collection in the public response/v2 type and schema.
+        inputRefs:
+          - INPUT-WORK-ITEM
+          - INPUT-DESIGN
+        testCaseRefs:
+          - "#test-case/TC-001"
+          - "#test-case/TC-002"
+      - id: OBJ-002
+        statement: Accumulate automatic tool results in deterministic order and return empty results for non-executing paths.
+        inputRefs:
+          - INPUT-ORDERING
+          - INPUT-DESIGN
+        testCaseRefs:
+          - "#test-case/TC-003"
+          - "#test-case/TC-004"
+          - "#test-case/TC-005"
+      - id: OBJ-003
+        statement: Preserve bounded response construction, sanitized failures, and existing v1 behavior.
+        inputRefs:
+          - INPUT-BOUNDS
+          - INPUT-DESIGN
+        testCaseRefs:
+          - "#test-case/TC-005"
+          - "#test-case/TC-006"
+    ownedPaths:
+      - src/complete.ts
+      - src/types.ts
+      - schemas/response/v2/response.schema.json
+      - tests/llm.test.ts
+      - .docs/work-items/WI-0002/steps/
+    nonGoals:
+      - Do not modify schemas/request/v1/ or schemas/response/v1/.
+      - Do not modify provider wire mapping or add persistence.
+      - Do not make live provider calls or execute real tools.
+    steps:
+      - Add toolResults to LlmResponseV2 and the closed response/v2 schema using the existing ToolResult shape.
+      - Accumulate results after each automatically executed tool-call batch and pass them through every v2 response path.
+      - Add deterministic assertions for one-round ordering, multi-round ordering, and sanitized tool failures.
+      - Leave independent command validation and review to later governed steps.
+  result:
+    status: implemented
+    implementation:
+      summary: Implemented public response/v2 tool-result capture across the TypeScript type, runtime response envelope, JSON Schema, and provider-free tests.
+      changes:
+        - id: CHANGE-001
+          type: production-code
+          summary: Added required bounded toolResults to LlmResponseV2 and accumulated completed automatic results across rounds.
+          objectiveRefs:
+            - OBJ-001
+            - OBJ-002
+            - OBJ-003
+          paths:
+            - src/types.ts
+            - src/complete.ts
+        - id: CHANGE-002
+          type: schema
+          summary: Added the response/v2 toolResults array and reusable ToolResult definition while preserving the closed contract.
+          objectiveRefs:
+            - OBJ-001
+            - OBJ-003
+          paths:
+            - schemas/response/v2/response.schema.json
+        - id: CHANGE-003
+          type: test-code
+          summary: Added schema-example coverage and deterministic assertions for successful ordered results and sanitized failures.
+          objectiveRefs:
+            - OBJ-001
+            - OBJ-002
+            - OBJ-003
+          paths:
+            - tests/llm.test.ts
+      testImplementations:
+        - testCaseRef: "#test-case/TC-001"
+          path: tests/llm.test.ts
+          selector: published request and response schema examples validate
+        - testCaseRef: "#test-case/TC-002"
+          path: tests/llm.test.ts
+          selector: v2 manual mode returns pending parallel tool call batches without invoking tools
+        - testCaseRef: "#test-case/TC-003"
+          path: tests/llm.test.ts
+          selector: v2 automatic invocation runs calls in parallel within each batch and batches sequentially
+        - testCaseRef: "#test-case/TC-004"
+          path: tests/llm.test.ts
+          selector: v2 automatic invocation executes multiple parallel tool call batches sequentially
+        - testCaseRef: "#test-case/TC-005"
+          path: tests/llm.test.ts
+          selector: v2 converts tool failures into bounded error results and continues
+        - testCaseRef: "#test-case/TC-006"
+          path: tests/llm.test.ts
+          selector: unified complete dispatches v1 and v2 requests to matching response schemas
+    verification:
+      status: not-run
+      objectiveRefs:
+        - OBJ-001
+        - OBJ-002
+        - OBJ-003
+      tests: []
+    limitations:
+      - Independent typecheck, test, build, and schema validation are recorded by the later validation task.
+      - No live provider request or real tool side effect was performed.

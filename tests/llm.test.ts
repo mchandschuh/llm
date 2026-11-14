@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import { Ajv2020 } from 'ajv/dist/2020.js';
+import addFormatsModule from 'ajv-formats';
 import { complete, completeV2 } from '../src/index.js';
 import { main as cliMain } from '../src/cli.js';
 import { composePrompt } from '../src/prompt.js';
@@ -10,10 +12,33 @@ import { normalizeRequest, normalizeRequestV2 } from '../src/normalize.js';
 import { OpenRouterProvider } from '../src/provider.js';
 import type { ILlmProvider, LlmProvider, ProviderCompletionRequest, ProviderCompletionRequestV2 } from '../src/types.js';
 
+const addFormats = addFormatsModule as unknown as (ajv: Ajv2020) => Ajv2020;
+
 const schema = 'https://schemas.handschuh.dev/llm/request/v1';
 const schemaV2 = 'https://schemas.handschuh.dev/llm/request/v2';
 const outputSchema = { $id: 'https://example.test/output', type: 'object', required: ['ok'], additionalProperties: false, properties: { ok: { type: 'boolean' } } };
 const pngBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+
+test('published request and response schema examples validate', async () => {
+  for (const kind of ['request', 'response'] as const) {
+    for (const version of ['v1', 'v2'] as const) {
+      const relativePath = `schemas/${kind}/${version}/${kind}.schema.json`;
+      const schema = JSON.parse(await readFile(join(process.cwd(), relativePath), 'utf8')) as {
+        examples?: unknown[];
+        'x-negativeExamples'?: Array<{ name: string; data: unknown; reason: string }>;
+      };
+      const ajv = new Ajv2020({ allErrors: true, strict: false });
+      addFormats(ajv);
+      const validate = ajv.compile(schema);
+      for (const [index, example] of (schema.examples ?? []).entries()) {
+        assert.equal(validate(example), true, `${relativePath} example ${index + 1} should validate: ${JSON.stringify(validate.errors)}`);
+      }
+      for (const negative of schema['x-negativeExamples'] ?? []) {
+        assert.equal(validate(negative.data), false, `${relativePath} negative example ${negative.name} should fail: ${negative.reason}`);
+      }
+    }
+  }
+});
 
 class SequenceProvider implements LlmProvider {
   calls: ProviderCompletionRequest[] = [];
@@ -146,6 +171,10 @@ test('v2 automatic invocation runs calls in parallel within each batch and batch
   assert.equal(result.status, 'success');
   assert.equal(maxActive, 2);
   assert.equal(result.toolRounds, 1);
+  assert.deepEqual(result.toolResults, [
+    { callId: 'call-a', name: 'read_record', status: 'success', value: { id: 'call-a' } },
+    { callId: 'call-b', name: 'read_record', status: 'success', value: { id: 'call-b' } },
+  ]);
 });
 
 test('v2 automatic invocation executes multiple parallel tool call batches sequentially', async () => {
@@ -161,6 +190,11 @@ test('v2 automatic invocation executes multiple parallel tool call batches seque
   assert.equal(result.status, 'success');
   assert.deepEqual(events, ['start:call-a', 'start:call-b', 'end:call-b', 'end:call-a', 'start:call-c', 'end:call-c']);
   assert.equal(result.toolRounds, 2);
+  assert.deepEqual(result.toolResults, [
+    { callId: 'call-a', name: 'read_record', status: 'success', value: 'call-a' },
+    { callId: 'call-b', name: 'read_record', status: 'success', value: 'call-b' },
+    { callId: 'call-c', name: 'read_record', status: 'success', value: 'call-c' },
+  ]);
 });
 
 test('v2 rejects undeclared tool calls before invoking any tool', async () => {
@@ -220,6 +254,12 @@ test('v2 converts tool failures into bounded error results and continues', async
   const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { throw new Error('secret=hidden'); } } });
   assert.equal(result.status, 'success');
   assert.equal(provider.calls[1]?.toolResults[0]?.status, 'error');
+  assert.deepEqual(result.toolResults, [{
+    callId: 'call-fail',
+    name: 'read_record',
+    status: 'error',
+    error: { code: 'TOOL_INVOCATION_FAILED', message: '[redacted]' },
+  }]);
   assert.doesNotMatch(JSON.stringify(provider.calls[1]?.toolResults), /secret=hidden/u);
 });
 

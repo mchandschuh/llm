@@ -13,6 +13,7 @@
     "iterations",
     "toolRounds",
     "toolCalls",
+    "toolResults",
     "errors"
   ],
   "properties": {
@@ -93,6 +94,17 @@
       "description": "Individual tool calls executed or returned as pending.",
       "examples": [
         1
+      ]
+    },
+    "toolResults": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "$ref": "#/$defs/ToolResult"
+      },
+      "description": "Ordered results from automatically executed tool calls.",
+      "examples": [
+        []
       ]
     },
     "errors": {
@@ -374,6 +386,97 @@
         }
       }
     },
+    "ToolResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One bounded result associated with an automatically executed tool call.",
+      "required": [
+        "callId",
+        "name",
+        "status"
+      ],
+      "properties": {
+        "callId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+          "description": "Call identifier being completed.",
+          "examples": [
+            "call-read-1"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$",
+          "description": "Tool name that produced this result.",
+          "examples": [
+            "read_record"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "success",
+            "error"
+          ],
+          "description": "Whether the invoker completed successfully.",
+          "examples": [
+            "success"
+          ]
+        },
+        "value": {
+          "description": "JSON-serializable bounded tool value, present for successful calls.",
+          "examples": [
+            {
+              "logicalId": "record-a"
+            }
+          ]
+        },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_.-]{0,63}$",
+              "description": "Stable sanitized tool failure code.",
+              "examples": [
+                "TOOL_INVOCATION_FAILED"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "description": "Bounded sanitized tool failure message.",
+              "examples": [
+                "The tool failed."
+              ]
+            }
+          },
+          "description": "Bounded error returned when status is error.",
+          "examples": [
+            {
+              "code": "TOOL_INVOCATION_FAILED",
+              "message": "The tool failed."
+            }
+          ]
+        }
+      },
+      "examples": [
+        {
+          "callId": "call-read-1",
+          "name": "read_record",
+          "status": "success",
+          "value": {
+            "logicalId": "record-a"
+          }
+        }
+      ]
+    },
     "Error": {
       "type": "object",
       "additionalProperties": false,
@@ -455,6 +558,7 @@
       "iterations": 1,
       "toolRounds": 0,
       "toolCalls": 1,
+      "toolResults": [],
       "errors": []
     }
   ]

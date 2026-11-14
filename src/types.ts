@@ -267,6 +267,7 @@ export interface LlmResponseV2 {
   readonly iterations: number;
   readonly toolRounds: number;
   readonly toolCalls: number;
+  readonly toolResults: readonly ToolResult[];
   readonly errors: readonly LlmError[];
 }
 
