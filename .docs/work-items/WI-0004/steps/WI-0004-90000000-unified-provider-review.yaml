@@ -1,0 +1,217 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0004
+taskUid: WI-0004-90000000
+orderKey: "90000000"
+parentTaskUid: WI-0004-00000000
+taskType: review
+processingStatus: processing_completed
+title: Review unified raw provider interface
+objective: Review the exact provider interface migration and validation evidence for type correlation, compatibility, behavior preservation, documentation, and scope.
+references:
+  required:
+    - .docs/work-items/WI-0004/work-item.json
+    - .docs/work-items/WI-0004/steps/WI-0004-00000000-unified-provider-design.yaml
+    - .docs/work-items/WI-0004/steps/WI-0004-10000000-unified-provider-implementation.yaml
+    - .docs/work-items/WI-0004/steps/WI-0004-80000000-unified-provider-validation.yaml
+    - README.md
+    - src/types.ts
+    - src/provider.ts
+    - src/complete.ts
+    - src/index.ts
+    - tests/llm.test.ts
+    - SKILL.md
+  informational:
+    - schemas/request/v1/request.schema.json
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - schemas/response/v2/response.schema.json
+dependsOn:
+  - WI-0004-80000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0004/steps/
+  commitSubject: "WI-0004: 04: review(llm): assess unified provider interface"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review the exact unified provider implementation for type correlation, compatibility, behavior preservation, obsolete variant removal, and evidence limits.
+    reviewKind: code
+    target:
+      taskType: implementation
+      taskRef: WI-0004|10000000
+      result:
+        ref: WI-0004|10000000#result/R-001
+        sha256: sha256:6506d6aaba78847419e4971d84dfd8780429e1194802483ac82926b15f933966
+    gateId: unified-provider-interface-implementation
+    policyRef:
+      ref: README.md
+      sha256: sha256:f1ae91b562485cf4a4bf148d0cc1fea4d422bab53b802cbc6268d4b624cc7a41
+    criteria:
+      - id: CRIT-001
+        statement: The refactor stays within the unified raw provider scope and preserves public request/response version contracts and unrelated worktree boundaries.
+        purpose: Prevent scope expansion and compatibility regressions.
+        required: true
+        evidenceRefs:
+          - WI-0004|80000000#result/R-001
+      - id: CRIT-002
+        statement: LlmProvider exposes one overloaded complete method with protocol-correlated v1/v2 request and response types, and raw v2-specific variants are removed.
+        purpose: Ensure the intended unified interface is real in source and generated declarations.
+        required: true
+        evidenceRefs:
+          - WI-0004|00000000#result/R-001
+          - WI-0004|80000000#result/R-001
+      - id: CRIT-003
+        statement: OpenRouter, completeV2Internal, fixtures, and high-level services preserve existing v1/v2 tool, finish-reason, retry, and terminal response behavior.
+        purpose: Ensure the interface-only refactor does not alter runtime semantics.
+        required: true
+        evidenceRefs:
+          - WI-0004|80000000#result/R-001
+      - id: CRIT-004
+        statement: Public exports and documentation direct consumers to the unified raw LlmProvider.complete seam while retaining only high-level completeV2 as a terminal convenience.
+        purpose: Ensure migration guidance and public declarations are coherent.
+        required: true
+        evidenceRefs:
+          - WI-0004|80000000#result/R-001
+    evidenceRequirements:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0004|80000000#result/R-001
+        purpose: Provide independent package and declaration validation.
+        required: true
+        minimumTier: unit
+      - id: EVID-002
+        kind: target-result
+        ref: WI-0004|10000000#result/R-001
+        purpose: Pin the exact implementation result under review.
+        required: true
+        minimumTier: inspection
+      - id: EVID-003
+        kind: policy
+        ref: README.md
+        purpose: Provide repository package-boundary and validation guidance.
+        required: true
+        minimumTier: static
+    nonGoals:
+      - id: NON-001
+        statement: This review does not authorize deployment, live provider use, real tool execution, or downstream integration.
+    context:
+      - id: CTX-001
+        kind: contract
+        ref: src/types.ts
+        purpose: Review unified provider requests, responses, and overloads.
+        required: true
+      - id: CTX-002
+        kind: contract
+        ref: src/provider.ts
+        purpose: Review one OpenRouter overloaded implementation dispatching v1/v2.
+        required: true
+      - id: CTX-003
+        kind: contract
+        ref: dist/types.d.ts
+        purpose: Review generated consumer-facing declarations.
+        required: true
+      - id: CTX-004
+        kind: repository-guidance
+        ref: SKILL.md
+        purpose: Review unified provider usage guidance.
+        required: true
+  result:
+    status: complete
+    decision: accepted
+    summary: The raw provider refactor stays within scope, exposes one correlated LlmProvider.complete overload set, removes raw v2-specific variants, preserves high-level terminal behavior, and is supported by 50 passing package tests plus declaration and scope inspection. No blocker remains for local delivery; provider, production, deployment, and downstream claims remain limited.
+    actor:
+      id: wi-0004-reviewer
+      role: code-reviewer
+      authorityRef: WI-0004
+    criteriaEvaluations:
+      - criterionRef: "#criterion/CRIT-001"
+        status: satisfied
+        summary: Implementation commit fcc1b9e is limited to provider types/implementation, orchestration call site, exports, tests, documentation, and the implementation task record; request-schema edits remain outside the work item.
+        evidenceRefs:
+          - WI-0004|80000000#result/R-001
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-002"
+        status: satisfied
+        summary: Generated declarations expose v2-before-v1 LlmProvider.complete overloads with protocol discriminators and no raw LlmProviderV2 or provider completeV2 method.
+        evidenceRefs:
+          - WI-0004|00000000#result/R-001
+          - WI-0004|80000000#result/R-001
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-003"
+        status: satisfied
+        summary: All 50 tests pass, including v1 raw completion, v2 tool transport, finish_reason decisions, tool results, terminal response dispatch, and high-level ILlmProvider service behavior.
+        evidenceRefs:
+          - WI-0004|80000000#result/R-001
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-004"
+        status: satisfied
+        summary: src/index.ts exports LlmProvider without LlmProviderV2, and SKILL.md documents the unified raw complete overload while preserving high-level completeV2 as a convenience entry point.
+        evidenceRefs:
+          - WI-0004|80000000#result/R-001
+        findingRefs: []
+    findings: []
+    evidence:
+      - id: EVID-001
+        kind: target-result
+        ref: WI-0004|10000000#result/R-001
+        claim: The exact implementation result records the unified types, provider migration, tests, exports, and documentation changes.
+        tier: inspection
+        source: target-result
+      - id: EVID-002
+        kind: validation
+        ref: WI-0004|80000000#result/R-001
+        claim: Independent typecheck, 50-test, build, declaration, documentation, diff, and scope validation passed.
+        tier: cli-audit
+        source: referenced-result
+      - id: EVID-003
+        kind: diff
+        ref: WI-0004|80000000#result/R-001
+        claim: The implementation commit removes only raw v2 provider variants and preserves terminal response contracts and unrelated request-schema changes.
+        tier: inspection
+        source: repository
+      - id: EVID-004
+        kind: policy
+        ref: README.md
+        claim: The review applies the repository package boundary and does not promote provider-free evidence to operational or production assurance.
+        tier: static
+        source: repository
+    limitations:
+      - Review evidence is provider-free, unit, build, declaration, documentation, and inspection evidence; it does not establish authenticated provider availability or production behavior.
+      - The review accepts the exact implementation task digest only; a later implementation-result change requires a new review.
+      - The two unrelated request-schema modifications remain uncommitted and outside WI-0004.
+    nonClaims:
+      - This decision does not claim authenticated provider availability.
+      - This decision does not claim production readiness, deployment, registry publication, or downstream integration.
+      - This decision does not authorize real tool execution.
+    reproducibility:
+      policyDigest: sha256:f1ae91b562485cf4a4bf148d0cc1fea4d422bab53b802cbc6268d4b624cc7a41
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: EXEC-REVIEW-0004
+      status: succeeded
+      startedAt: "2026-11-13T21:51:00Z"
+      finishedAt: "2026-11-13T21:52:00Z"
