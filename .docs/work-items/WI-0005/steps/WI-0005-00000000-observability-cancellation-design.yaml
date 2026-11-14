@@ -39,7 +39,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
@@ -203,28 +203,28 @@ task:
       - id: O-001
         type: designDecision
         statement: Automatic v2 loops have an explicit, bounded, sanitized DebugSink lifecycle event sequence for tool batches and cancellation observation.
-        status: proposed
+        status: accepted
         impact: 95
         confidence: 94
         referenceRefs: [REF-001, REF-002, REF-007]
       - id: O-002
         type: implementationHandoff
         statement: Provider fetches and injected tools receive the runtime abort signal, and cancellation does not start later retries or work.
-        status: proposed
+        status: accepted
         impact: 95
         confidence: 92
         referenceRefs: [REF-001, REF-003, REF-004, REF-007]
       - id: O-003
         type: testHandoff
         statement: v1 behavior and existing DebugSink redaction/failure isolation remain intact, with no LangGraph dependency or unrelated worktree changes absorbed.
-        status: proposed
+        status: accepted
         impact: 90
         confidence: 95
         referenceRefs: [REF-001, REF-002, REF-008]
     outputs:
       - id: OUT-001
         category: interface-contract
-        status: proposed
+        status: complete
         sourceRefs: [REF-001, REF-002, REF-005]
         description: DebugSink tool lifecycle and cancellation event contract.
       - id: OUT-002
