@@ -1,0 +1,213 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0002
+taskUid: WI-0002-90000000
+orderKey: "90000000"
+parentTaskUid: WI-0002-00000000
+taskType: review
+processingStatus: processing_completed
+title: Review response/v2 tool-result capture
+objective: Review the exact response/v2 tool-result implementation and validation evidence for scope, compatibility, safety, and evidence limitations.
+references:
+  required:
+    - .docs/work-items/WI-0002/work-item.json
+    - .docs/work-items/WI-0002/steps/WI-0002-00000000-response-contract-design.yaml
+    - .docs/work-items/WI-0002/steps/WI-0002-10000000-response-tool-results-implementation.yaml
+    - .docs/work-items/WI-0002/steps/WI-0002-80000000-response-tool-results-validation.yaml
+    - README.md
+    - src/complete.ts
+    - src/types.ts
+    - schemas/response/v2/response.schema.json
+    - tests/llm.test.ts
+  informational:
+    - schemas/tool-result/v1/tool-result.schema.json
+    - schemas/request/v1/request.schema.json
+    - schemas/response/v1/response.schema.json
+dependsOn:
+  - WI-0002-80000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0002/steps/
+  commitSubject: "WI-0002: 04: review(llm): assess response tool result capture"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review the exact implementation and validation results for response/v2 contract correctness, v1 compatibility, result ordering, bounds, sanitization, and evidence limits.
+    reviewKind: code
+    target:
+      taskType: implementation
+      taskRef: WI-0002|10000000
+      result:
+        ref: WI-0002|10000000#result/R-001
+        sha256: sha256:75411de05d30c67ffa7f763a5ea5fc8f77a77664270c582bceabfabe86e3a594
+    gateId: response-v2-tool-results-implementation
+    policyRef:
+      ref: README.md
+      sha256: sha256:f1ae91b562485cf4a4bf148d0cc1fea4d422bab53b802cbc6268d4b624cc7a41
+    criteria:
+      - id: CRIT-001
+        statement: The implementation stays within the WI-0002 response/v2 scope and does not modify v1 contracts or absorb unrelated request-schema work.
+        purpose: Prevent scope expansion and compatibility regressions.
+        required: true
+        evidenceRefs:
+          - WI-0002|80000000#result/R-001
+      - id: CRIT-002
+        statement: The public TypeScript type and closed response/v2 schema expose the same required bounded ToolResult collection.
+        purpose: Prevent contract drift between runtime types and schema validation.
+        required: true
+        evidenceRefs:
+          - WI-0002|00000000#result/R-001
+          - WI-0002|80000000#result/R-001
+      - id: CRIT-003
+        statement: Automatic results are retained in deterministic order while pending and non-executing paths do not claim executed results.
+        purpose: Preserve truthful result correlation and lifecycle semantics.
+        required: true
+        evidenceRefs:
+          - WI-0002|00000000#result/R-001
+          - WI-0002|80000000#result/R-001
+      - id: CRIT-004
+        statement: Result history remains bounded and tool failure messages retain the existing sanitization behavior.
+        purpose: Preserve boundedness and sensitive-data safety.
+        required: true
+        evidenceRefs:
+          - WI-0002|00000000#result/R-001
+          - WI-0002|80000000#result/R-001
+    evidenceRequirements:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0002|80000000#result/R-001
+        purpose: Provide package, schema, and scope validation evidence.
+        required: true
+        minimumTier: unit
+      - id: EVID-002
+        kind: target-result
+        ref: WI-0002|10000000#result/R-001
+        purpose: Pin the exact implementation result under review.
+        required: true
+        minimumTier: inspection
+      - id: EVID-003
+        kind: policy
+        ref: README.md
+        purpose: Provide repository package-boundary and validation guidance.
+        required: true
+        minimumTier: static
+    nonGoals:
+      - id: NON-001
+        statement: This review does not authorize deployment, live provider use, real tool execution, or downstream integration.
+    context:
+      - id: CTX-001
+        kind: contract
+        ref: schemas/response/v2/response.schema.json
+        purpose: Review the closed response/v2 contract and examples.
+        required: true
+      - id: CTX-002
+        kind: contract
+        ref: src/types.ts
+        purpose: Review the public TypeScript response type.
+        required: true
+      - id: CTX-003
+        kind: repository-guidance
+        ref: README.md
+        purpose: Review package scope and local validation conventions.
+        required: true
+  result:
+    status: complete
+    decision: accepted
+    summary: The response/v2 tool-result implementation stays within scope, preserves v1 contracts, matches the closed schema and public type, retains ordered bounded results with sanitized failures, and is supported by passing provider-free validation. No blocker remains for local package delivery; provider, production, deployment, and downstream claims remain limited.
+    actor:
+      id: wi-0002-reviewer
+      role: code-reviewer
+      authorityRef: WI-0002
+    criteriaEvaluations:
+      - criterionRef: "#criterion/CRIT-001"
+        status: satisfied
+        summary: The implementation commit contains only response/v2 schema, type, completion, test, and WI-0002 implementation-record paths; request-schema changes remain outside the commit and v1 tests pass.
+        evidenceRefs:
+          - WI-0002|80000000#result/R-001
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-002"
+        status: satisfied
+        summary: LlmResponseV2 declares readonly ToolResult results, response/v2 requires toolResults and validates its ToolResult definition, and the response example passes Ajv validation.
+        evidenceRefs:
+          - WI-0002|00000000#result/R-001
+          - WI-0002|80000000#result/R-001
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-003"
+        status: satisfied
+        summary: Deterministic tests prove one-round and multi-round result ordering, manual pending mode executes no tools, and non-executing paths return no completed results.
+        evidenceRefs:
+          - WI-0002|00000000#result/R-001
+          - WI-0002|80000000#result/R-001
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-004"
+        status: satisfied
+        summary: Response construction caps toolResults at 128 entries, and the failure test confirms invocation errors are sanitized before reaching the public response and provider transport.
+        evidenceRefs:
+          - WI-0002|00000000#result/R-001
+          - WI-0002|80000000#result/R-001
+        findingRefs: []
+    findings: []
+    evidence:
+      - id: EVID-001
+        kind: target-result
+        ref: WI-0002|10000000#result/R-001
+        claim: The exact reviewed implementation result records the response type, runtime, schema, and deterministic test changes with a bounded non-goal boundary.
+        tier: inspection
+        source: target-result
+      - id: EVID-002
+        kind: validation
+        ref: WI-0002|80000000#result/R-001
+        claim: Independent schema, typecheck, 46-test, build, diff, and scope validation passed.
+        tier: cli-audit
+        source: referenced-result
+      - id: EVID-003
+        kind: diff
+        ref: WI-0002|80000000#result/R-001
+        claim: The implementation commit path list matches the declared WI-0002 response-tool-results scope and excludes unrelated request-schema changes.
+        tier: inspection
+        source: repository
+      - id: EVID-004
+        kind: policy
+        ref: README.md
+        claim: The review applies the repository package boundary and does not promote provider-free evidence to operational or production assurance.
+        tier: static
+        source: repository
+    limitations:
+      - Review evidence is static, unit, CLI-audit, and inspection evidence; it does not establish authenticated provider availability or production behavior.
+      - The review accepts the exact implementation task digest only; a later implementation-result change would require a new review.
+      - The two unrelated request-schema modifications remain uncommitted and outside this review.
+    nonClaims:
+      - This decision does not claim authenticated provider availability.
+      - This decision does not claim production readiness, deployment, registry publication, or external integration.
+      - This decision does not authorize real tool execution or mutate the work-item lifecycle outside the repository workflow.
+    reproducibility:
+      policyDigest: sha256:f1ae91b562485cf4a4bf148d0cc1fea4d422bab53b802cbc6268d4b624cc7a41
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: EXEC-REVIEW-0002
+      status: succeeded
+      startedAt: "2026-11-13T21:01:00Z"
+      finishedAt: "2026-11-13T21:02:00Z"
