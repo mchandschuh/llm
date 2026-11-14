@@ -2,10 +2,11 @@
 
 ## Status
 
-`planned` for the bounded local package scope. This work item follows WI-0005
-and addresses cancellation race correctness, explicit cancellation lifecycle
-events, error-phase consistency, and focused regression coverage. It does not
-claim implementation, provider, production, or downstream integration evidence.
+`complete` for the bounded local package scope. This work item follows WI-0005
+and now includes cancellation race correctness, explicit cancellation lifecycle
+events, error-phase consistency, focused regression coverage, validation, review,
+and delivery records. It does not claim authenticated provider, rollback,
+forced-termination, production, or downstream integration evidence.
 
 ## Authority
 
@@ -42,11 +43,11 @@ focused deterministic tests prove the race and event-ordering invariants.
 
 | Order | Task | Commit |
 | --- | --- | --- |
-| `00000000` | Design cancellation race and lifecycle-event hardening | planned |
-| `10000000` | Implement cancellation hardening and explicit events | planned |
-| `80000000` | Validate race behavior, schema, tests, and scope | planned |
-| `90000000` | Review correctness, compatibility, and evidence limits | planned |
-| `91000000` | Record local delivery and limitations | planned |
+| `00000000` | Design cancellation race and lifecycle-event hardening | `141ff1e` |
+| `10000000` | Implement cancellation hardening and explicit events | `98f82bf`, `dc9e795`, `aba9ed9`, `b29b653`, `b3e4246` |
+| `80000000` | Validate race behavior, schema, tests, and scope | `1cde480` |
+| `90000000` | Review correctness, compatibility, and evidence limits | `9b7f277` |
+| `91000000` | Record local delivery and limitations | final delivery commit |
 
 ## Explicit non-claims
 

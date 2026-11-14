@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0007",
-  "status": "planned",
+  "status": "complete",
   "title": "Harden v2 cancellation races and lifecycle events",
   "type": "bugfix",
   "objective": "Correct additive llm/request/v2 cancellation race behavior and make cancellation lifecycle transitions observable without redesigning the WI-0005 DebugSink and AbortSignal boundaries.",
