@@ -1,0 +1,274 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0002
+taskUid: WI-0002-80000000
+orderKey: "80000000"
+parentTaskUid: WI-0002-00000000
+taskType: validation
+processingStatus: processing_completed
+title: Validate response/v2 tool-result capture
+objective: Independently validate the committed response/v2 tool-result implementation, schema, tests, build, and change boundary.
+references:
+  required:
+    - .docs/work-items/WI-0002/work-item.json
+    - .docs/work-items/WI-0002/steps/WI-0002-00000000-response-contract-design.yaml
+    - .docs/work-items/WI-0002/steps/WI-0002-10000000-response-tool-results-implementation.yaml
+    - src/complete.ts
+    - src/types.ts
+    - schemas/response/v2/response.schema.json
+    - schemas/tool-result/v1/tool-result.schema.json
+    - tests/llm.test.ts
+  informational:
+    - package.json
+    - schemas/request/v1/request.schema.json
+    - schemas/request/v2/request.schema.json
+dependsOn:
+  - WI-0002-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0002/steps/
+  commitSubject: "WI-0002: 03: test(llm): validate response tool results"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: response-schema
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+    - id: package-gates
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments:
+        - run
+        - build
+      expectedExitCode: 0
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Validate the committed response/v2 tool-result implementation against its schema, deterministic test suite, TypeScript build, and declared scope.
+    inputs:
+      - id: INPUT-IMPLEMENTATION
+        kind: implementation
+        ref: WI-0002|10000000#result/R-001
+        purpose: Identify the committed implementation and its intended evidence boundary.
+        required: true
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0002|00000000#result/R-001
+        purpose: Identify the contract and invariant decisions under validation.
+        required: true
+    targets:
+      - id: TARGET-PACKAGE
+        kind: repositoryState
+        ref: "#repository-state/HEAD"
+        purpose: Validate the exact committed package revision.
+        required: true
+      - id: TARGET-RESPONSE-SCHEMA
+        kind: artifact
+        ref: "#target/TARGET-RESPONSE-SCHEMA"
+        purpose: Validate the closed response/v2 schema and its examples.
+        required: true
+    objectiveRefs:
+      - WI-0002|10000000#objective/OBJ-001
+      - WI-0002|10000000#objective/OBJ-002
+      - WI-0002|10000000#objective/OBJ-003
+    testCaseRefs:
+      - "#test-case/TC-001"
+      - "#test-case/TC-002"
+      - "#test-case/TC-003"
+      - "#test-case/TC-004"
+      - "#test-case/TC-005"
+      - "#test-case/TC-006"
+    procedures:
+      - id: VAL-SCHEMA
+        sequence: 1
+        name: response-schema
+        description: Validate response/v2 examples and deterministic schema assertions.
+        reason: The new required field must satisfy the closed response contract.
+        targetRefs:
+          - "#target/TARGET-RESPONSE-SCHEMA"
+        objectiveRefs:
+          - WI-0002|10000000#objective/OBJ-001
+        testCaseRefs:
+          - "#test-case/TC-001"
+        method:
+          executionMode: executable
+          target: response/v2 JSON Schema and package schema-example test
+          steps:
+            - Run the package test suite's published request/response example validation.
+            - Run direct Ajv validation over response/v2 examples.
+          command: npm test
+          paths:
+            - schemas/response/v2/response.schema.json
+            - tests/llm.test.ts
+        expected:
+          outcome: passed
+          exitCode: 0
+        evidenceTier: static
+        required: true
+      - id: VAL-PACKAGE
+        sequence: 2
+        name: package-gates
+        description: Run the complete provider-free typecheck, test, and build gates.
+        reason: The public type, runtime response, schema, and tests must compile and pass together.
+        targetRefs:
+          - "#target/TARGET-PACKAGE"
+        objectiveRefs:
+          - WI-0002|10000000#objective/OBJ-001
+          - WI-0002|10000000#objective/OBJ-002
+          - WI-0002|10000000#objective/OBJ-003
+        testCaseRefs:
+          - "#test-case/TC-002"
+          - "#test-case/TC-003"
+          - "#test-case/TC-004"
+          - "#test-case/TC-005"
+          - "#test-case/TC-006"
+        method:
+          executionMode: executable
+          target: llm package
+          steps:
+            - Run npm run typecheck.
+            - Run npm test.
+            - Run npm run build.
+          command: npm run typecheck && npm test && npm run build
+          paths:
+            - src/complete.ts
+            - src/types.ts
+            - schemas/response/v2/response.schema.json
+            - tests/llm.test.ts
+        expected:
+          outcome: passed
+          exitCode: 0
+        evidenceTier: cli-audit
+        required: true
+      - id: VAL-SCOPE
+        sequence: 3
+        name: scope-and-diff
+        description: Inspect whitespace, conflict markers, committed paths, and unrelated working-tree changes.
+        reason: The implementation must remain within the work-item boundary without absorbing pre-existing request-schema edits.
+        targetRefs:
+          - "#target/TARGET-PACKAGE"
+        objectiveRefs:
+          - WI-0002|10000000#objective/OBJ-003
+        testCaseRefs:
+          - "#test-case/TC-006"
+        method:
+          executionMode: inspection
+          target: git worktree and implementation commit
+          steps:
+            - Run git diff --check.
+            - Inspect the implementation commit path list.
+            - Confirm request-schema edits remain outside the implementation commit.
+          command: git diff --check && git show --stat --oneline 9616b9b
+          paths:
+            - src/
+            - schemas/response/v2/
+            - tests/
+            - schemas/request/v1/request.schema.json
+            - schemas/request/v2/request.schema.json
+        expected:
+          outcome: passed
+          exitCode: 0
+        evidenceTier: inspection
+        required: true
+    nonGoals:
+      - Do not make authenticated provider requests.
+      - Do not invoke real external tools.
+      - Do not claim production readiness, deployment, or downstream integration.
+  result:
+    status: passed
+    summary: The committed response/v2 tool-result implementation passed schema-example validation, all package gates, and scope/diff inspection.
+    executions:
+      - id: EXEC-SCHEMA
+        procedureRef: "#procedure/VAL-SCHEMA"
+        status: passed
+        observed:
+          outcome: passed
+          exitCode: 0
+          summary: Published request and response schema examples passed the package Ajv test, and the direct response/v2 example validation passed.
+          assertions:
+            - response/v2 examples passed Ajv validation.
+            - The new required toolResults field is accepted by the closed response schema.
+        evidenceTier: static
+        evidence:
+          - kind: command
+            source: package schema test
+            claim: The published request and response examples validate, including response/v2 with toolResults.
+            command: npm test
+            path: tests/llm.test.ts
+          - kind: command
+            source: direct response schema check
+            claim: The response/v2 schema example passed Ajv validation.
+            command: node --input-type=module direct Ajv response/v2 example check
+            path: schemas/response/v2/response.schema.json
+      - id: EXEC-PACKAGE
+        procedureRef: "#procedure/VAL-PACKAGE"
+        status: passed
+        observed:
+          outcome: passed
+          exitCode: 0
+          summary: npm run typecheck, npm test, and npm run build passed; the suite reported 46 passing tests.
+          assertions:
+            - TypeScript typecheck passed.
+            - All 46 provider-free tests passed.
+            - Native ESM build passed.
+            - v1 dispatch and behavior tests passed alongside v2 tool-result assertions.
+        evidenceTier: cli-audit
+        evidence:
+          - kind: command
+            source: package validation
+            claim: The package gates passed on the committed implementation.
+            command: npm run typecheck && npm test && npm run build
+            path: /home/michael/src/github/llm
+      - id: EXEC-SCOPE
+        procedureRef: "#procedure/VAL-SCOPE"
+        status: passed
+        observed:
+          outcome: passed
+          exitCode: 0
+          summary: git diff --check passed; commit 9616b9b contains only the response implementation, schema, tests, and implementation task record, while request-schema edits remain uncommitted.
+          assertions:
+            - No whitespace errors or conflict markers were observed.
+            - The implementation commit did not include schemas/request/v1/request.schema.json or schemas/request/v2/request.schema.json.
+            - The remaining request-schema modifications predate WI-0002 processing and were not staged or changed by this work item.
+        evidenceTier: inspection
+        evidence:
+          - kind: git
+            source: repository history
+            claim: The implementation commit path list matches the WI-0002 owned implementation scope.
+            command: git show --stat --oneline 9616b9b
+            path: .git/
+    findings: []
+    evidenceTier: cli-audit
+    limitations:
+      - Validation is static, unit, build, and inspection evidence only.
+      - No authenticated provider request, production deployment, downstream integration, or real tool side effect was performed.
+      - Existing unrelated request-schema modifications remain in the working tree and are not validated or claimed by WI-0002.
+    nonClaims:
+      - This validation does not claim OpenRouter availability.
+      - This validation does not claim production readiness, deployment, registry publication, or downstream integration.
+      - This validation does not authorize real tool execution.
