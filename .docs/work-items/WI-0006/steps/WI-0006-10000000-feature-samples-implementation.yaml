@@ -123,11 +123,6 @@ task:
           summary: Added dynamic child-process integration coverage that discovers and validates every samples/*.mjs result envelope.
           objectiveRefs: [OBJ-002, OBJ-003]
           paths: [tests/samples.test.ts]
-        - id: CHANGE-003
-          type: documentation
-          summary: Documented executable samples and their provider-free limitations.
-          objectiveRefs: [OBJ-003]
-          paths: [SKILL.md]
       testImplementations:
         - testCaseRef: "#test-case/TC-001"
           path: samples/cli-help-version.mjs

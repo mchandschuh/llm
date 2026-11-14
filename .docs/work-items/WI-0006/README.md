@@ -2,10 +2,10 @@
 
 ## Status
 
-`planned` for the bounded local package scope. This work item defines a
-provider-free executable sample set and a discovery-based integration test; it
-does not claim implementation, provider, production, or downstream integration
-evidence yet.
+`complete` for the bounded local package scope. Provider-free executable samples,
+the discovery integration harness, validation, review, and delivery records are
+committed. No live provider, production, or downstream integration evidence is
+claimed.
 
 ## Authority
 
@@ -15,9 +15,21 @@ evidence yet.
 - Steps: `/home/michael/src/github/llm/.docs/work-items/WI-0006/steps/`
 - Baseline: `a34095bd29a9130976856403ca1c41a9198b8488`
 
+## Commit chain
+
+| Stage | Commit |
+| --- | --- |
+| Preparation | `06834dd` |
+| Design | `7b5c890`, `0bc01bb` |
+| Individual samples | `91ac71a`, `f7af067`, `eafbb56`, `2621cd1`, `b217f9b`, `57f949e`, `9586055`, `11c289d`, `46ad488` |
+| Integration/implementation | `061dff3` |
+| Validation | `b14a06e` |
+| Review | `2bb5298` |
+| Delivery | Recorded by the final WI-0006 delivery commit |
+
 ## Intended sample matrix
 
-The implementation should add focused executable `.mjs` scripts under
+The implementation added focused executable `.mjs` scripts under
 `/home/michael/src/github/llm/samples/` for:
 
 1. CLI `--help` and `--version` provider-free behavior.
@@ -30,7 +42,7 @@ The implementation should add focused executable `.mjs` scripts under
 8. Cooperative v2 cancellation and preserved completed results.
 9. One unified raw `LlmProvider.complete` implementation serving v1 and v2.
 
-Each sample should emit exactly one JSON result envelope to stdout, use only
+Each sample emits exactly one JSON result envelope to stdout, uses only
 provider-free deterministic fixtures or temporary bounded files, and be directly
 executable with Node.js after `npm run build`.
 
@@ -47,7 +59,7 @@ Add `/home/michael/src/github/llm/tests/samples.test.ts`. The test should:
   and assertions; and
 - fail if a new sample is added but cannot run successfully.
 
-The test must not require network credentials or real external tool effects.
+The test does not require network credentials or real external tool effects.
 
 ## Explicit non-claims
 
