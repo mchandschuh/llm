@@ -1,0 +1,321 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0008
+taskUid: WI-0008-00000000
+orderKey: "00000000"
+parentTaskUid: null
+taskType: test-strategy
+processingStatus: unprocessed
+title: Define verification strategy for the unified completion contract
+objective: Define deterministic, provider-free evidence for the composite request, nested toolOptions, unified provider and response contracts, public exports, runtime behavior, and repository-wide legacy-artifact removal.
+references:
+  required:
+    - .docs/work-items/WI-0008/work-item.json
+    - .docs/work-items/WI-0008/README.md
+    - .docs/work-items/WI-0008/classification-result.json
+    - src/types.ts
+    - src/complete.ts
+    - src/normalize.ts
+    - src/provider.ts
+    - src/schema.ts
+    - src/index.ts
+    - tests/llm.test.ts
+    - tests/samples.test.ts
+    - schemas/request/v1/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - SKILL.md
+  informational:
+    - samples/
+    - .docs/work-items/
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0008/steps/
+  commitSubject: "WI-0008: 01: test(llm): define unified contract evidence"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: envelope-schema
+      executable: schema-validate
+      arguments: [--root, /home/michael/.cline/skills/sdlc/schemas]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/result
+  intent:
+    summary: Define the minimum deterministic evidence needed to prove the unified request, provider, response, export, and repository-removal contracts.
+    inputs:
+      - id: INPUT-WORK-ITEM
+        kind: requirement
+        ref: WI-0008|00000000#work-item/WI-0008
+        purpose: Authoritative scope, requirements, non-goals, and acceptance criteria.
+        required: true
+      - id: INPUT-CURRENT-SOURCE
+        kind: artifact
+        ref: "#artifact/current-llm-source"
+        purpose: Current implementation, schemas, tests, samples, and documentation inventory.
+        required: true
+      - id: INPUT-CLASSIFICATION
+        kind: artifact
+        ref: "#artifact/classification-record"
+        purpose: Bound classification and migration-impact context.
+        required: true
+    requirements:
+      - id: REQ-REQUEST
+        kind: requirement
+        statement: request/v1 is the sole request contract and accepts optional toolOptions with tools, autoInvoke, maxRounds, and maxCalls while rejecting old top-level controls.
+        inputRefs: [INPUT-WORK-ITEM]
+        required: true
+      - id: REQ-DISPATCH
+        kind: requirement
+        statement: One complete function selects ordinary or tool-capable behavior from toolOptions presence and values.
+        inputRefs: [INPUT-WORK-ITEM]
+        required: true
+      - id: REQ-PROVIDER
+        kind: requirement
+        statement: One LlmProvider.complete and one OpenRouterProvider.complete carry both ordinary and tool-capable transport without a protocol discriminator.
+        inputRefs: [INPUT-WORK-ITEM]
+        required: true
+      - id: REQ-RESPONSE
+        kind: requirement
+        statement: One response contract preserves ordinary output and tool-loop state, including pending, success, unvalidated, invocation-error, cancellation, and exhausted outcomes.
+        inputRefs: [INPUT-WORK-ITEM]
+        required: true
+      - id: REQ-REMOVAL
+        kind: requirement
+        statement: No legacy version-specific names, paths, fields, filenames, imports, exports, generated declarations, documentation, or current-tree work-item references remain in the accepted scan scope.
+        inputRefs: [INPUT-WORK-ITEM]
+        required: true
+      - id: REQ-GATES
+        kind: requirement
+        statement: Schema, typecheck, test, build, sample, declaration, scan, integrity, and changed-path evidence is recorded before review and delivery.
+        inputRefs: [INPUT-WORK-ITEM]
+        required: true
+    invariants:
+      - id: INV-REQUEST-SHAPE
+        statement: Ordinary requests omit toolOptions; tool-capable requests use only the nested toolOptions object.
+        inputRefs: [INPUT-WORK-ITEM]
+        required: true
+      - id: INV-TOOL-DEFAULTS
+        statement: Omitted toolOptions fields normalize to tools=[], autoInvoke=false, maxRounds=3, and maxCalls=128, subject to declared bounds.
+        inputRefs: [INPUT-WORK-ITEM]
+        required: true
+      - id: INV-SINGLE-ENTRY
+        statement: The public package exposes complete and does not expose a second completion function.
+        inputRefs: [INPUT-WORK-ITEM]
+        required: true
+      - id: INV-SINGLE-PROVIDER
+        statement: Provider callers use one complete method and capability fields rather than protocol-specific method selection.
+        inputRefs: [INPUT-WORK-ITEM]
+        required: true
+      - id: INV-RESPONSE-STATE
+        statement: Ordinary responses carry zero or empty tool state, while tool-capable responses preserve tool calls, rounds, results, and bounded diagnostics.
+        inputRefs: [INPUT-WORK-ITEM]
+        required: true
+      - id: INV-SCAN-CLEAN
+        statement: The accepted current-tree scan has no excluded legacy references except exclusions explicitly recorded by the task result.
+        inputRefs: [INPUT-WORK-ITEM]
+        required: true
+    objectives:
+      - id: OBJ-CONTRACT
+        statement: Verify the composite request and unified response schemas and types.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-CURRENT-SOURCE]
+        requirementRefs: [REQ-REQUEST, REQ-RESPONSE]
+        invariantRefs: [INV-REQUEST-SHAPE, INV-TOOL-DEFAULTS, INV-RESPONSE-STATE]
+      - id: OBJ-RUNTIME
+        statement: Verify capability-driven normalization, completion dispatch, provider transport, and preserved tool-loop behavior.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-CURRENT-SOURCE]
+        requirementRefs: [REQ-DISPATCH, REQ-PROVIDER, REQ-RESPONSE]
+        invariantRefs: [INV-SINGLE-ENTRY, INV-SINGLE-PROVIDER, INV-RESPONSE-STATE]
+      - id: OBJ-REMOVAL
+        statement: Verify the absence of legacy version-specific artifacts from source, generated output, samples, docs, schemas, filenames, and accepted work-item records.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-CURRENT-SOURCE]
+        requirementRefs: [REQ-REMOVAL]
+        invariantRefs: [INV-SINGLE-ENTRY, INV-SINGLE-PROVIDER, INV-SCAN-CLEAN]
+      - id: OBJ-GATES
+        statement: Verify all package, sample, schema, integrity, and scope gates needed for review and delivery.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-CLASSIFICATION]
+        requirementRefs: [REQ-GATES]
+        invariantRefs: [INV-SCAN-CLEAN]
+    nonGoals:
+      - Do not make authenticated provider calls.
+      - Do not execute real external tools or claim production behavior.
+      - Do not rewrite immutable Git history.
+  result:
+    status: defined
+    testCases:
+      - id: TC-REQUEST-CONTRACT
+        title: unified request schema accepts ordinary and nested toolOptions requests
+        type: unit
+        requirementLevel: required
+        purpose: Prove the sole request contract, exact nested names, defaults, bounds, and rejection of old top-level controls.
+        procedure:
+          executionMode: executable
+          target: request schema, normalizer, and deterministic request tests
+          steps: [Validate ordinary and tool-capable examples, validate defaults and bounds, assert unknown and old top-level fields fail.]
+          command: npm test
+        expectedOutcome: Valid requests pass and invalid shapes fail before provider use.
+        passCriteria: All request schema and normalization assertions pass.
+        evidenceTier: unit
+        fixtureRefs: [FIX-REQUESTS]
+        limitations: [Does not establish authenticated provider behavior.]
+      - id: TC-UNIFIED-COMPLETE
+        title: one complete export dispatches ordinary and tool-capable requests
+        type: unit
+        requirementLevel: required
+        purpose: Prove complete is the only high-level entry point and toolOptions selects the runtime path.
+        procedure:
+          executionMode: executable
+          target: completion dispatch with deterministic injected providers
+          steps: [Call complete with no toolOptions, call complete with toolOptions, inspect response schema and provider request shape.]
+          command: npm test
+        expectedOutcome: Both request forms use complete and produce the expected unified response state.
+        passCriteria: Dispatch and response assertions pass with no completeV2 import or call.
+        evidenceTier: unit
+        fixtureRefs: [FIX-PROVIDERS]
+        limitations: [Does not establish live provider availability.]
+      - id: TC-PROVIDER-CONTRACT
+        title: one provider complete method handles plain and tool-capable transport
+        type: component
+        requirementLevel: required
+        purpose: Prove one LlmProvider.complete and OpenRouterProvider.complete implementation use capability fields without a protocol discriminator.
+        procedure:
+          executionMode: executable
+          target: injected provider and mocked OpenRouter transport
+          steps: [Exercise ordinary transport, exercise tool transport, inspect request body, finish reason, calls, and results.]
+          command: npm test
+        expectedOutcome: Both transports pass through one complete method and preserve wire behavior.
+        passCriteria: Provider interface and mocked transport assertions pass.
+        evidenceTier: component
+        fixtureRefs: [FIX-PROVIDERS]
+        limitations: [Does not establish authenticated provider behavior.]
+      - id: TC-TOOL-LIFECYCLE
+        title: tool validation, pending mode, automatic batches, results, retries, and cancellation remain correct
+        type: unit
+        requirementLevel: required
+        purpose: Preserve established tool-loop and cancellation invariants during contract consolidation.
+        procedure:
+          executionMode: executable
+          target: deterministic completion and tool-invoker tests
+          steps: [Run pending, invalid, bounded, parallel, finish-reason, retry, result-preservation, and cancellation cases.]
+          command: npm test
+        expectedOutcome: Existing behavior remains correct under the unified request and response contract.
+        passCriteria: All required lifecycle assertions pass.
+        evidenceTier: unit
+        fixtureRefs: [FIX-PROVIDERS, FIX-TOOLS]
+        limitations: [Does not establish real external tool effects.]
+      - id: TC-UNIFIED-SCHEMA
+        title: one response schema validates ordinary and tool-capable outcomes
+        type: unit
+        requirementLevel: required
+        purpose: Prove ordinary zero/empty tool state and all tool-capable response states use one schema.
+        procedure:
+          executionMode: executable
+          target: response schema examples and response constructors
+          steps: [Validate ordinary success/failure examples, pending, success, unvalidated, invocation-error, cancellation, and exhausted examples.]
+          command: npm test
+        expectedOutcome: Every required response state validates through one response schema.
+        passCriteria: Schema examples and response-construction assertions pass.
+        evidenceTier: unit
+        fixtureRefs: [FIX-RESPONSES]
+        limitations: [Does not establish downstream consumer compatibility.]
+      - id: TC-LEGACY-SCAN
+        title: current-tree scan finds no legacy version-specific artifacts
+        type: inspection
+        requirementLevel: required
+        purpose: Prove removal of names, paths, fields, filenames, imports, exports, declarations, docs, and records.
+        procedure:
+          executionMode: executable
+          target: tracked and working repository tree excluding only declared caches and Git internals
+          steps: [Run case-insensitive identifier/path scans, scan filenames, inspect generated declarations, record every exclusion and zero unexpected matches.]
+          command: git grep -n -i -E 'v2|completeV2|LlmProviderV2|request/v2|response/v2|autoInvokeTools|maxToolRounds|maxToolCalls' -- .
+        expectedOutcome: The scan returns no matches in the accepted scope.
+        passCriteria: Zero unexpected matches and no untracked obsolete filenames remain.
+        evidenceTier: inspection
+        fixtureRefs: [FIX-REPOSITORY]
+        limitations: [The scan does not inspect immutable historical Git objects.]
+      - id: TC-PACKAGE-GATES
+        title: package, sample, declaration, integrity, and changed-path gates pass
+        type: cli
+        requirementLevel: required
+        purpose: Prove the final repository can typecheck, test, build, execute samples, and produce clean declarations and scope.
+        procedure:
+          executionMode: executable
+          target: repository package and sample harness
+          steps: [Run typecheck, tests, build, samples, declaration scan, diff check, conflict scan, and changed-path review.]
+          command: npm run typecheck && npm test && npm run build
+        expectedOutcome: All required commands and inspections pass.
+        passCriteria: No gate fails and evidence remains provider-free.
+        evidenceTier: cli-audit
+        fixtureRefs: [FIX-REPOSITORY]
+        limitations: [Does not establish production readiness or deployment.]
+    fixtures:
+      - id: FIX-REQUESTS
+        name: request-contract-fixtures
+        purpose: Ordinary, valid toolOptions, boundary, and invalid legacy-field request objects.
+        setup: Load schema examples and construct deterministic request objects.
+        teardown: Discard in-memory fixtures.
+        sourceRefs: ["#artifact/request-contract", "#artifact/deterministic-tests"]
+      - id: FIX-PROVIDERS
+        name: provider-fixtures
+        purpose: Deterministic ordinary and tool-capable provider responses and mocked fetch payloads.
+        setup: Inject provider and tool invoker doubles with no external side effects.
+        teardown: Restore mocked transport and discard captured requests.
+        sourceRefs: ["#artifact/provider-implementation", "#artifact/deterministic-tests"]
+      - id: FIX-TOOLS
+        name: tool-lifecycle-fixtures
+        purpose: Declared tools, valid/invalid calls, parallel batches, results, cancellation, and retry sequences.
+        setup: Use bounded in-memory tool invokers and abort controllers.
+        teardown: Discard calls, results, and event buffers.
+        sourceRefs: ["#artifact/completion-implementation", "#artifact/deterministic-tests"]
+      - id: FIX-RESPONSES
+        name: response-contract-fixtures
+        purpose: Ordinary and tool-capable unified response examples.
+        setup: Construct response objects through public constructors and schema examples.
+        teardown: Discard response fixtures.
+        sourceRefs: ["#artifact/response-contract", "#artifact/schema-validator"]
+      - id: FIX-REPOSITORY
+        name: repository-audit-fixture
+        purpose: Tracked-tree file list, generated declarations, sample paths, and scan exclusion list.
+        setup: Run scans from repository root with pager disabled.
+        teardown: Preserve command output as task evidence only.
+        sourceRefs: ["#artifact/work-item-policy", "#artifact/package-manifest"]
+    coverage:
+      - id: COV-REQUEST
+        requirementRefs: [REQ-REQUEST]
+        invariantRefs: [INV-REQUEST-SHAPE, INV-TOOL-DEFAULTS]
+        objectiveRefs: [OBJ-CONTRACT]
+        testCaseRefs: [TC-REQUEST-CONTRACT]
+        rationale: Request fixtures cover the sole schema, nested names, defaults, bounds, and rejection rules.
+      - id: COV-RUNTIME
+        requirementRefs: [REQ-DISPATCH, REQ-PROVIDER]
+        invariantRefs: [INV-SINGLE-ENTRY, INV-SINGLE-PROVIDER]
+        objectiveRefs: [OBJ-RUNTIME]
+        testCaseRefs: [TC-UNIFIED-COMPLETE, TC-PROVIDER-CONTRACT]
+        rationale: Dispatch and transport fixtures prove one high-level and provider entry point.
+      - id: COV-RESPONSE
+        requirementRefs: [REQ-RESPONSE]
+        invariantRefs: [INV-RESPONSE-STATE]
+        objectiveRefs: [OBJ-CONTRACT, OBJ-RUNTIME]
+        testCaseRefs: [TC-TOOL-LIFECYCLE, TC-UNIFIED-SCHEMA]
+        rationale: Lifecycle and schema tests preserve all ordinary and tool-capable response state.
+      - id: COV-REMOVAL
+        requirementRefs: [REQ-REMOVAL]
+        invariantRefs: [INV-SCAN-CLEAN]
+        objectiveRefs: [OBJ-REMOVAL]
+        testCaseRefs: [TC-LEGACY-SCAN]
+        rationale: The negative scan covers names, paths, fields, filenames, generated output, docs, and records.
+      - id: COV-GATES
+        requirementRefs: [REQ-GATES]
+        invariantRefs: [INV-SCAN-CLEAN]
+        objectiveRefs: [OBJ-GATES]
+        testCaseRefs: [TC-PACKAGE-GATES]
+        rationale: Package and integrity gates establish the required local evidence boundary.
+    minimumRequiredTestCaseRefs: [TC-REQUEST-CONTRACT, TC-UNIFIED-COMPLETE, TC-PROVIDER-CONTRACT, TC-TOOL-LIFECYCLE, TC-UNIFIED-SCHEMA, TC-LEGACY-SCAN, TC-PACKAGE-GATES]
+    recommendedTestCaseRefs: []
+    evidenceLimitations:
+      - The strategy defines required evidence but does not claim that any test has passed.
+      - No authenticated provider, production, deployment, downstream, or real external-tool evidence is in scope.

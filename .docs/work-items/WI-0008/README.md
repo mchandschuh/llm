@@ -44,6 +44,22 @@ pending/manual execution, automatic execution, tool results, cancellation,
 validation failures, bounded retries, and diagnostics must all remain represented
 by one version-neutral response contract.
 
+## Ordered tasks
+
+| Order | Task | Status | Dependency |
+| --- | --- | --- | --- |
+| `00000000` | Define unified completion-contract test strategy | `planned` | none |
+| `10000000` | Implement composite request, unified runtime, and repository migration | `planned` | `00000000` |
+| `80000000` | Independently validate contracts, regressions, generated output, and legacy removal | `planned` | `10000000` |
+| `90000000` | Review exact implementation and validation evidence | `planned` | `80000000` |
+| `91000000` | Record local release and final audit | `planned` | `90000000` |
+
+The implementation task is contract-bearing: it repeats the exact `toolOptions`
+field names and defaults, requires one public `complete`, one provider method,
+one response contract, capability-driven dispatch, and removal of all legacy
+version-specific artifacts. The test-strategy and validation tasks separately
+require positive behavior checks and negative repository-wide removal scans.
+
 ## Repository migration boundary
 
 The implementation must inspect and migrate all current-tree artifacts, including:

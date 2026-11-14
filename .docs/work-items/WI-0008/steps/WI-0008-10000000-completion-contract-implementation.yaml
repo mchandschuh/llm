@@ -1,0 +1,138 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0008
+taskUid: WI-0008-10000000
+orderKey: "10000000"
+parentTaskUid: WI-0008-00000000
+taskType: implementation
+processingStatus: unprocessed
+title: Implement the unified completion contract
+objective: Implement the composite request, nested toolOptions, unified response and provider contracts, single public entry point, capability-driven dispatch, and repository-wide legacy-artifact removal defined by WI-0008.
+references:
+  required:
+    - .docs/work-items/WI-0008/work-item.json
+    - .docs/work-items/WI-0008/README.md
+    - .docs/work-items/WI-0008/steps/WI-0008-00000000-completion-contract-test-strategy.yaml
+    - src/types.ts
+    - src/complete.ts
+    - src/normalize.ts
+    - src/provider.ts
+    - src/schema.ts
+    - src/index.ts
+    - schemas/request/v1/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - tests/llm.test.ts
+    - tests/samples.test.ts
+    - SKILL.md
+  informational:
+    - samples/
+    - .docs/work-items/
+    - package.json
+dependsOn: [WI-0008-00000000]
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/
+    - schemas/
+    - tests/
+    - samples/
+    - SKILL.md
+    - .docs/work-items/
+  commitSubject: "WI-0008: 02: refactor(llm): implement unified completion contract"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments: [run, typecheck]
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments: [run, build]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement one capability-driven completion API and remove every legacy version-specific contract from the current repository tree.
+    changeTypes: [production-code, test-code, schema, documentation, generated-artifact, migration]
+    changeIntent: refactor
+    inputs:
+      - id: INPUT-WORK-ITEM
+        kind: requirement
+        ref: WI-0008|00000000#work-item/WI-0008
+        purpose: Authoritative WI-0008 requirements and acceptance criteria.
+        required: true
+      - id: INPUT-STRATEGY
+        kind: testStrategy
+        ref: WI-0008|00000000#result/R-001
+        purpose: Required test cases, fixtures, coverage, and evidence limits.
+        required: true
+    objectives:
+      - id: OBJ-REQUEST
+        statement: Make request/v1 the sole request contract with optional toolOptions containing exactly tools, autoInvoke, maxRounds, and maxCalls.
+        inputRefs: [INPUT-WORK-ITEM]
+        testCaseRefs: ["#test-case/TC-REQUEST-CONTRACT"]
+      - id: OBJ-DISPATCH
+        statement: Normalize and dispatch ordinary versus tool-capable behavior from toolOptions presence without a second completion function or protocol discriminator.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-STRATEGY]
+        testCaseRefs: ["#test-case/TC-UNIFIED-COMPLETE", "#test-case/TC-PROVIDER-CONTRACT"]
+      - id: OBJ-PROVIDER
+        statement: Keep one LlmProvider.complete and one OpenRouterProvider.complete carrying one provider request and one provider response contract.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-STRATEGY]
+        testCaseRefs: ["#test-case/TC-PROVIDER-CONTRACT"]
+      - id: OBJ-RESPONSE
+        statement: Merge ordinary and tool-loop response state into one response schema and type, using zero or empty tool state for ordinary responses.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-STRATEGY]
+        testCaseRefs: ["#test-case/TC-TOOL-LIFECYCLE", "#test-case/TC-UNIFIED-SCHEMA"]
+      - id: OBJ-REMOVAL
+        statement: Remove legacy version-specific source identifiers, schema files and paths, top-level tool fields, provider protocol fields, sample filenames, imports, docs, declarations, and current-tree work-item references.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-STRATEGY]
+        testCaseRefs: ["#test-case/TC-LEGACY-SCAN"]
+      - id: OBJ-REGRESSION
+        statement: Preserve tool validation, pending behavior, automatic batches, finish reasons, cancellation, retries, tool results, CLI behavior, and sample execution.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-STRATEGY]
+        testCaseRefs: ["#test-case/TC-TOOL-LIFECYCLE", "#test-case/TC-PACKAGE-GATES"]
+    ownedPaths:
+      - src/
+      - schemas/
+      - tests/
+      - samples/
+      - SKILL.md
+      - .docs/work-items/
+    nonGoals:
+      - Do not make authenticated provider calls or execute real external tools.
+      - Do not change tool policy, retry semantics, cancellation semantics, finish-reason semantics, or provider wire behavior except where required by the unified shape.
+      - Do not rewrite immutable Git history.
+      - Do not retain compatibility aliases for removed version-specific public names.
+    steps:
+      - Add toolOptions to request/v1 with tools, autoInvoke, maxRounds, and maxCalls, including defaults, bounds, closed-object validation, and rejection of old top-level fields.
+      - Replace version-suffixed request, normalized-request, option, provider-request, response, output, and public API types with version-neutral contracts.
+      - Remove request/response version-specific schema files and update schema loading, validation, examples, negative examples, and response construction to one contract.
+      - Implement one complete export and capability-driven orchestration; implement one LlmProvider.complete and one OpenRouterProvider.complete without protocol discriminators.
+      - Migrate all tests, fixtures, samples, sample filenames, docs, generated declarations, CLI-facing paths, and checked-out work-item references.
+      - Execute every required strategy case and record evidence for each objective, negative scan, and package gate.
+  result:
+    status: partially-implemented
+    implementation:
+      summary: Implementation result is reserved for execution; the required contract and repository migration boundary are defined above.
+      changes:
+        - id: CHANGE-PLAN
+          type: documentation
+          summary: Recorded the executable implementation contract, owned paths, and required verification handoff; production implementation remains pending.
+          objectiveRefs: [OBJ-REQUEST, OBJ-DISPATCH, OBJ-PROVIDER, OBJ-RESPONSE, OBJ-REMOVAL, OBJ-REGRESSION]
+          paths: [.docs/work-items/WI-0008/steps/WI-0008-10000000-completion-contract-implementation.yaml]
+      testImplementations: []
+    verification:
+      status: not-run
+      objectiveRefs: [OBJ-REQUEST, OBJ-DISPATCH, OBJ-PROVIDER, OBJ-RESPONSE, OBJ-REMOVAL, OBJ-REGRESSION]
+      tests: []
+    limitations:
+      - No implementation evidence exists until this task is executed.
+      - Provider-free evidence cannot establish authenticated provider availability or production readiness.

@@ -1,0 +1,110 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0008
+taskUid: WI-0008-91000000
+orderKey: "91000000"
+parentTaskUid: WI-0008-00000000
+taskType: delivery
+processingStatus: unprocessed
+title: Record local release of the unified completion contract
+objective: Record local delivery of the validated unified completion contract, generated package, repository records, and evidence limitations without publication or deployment claims.
+references:
+  required:
+    - .docs/work-items/WI-0008/work-item.json
+    - .docs/work-items/WI-0008/README.md
+    - .docs/work-items/WI-0008/steps/WI-0008-10000000-completion-contract-implementation.yaml
+    - .docs/work-items/WI-0008/steps/WI-0008-80000000-completion-contract-validation.yaml
+    - .docs/work-items/WI-0008/steps/WI-0008-90000000-completion-contract-review.yaml
+    - package.json
+    - dist/
+  informational:
+    - schemas/request/v1/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - samples/
+dependsOn: [WI-0008-90000000]
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0008/
+    - dist/
+  commitSubject: "WI-0008: 05: chore(llm): record unified completion delivery"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: final-build
+      executable: npm
+      arguments: [run, build]
+      expectedExitCode: 0
+    - id: final-tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/result
+  intent:
+    summary: Deliver the locally validated unified completion contract and its repository records through the implementation, validation, review, and release evidence chain.
+    deliveryTypes: [package, release]
+    inputs:
+      - id: INPUT-VALIDATION
+        kind: validation
+        ref: WI-0008|80000000#result/R-001
+        purpose: Provide independent contract, regression, removal, package, and scope validation.
+        required: true
+      - id: INPUT-REVIEW
+        kind: approval
+        ref: WI-0008|90000000#result/R-001
+        purpose: Provide the accepted review result for the exact implementation.
+        required: true
+      - id: INPUT-REPOSITORY
+        kind: repositoryState
+        ref: "#repository-state/HEAD"
+        purpose: Identify the final local revision being delivered.
+        required: true
+    artifacts:
+      - id: ART-PACKAGE
+        kind: package
+        path: dist/
+        purpose: Locally built package containing the unified completion contract.
+        required: true
+      - id: ART-RECORD
+        kind: releaseRecord
+        path: .docs/work-items/WI-0008/
+        purpose: Complete WI-0008 work-item, classification, ordered task, validation, review, and release records.
+        required: true
+    procedures:
+      - id: PROC-FINAL-VERIFY
+        sequence: 1
+        name: final-build-test-and-audit
+        description: Rebuild, rerun provider-free tests and samples, recheck generated declarations and no-legacy scans, then capture final package and record state.
+        steps: [Verify implementation, validation, and review records, run npm run build, run npm test, execute sample integration, rerun repository-wide removal scans, inspect final changed paths.]
+        command: npm run build && npm test
+        expected:
+          result: The final local package builds, provider-free tests and samples pass, generated declarations and removal scans are clean, and the release records are complete.
+        required: true
+    nonGoals:
+      - Do not publish to a registry or deploy to production.
+      - Do not make authenticated provider calls or execute real external tools.
+      - Do not claim downstream integration, production readiness, or immutable Git history cleanup.
+  result:
+    status: delivered
+    summary: Delivery result is reserved for execution after review acceptance.
+    artifacts:
+      - id: ART-PACKAGE-PLANNED
+        kind: package
+        path: dist/
+        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      - id: ART-RECORD-PLANNED
+        kind: releaseRecord
+        path: .docs/work-items/WI-0008/
+        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executions:
+      - id: EXEC-FINAL-PLANNED
+        procedureRef: "#procedure/PROC-FINAL-VERIFY"
+        result:
+          status: blocked
+          summary: Blocked until validation and review produce accepted upstream results.
+        command: npm run build && npm test
+    limitations: [No delivery evidence exists until validation and review are complete.]

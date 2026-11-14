@@ -1,0 +1,210 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0008
+taskUid: WI-0008-80000000
+orderKey: "80000000"
+parentTaskUid: WI-0008-00000000
+taskType: validation
+processingStatus: unprocessed
+title: Validate the unified completion contract and removal audit
+objective: Independently validate every WI-0008 contract, regression, repository-removal, generated-artifact, integrity, and scope obligation after implementation.
+references:
+  required:
+    - .docs/work-items/WI-0008/work-item.json
+    - .docs/work-items/WI-0008/README.md
+    - .docs/work-items/WI-0008/steps/WI-0008-00000000-completion-contract-test-strategy.yaml
+    - .docs/work-items/WI-0008/steps/WI-0008-10000000-completion-contract-implementation.yaml
+    - src/
+    - schemas/
+    - tests/
+    - samples/
+    - SKILL.md
+    - package.json
+  informational:
+    - dist/
+    - .docs/work-items/
+dependsOn: [WI-0008-10000000]
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0008/steps/
+  commitSubject: "WI-0008: 03: test(llm): validate unified completion contract"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments: [run, typecheck]
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments: [run, build]
+      expectedExitCode: 0
+    - id: integrity
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Independently validate the composite request, unified runtime and response contracts, complete removal of legacy artifacts, and all required local gates.
+    inputs:
+      - id: INPUT-IMPLEMENTATION
+        kind: implementation
+        ref: WI-0008|10000000#result/R-001
+        purpose: Identify the implementation result, objectives, tests, and owned paths.
+        required: true
+      - id: INPUT-STRATEGY
+        kind: testStrategy
+        ref: WI-0008|00000000#result/R-001
+        purpose: Identify required test cases, invariants, and evidence ceilings.
+        required: true
+      - id: INPUT-WORK-ITEM
+        kind: requirement
+        ref: WI-0008|00000000#work-item/WI-0008
+        purpose: Identify authoritative acceptance criteria and removal scope.
+        required: true
+    targets:
+      - id: TARGET-PACKAGE
+        kind: repositoryState
+        ref: "#repository-state/HEAD"
+        purpose: Validate the exact repository revision after implementation.
+        required: true
+      - id: TARGET-SCHEMAS
+        kind: artifact
+        ref: "#artifact/request-and-response-schemas"
+        purpose: Validate the sole request and response schema contracts and examples.
+        required: true
+      - id: TARGET-DECLARATIONS
+        kind: artifact
+        ref: "#artifact/generated-declarations"
+        purpose: Inspect generated declarations and package exports for obsolete names.
+        required: true
+      - id: TARGET-SAMPLES
+        kind: artifact
+        ref: "#artifact/executable-samples"
+        purpose: Execute every discovered sample against the built package.
+        required: true
+      - id: TARGET-RECORDS
+        kind: artifact
+        ref: "#artifact/current-work-item-records"
+        purpose: Audit current-tree durable records for stale references and explicit exclusions.
+        required: true
+    objectiveRefs: ["WI-0008|10000000#objective/OBJ-REQUEST", "WI-0008|10000000#objective/OBJ-DISPATCH", "WI-0008|10000000#objective/OBJ-PROVIDER", "WI-0008|10000000#objective/OBJ-RESPONSE", "WI-0008|10000000#objective/OBJ-REMOVAL", "WI-0008|10000000#objective/OBJ-REGRESSION"]
+    testCaseRefs: ["WI-0008|00000000#test-case/TC-REQUEST-CONTRACT", "WI-0008|00000000#test-case/TC-UNIFIED-COMPLETE", "WI-0008|00000000#test-case/TC-PROVIDER-CONTRACT", "WI-0008|00000000#test-case/TC-TOOL-LIFECYCLE", "WI-0008|00000000#test-case/TC-UNIFIED-SCHEMA", "WI-0008|00000000#test-case/TC-LEGACY-SCAN", "WI-0008|00000000#test-case/TC-PACKAGE-GATES"]
+    procedures:
+      - id: VAL-CONTRACT
+        sequence: 1
+        name: validate-unified-contract
+        description: Validate request, response, provider, export, and runtime behavior through deterministic tests and schema examples.
+        reason: Confirm the implementation satisfies the concrete contracts rather than only renaming symbols.
+        targetRefs: ["#target/TARGET-PACKAGE", "#target/TARGET-SCHEMAS"]
+        objectiveRefs: ["WI-0008|10000000#objective/OBJ-REQUEST", "WI-0008|10000000#objective/OBJ-DISPATCH", "WI-0008|10000000#objective/OBJ-PROVIDER", "WI-0008|10000000#objective/OBJ-RESPONSE"]
+        testCaseRefs: ["WI-0008|00000000#test-case/TC-REQUEST-CONTRACT", "WI-0008|00000000#test-case/TC-UNIFIED-COMPLETE", "WI-0008|00000000#test-case/TC-PROVIDER-CONTRACT", "WI-0008|00000000#test-case/TC-TOOL-LIFECYCLE", "WI-0008|00000000#test-case/TC-UNIFIED-SCHEMA"]
+        method:
+          executionMode: executable
+          target: package schema and deterministic test suite
+          steps: [Run schema example tests, run typecheck, run focused and full tests, inspect ordinary and tool-capable response state.]
+          command: npm run typecheck && npm test
+        expected:
+          outcome: passed
+          exitCode: 0
+          assertions: [One request contract validates, one complete path dispatches both capabilities, one provider method handles both transports, one response contract preserves all required states.]
+        evidenceTier: cli-audit
+        required: true
+      - id: VAL-REMOVAL
+        sequence: 2
+        name: audit-legacy-removal
+        description: Scan the accepted current tree for every legacy version-specific identifier, path, field, filename, import, export, declaration, documentation term, and work-item reference.
+        reason: Prevent stale artifacts from surviving outside the primary source files.
+        targetRefs: ["#target/TARGET-PACKAGE", "#target/TARGET-DECLARATIONS", "#target/TARGET-RECORDS", "#target/TARGET-SAMPLES"]
+        objectiveRefs: ["WI-0008|10000000#objective/OBJ-REMOVAL"]
+        testCaseRefs: ["WI-0008|00000000#test-case/TC-LEGACY-SCAN"]
+        method:
+          executionMode: executable
+          target: tracked and working repository tree, generated declarations, and filenames
+          steps: [Run case-insensitive scans, scan filenames, inspect package exports and declarations, record only explicit exclusions.]
+          command: git grep -n -i -E 'v2|completeV2|LlmProviderV2|request/v2|response/v2|autoInvokeTools|maxToolRounds|maxToolCalls' -- .
+        expected:
+          outcome: passed
+          exitCode: 0
+          assertions: [No unexpected legacy matches, no obsolete filenames, no old top-level tool fields, no obsolete public exports.]
+        evidenceTier: inspection
+        required: true
+      - id: VAL-PACKAGE
+        sequence: 3
+        name: validate-package-samples-integrity
+        description: Run build and sample integration, inspect generated declarations, and verify repository integrity and changed-path boundaries.
+        reason: Confirm final package usability and scope after the repository-wide migration.
+        targetRefs: ["#target/TARGET-PACKAGE", "#target/TARGET-DECLARATIONS", "#target/TARGET-SAMPLES"]
+        objectiveRefs: ["WI-0008|10000000#objective/OBJ-GATES", "WI-0008|10000000#objective/OBJ-REGRESSION"]
+        testCaseRefs: ["WI-0008|00000000#test-case/TC-PACKAGE-GATES"]
+        method:
+          executionMode: executable
+          target: package build, sample harness, declarations, and Git scope
+          steps: [Run build, run sample integration, inspect declarations, run diff and conflict checks, inspect changed paths.]
+          command: npm run build && npm test
+        expected:
+          outcome: passed
+          exitCode: 0
+          assertions: [Build succeeds, samples execute, declarations expose only the unified API, no conflict markers or whitespace errors exist, changed paths match task ownership.]
+        evidenceTier: cli-audit
+        required: true
+    nonGoals:
+      - Do not make authenticated provider calls.
+      - Do not execute real external tools.
+      - Do not claim production, deployment, downstream integration, or immutable-history cleanup.
+  result:
+    status: implemented-unproven
+    summary: Validation is planned and cannot establish completion until the implementation revision is available.
+    executions:
+      - id: EXEC-CONTRACT-PLANNED
+        procedureRef: "#procedure/VAL-CONTRACT"
+        status: blocked
+        observed:
+          outcome: blocked
+          exitCode: null
+          summary: Blocked because the implementation task is still planned.
+          assertions: [No runtime or schema execution was claimed.]
+        evidenceTier: static
+        evidence:
+          - kind: record
+            source: WI-0008 task planning
+            claim: The required contract validation procedure is declared but not executed.
+      - id: EXEC-REMOVAL-PLANNED
+        procedureRef: "#procedure/VAL-REMOVAL"
+        status: blocked
+        observed:
+          outcome: blocked
+          exitCode: null
+          summary: Blocked because the implementation task is still planned.
+          assertions: [No repository-wide removal scan was claimed.]
+        evidenceTier: static
+        evidence:
+          - kind: record
+            source: WI-0008 task planning
+            claim: The required removal audit procedure is declared but not executed.
+      - id: EXEC-PACKAGE-PLANNED
+        procedureRef: "#procedure/VAL-PACKAGE"
+        status: blocked
+        observed:
+          outcome: blocked
+          exitCode: null
+          summary: Blocked because the implementation task is still planned.
+          assertions: [No build, sample, declaration, or integrity result was claimed.]
+        evidenceTier: static
+        evidence:
+          - kind: record
+            source: WI-0008 task planning
+            claim: The required package gate procedure is declared but not executed.
+    findings: []
+    evidenceTier: static
+    limitations: [No validation evidence exists until the implementation revision is available.]
+    nonClaims: [This planned validation does not claim that the package or migration currently passes.]

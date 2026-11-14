@@ -1,0 +1,121 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0008
+taskUid: WI-0008-90000000
+orderKey: "90000000"
+parentTaskUid: WI-0008-00000000
+taskType: review
+processingStatus: unprocessed
+title: Review the unified completion contract implementation
+objective: Independently review the exact implementation and validation results for contract correctness, behavior preservation, complete legacy removal, scope, and evidence limits.
+references:
+  required:
+    - .docs/work-items/WI-0008/work-item.json
+    - .docs/work-items/WI-0008/README.md
+    - .docs/work-items/WI-0008/steps/WI-0008-00000000-completion-contract-test-strategy.yaml
+    - .docs/work-items/WI-0008/steps/WI-0008-10000000-completion-contract-implementation.yaml
+    - .docs/work-items/WI-0008/steps/WI-0008-80000000-completion-contract-validation.yaml
+    - src/
+    - schemas/
+    - tests/
+    - samples/
+    - SKILL.md
+  informational:
+    - package.json
+    - dist/
+    - .docs/work-items/
+dependsOn: [WI-0008-80000000]
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0008/steps/
+  commitSubject: "WI-0008: 04: review(llm): assess unified completion contract"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review whether the exact implementation and validation evidence satisfy every WI-0008 contract and removal obligation.
+    reviewKind: code
+    target:
+      taskType: implementation
+      taskRef: WI-0008|10000000
+      result:
+        ref: WI-0008|10000000#result/R-001
+        sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    gateId: unified-completion-contract
+    policyRef:
+      ref: .docs/work-items/WI-0008/README.md
+      sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    criteria:
+      - id: CRIT-001
+        statement: The request/v1 contract contains optional toolOptions with exactly the renamed fields and correct defaults/bounds, while obsolete top-level fields and the second request contract are absent.
+        purpose: Confirm the requested composite request contract is implemented exactly.
+        required: true
+        evidenceRefs: [WI-0008|80000000#result/R-001]
+      - id: CRIT-002
+        statement: The package exposes one complete function, one LlmProvider.complete, and one OpenRouterProvider.complete with capability-driven dispatch and no protocol-specific public seam.
+        purpose: Confirm the public and provider APIs are truly collapsed.
+        required: true
+        evidenceRefs: [WI-0008|80000000#result/R-001]
+      - id: CRIT-003
+        statement: One response contract preserves ordinary zero/empty tool state and all tool-capable lifecycle states without version-suffixed names or schema paths.
+        purpose: Confirm no behavior or response-state loss during consolidation.
+        required: true
+        evidenceRefs: [WI-0008|80000000#result/R-001]
+      - id: CRIT-004
+        statement: The accepted current-tree scan, filenames, generated declarations, samples, docs, schemas, exports, and work-item references contain no unexpected legacy version-specific artifacts.
+        purpose: Confirm the repository-wide removal objective rather than only source-level cleanup.
+        required: true
+        evidenceRefs: [WI-0008|80000000#result/R-001]
+      - id: CRIT-005
+        statement: The implementation preserves established tool, finish-reason, retry, cancellation, sample, and provider-free evidence boundaries without claiming live or production behavior.
+        purpose: Prevent unrelated behavioral or operational scope expansion.
+        required: true
+        evidenceRefs: [WI-0008|80000000#result/R-001]
+    evidenceRequirements:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0008|80000000#result/R-001
+        purpose: Provide independent contract, regression, removal, package, and scope evidence.
+        required: true
+        minimumTier: cli-audit
+    nonGoals:
+      - id: NON-001
+        statement: Do not authorize deployment or publication.
+      - id: NON-002
+        statement: Do not claim authenticated provider availability or real external tool effects.
+      - id: NON-003
+        statement: Do not approve immutable Git history rewriting.
+    context: []
+  result:
+    status: complete
+    decision: accepted
+    summary: Review result is reserved for execution after implementation and validation.
+    actor:
+      id: wi-0008-reviewer
+      role: reviewer
+      authorityRef: WI-0008
+    criteriaEvaluations: []
+    findings: []
+    evidence: []
+    limitations: [No review evidence exists until the exact implementation and validation results are available.]
+    nonClaims: [This planned review does not claim acceptance of an unimplemented change.]
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: EXEC-REVIEW-WI-0008
+      status: succeeded
+      startedAt: "1970-01-01T00:00:00Z"
+      finishedAt: "1970-01-01T00:00:00Z"
