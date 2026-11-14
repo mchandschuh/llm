@@ -1,0 +1,218 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0003
+taskUid: WI-0003-90000000
+orderKey: "90000000"
+parentTaskUid: WI-0003-00000000
+taskType: review
+processingStatus: processing_completed
+title: Review provider finish-reason termination
+objective: Review the exact finish-reason implementation and validation evidence for scope, compatibility, boundedness, fail-closed behavior, and documentation.
+references:
+  required:
+    - .docs/work-items/WI-0003/work-item.json
+    - .docs/work-items/WI-0003/steps/WI-0003-00000000-finish-reason-design.yaml
+    - .docs/work-items/WI-0003/steps/WI-0003-10000000-finish-reason-implementation.yaml
+    - .docs/work-items/WI-0003/steps/WI-0003-80000000-finish-reason-validation.yaml
+    - README.md
+    - src/types.ts
+    - src/provider.ts
+    - src/complete.ts
+    - tests/llm.test.ts
+    - SKILL.md
+  informational:
+    - schemas/request/v1/request.schema.json
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - schemas/response/v2/response.schema.json
+dependsOn:
+  - WI-0003-80000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0003/steps/
+  commitSubject: "WI-0003: 04: review(llm): assess finish reason termination"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review the exact finish-reason implementation for provider boundary correctness, explicit loop control, compatibility, fail-closed behavior, and evidence limits.
+    reviewKind: code
+    target:
+      taskType: implementation
+      taskRef: WI-0003|10000000
+      result:
+        ref: WI-0003|10000000#result/R-001
+        sha256: sha256:c40c93882c799c47f049f273ba60975fb666eae7f1f8d3e76ffd5ad89b132d55
+    gateId: finish-reason-termination-implementation
+    policyRef:
+      ref: README.md
+      sha256: sha256:f1ae91b562485cf4a4bf148d0cc1fea4d422bab53b802cbc6268d4b624cc7a41
+    criteria:
+      - id: CRIT-001
+        statement: The implementation stays within WI-0003 provider decision, orchestration, test, and documentation scope and preserves v1 and terminal response/v2 contracts.
+        purpose: Prevent scope expansion and compatibility regressions.
+        required: true
+        evidenceRefs:
+          - WI-0003|80000000#result/R-001
+      - id: CRIT-002
+        statement: ProviderCompletionResponse exposes a required provider-neutral decision and OpenRouter maps finish_reason tool_calls and stop correctly.
+        purpose: Ensure provider-specific metadata is normalized at the adapter boundary.
+        required: true
+        evidenceRefs:
+          - WI-0003|00000000#result/R-001
+          - WI-0003|80000000#result/R-001
+      - id: CRIT-003
+        statement: Automatic orchestration continues only for continue with tool calls, stops only for stop without tool calls, and rejects missing or contradictory protocol state.
+        purpose: Prevent implicit termination and unsafe continuation.
+        required: true
+        evidenceRefs:
+          - WI-0003|00000000#result/R-001
+          - WI-0003|80000000#result/R-001
+      - id: CRIT-004
+        statement: Public documentation explains finish_reason normalization and distinguishes the intermediate provider decision from terminal response/v2.
+        purpose: Make the changed provider contract discoverable and prevent consumers from confusing it with terminal response fields.
+        required: true
+        evidenceRefs:
+          - WI-0003|80000000#result/R-001
+    evidenceRequirements:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0003|80000000#result/R-001
+        purpose: Provide independent package and scope validation.
+        required: true
+        minimumTier: unit
+      - id: EVID-002
+        kind: target-result
+        ref: WI-0003|10000000#result/R-001
+        purpose: Pin the exact implementation result under review.
+        required: true
+        minimumTier: inspection
+      - id: EVID-003
+        kind: policy
+        ref: README.md
+        purpose: Provide repository boundary and validation guidance.
+        required: true
+        minimumTier: static
+    nonGoals:
+      - id: NON-001
+        statement: This review does not authorize deployment, live provider use, real tool execution, or downstream integration.
+    context:
+      - id: CTX-001
+        kind: contract
+        ref: src/types.ts
+        purpose: Review ProviderCompletionResponse and exported decision types.
+        required: true
+      - id: CTX-002
+        kind: contract
+        ref: src/provider.ts
+        purpose: Review OpenRouter finish_reason parsing and normalization.
+        required: true
+      - id: CTX-003
+        kind: contract
+        ref: src/complete.ts
+        purpose: Review explicit automatic loop decision handling.
+        required: true
+      - id: CTX-004
+        kind: repository-guidance
+        ref: SKILL.md
+        purpose: Review provider and terminal response documentation.
+        required: true
+  result:
+    status: complete
+    decision: accepted
+    summary: The finish-reason implementation stays within scope, preserves v1 and terminal response/v2 contracts, normalizes OpenRouter termination into an explicit provider-neutral decision, fails closed for invalid combinations, and is supported by 50 passing provider-free tests and package gates. No blocker remains for local delivery; provider, production, deployment, and downstream claims remain limited.
+    actor:
+      id: wi-0003-reviewer
+      role: code-reviewer
+      authorityRef: WI-0003
+    criteriaEvaluations:
+      - criterionRef: "#criterion/CRIT-001"
+        status: satisfied
+        summary: Commit 8b101e9 changes only the provider/type/orchestration/test/documentation implementation scope and task record; the response/v2 schema is unchanged and unrelated request-schema edits remain outside the commit.
+        evidenceRefs:
+          - WI-0003|80000000#result/R-001
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-002"
+        status: satisfied
+        summary: ProviderCompletionResponse requires decision, OpenRouter maps tool_calls to continue and stop to stop, and mocked-fetch tests cover both mappings plus missing/unsupported reasons.
+        evidenceRefs:
+          - WI-0003|00000000#result/R-001
+          - WI-0003|80000000#result/R-001
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-003"
+        status: satisfied
+        summary: completeV2 branches on decision, rejects continuation without calls and stop with calls, and explicit stop-after-results and invalid-combination tests pass.
+        evidenceRefs:
+          - WI-0003|00000000#result/R-001
+          - WI-0003|80000000#result/R-001
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-004"
+        status: satisfied
+        summary: SKILL.md documents choices[0].finish_reason, the normalized decision, fail-closed protocol combinations, and the distinction from terminal response/v2.
+        evidenceRefs:
+          - WI-0003|80000000#result/R-001
+        findingRefs: []
+    findings: []
+    evidence:
+      - id: EVID-001
+        kind: target-result
+        ref: WI-0003|10000000#result/R-001
+        claim: The exact implementation result records the normalized decision, provider mapping, explicit loop control, tests, and documentation changes.
+        tier: inspection
+        source: target-result
+      - id: EVID-002
+        kind: validation
+        ref: WI-0003|80000000#result/R-001
+        claim: Independent typecheck, 50-test, build, documentation, schema-scope, diff, and conflict-marker validation passed.
+        tier: cli-audit
+        source: referenced-result
+      - id: EVID-003
+        kind: diff
+        ref: WI-0003|80000000#result/R-001
+        claim: Implementation scope excludes terminal response/v2 schema mutation and unrelated request-schema changes.
+        tier: inspection
+        source: repository
+      - id: EVID-004
+        kind: policy
+        ref: README.md
+        claim: The review applies the repository boundary and does not promote mocked/provider-free evidence to operational or production assurance.
+        tier: static
+        source: repository
+    limitations:
+      - Review evidence is static, mocked transport, unit, CLI-audit, and inspection evidence; it does not establish authenticated provider availability or production behavior.
+      - The review accepts the exact implementation task digest only; a later implementation-result change requires a new review.
+      - The two unrelated request-schema modifications remain uncommitted and outside WI-0003.
+    nonClaims:
+      - This decision does not claim authenticated OpenRouter availability.
+      - This decision does not claim production readiness, deployment, registry publication, or downstream integration.
+      - This decision does not authorize real tool execution.
+    reproducibility:
+      policyDigest: sha256:f1ae91b562485cf4a4bf148d0cc1fea4d422bab53b802cbc6268d4b624cc7a41
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: EXEC-REVIEW-0003
+      status: succeeded
+      startedAt: "2026-11-13T21:32:00Z"
+      finishedAt: "2026-11-13T21:33:00Z"
