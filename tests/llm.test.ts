@@ -357,6 +357,52 @@ test('v2 cancellation preserves completed results and does not start later model
   assert.deepEqual(result.toolResults, [{ callId: 'call-cancel', name: 'read_record', status: 'success', value: { ok: true } }]);
 });
 
+test('v2 cancellation observed after provider response prevents terminal success', async () => {
+  const controller = new AbortController();
+  const events: string[] = [];
+  const provider = new V2SequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
+  const result = await completeV2(v2Request(), {
+    provider,
+    signal: controller.signal,
+    debug: (event) => {
+      events.push(event.event);
+      if (event.event === 'llm.provider.response') controller.abort();
+    },
+  });
+  assert.equal(result.status, 'cancelled');
+  assert.equal(result.output, null);
+  assert.deepEqual(result.errors[0], { code: 'CANCELLED', message: 'The completion was cancelled.', phase: 'cancellation' });
+  assert.deepEqual(events.slice(-4), ['llm.provider.response', 'llm.cancel.observed', 'llm.cancelled', 'llm.response']);
+  assert.equal(events.includes('llm.response'), true);
+  assert.equal(events.includes('llm.cancelled'), true);
+});
+
+test('v2 cancellation during parallel tool events prevents unstarted tool invocation', async () => {
+  const controller = new AbortController();
+  const events: string[] = [];
+  let invocations = 0;
+  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [
+    { id: 'call-race-a', name: 'read_record', arguments: { logicalId: 'a' } },
+    { id: 'call-race-b', name: 'read_record', arguments: { logicalId: 'b' } },
+  ] })]);
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), {
+    provider,
+    signal: controller.signal,
+    debug: (event) => {
+      events.push(event.event);
+      if (event.event === 'llm.tool.call' && event.data && typeof event.data === 'object' && (event.data as { callId?: unknown }).callId === 'call-race-a') controller.abort();
+    },
+    toolInvoker: { invoke: async () => { invocations += 1; return { ok: true }; } },
+  });
+  assert.equal(result.status, 'cancelled');
+  assert.equal(invocations, 0);
+  assert.deepEqual(result.toolResults, []);
+  assert.equal(result.errors[0]?.phase, 'cancellation');
+  assert.deepEqual(events.slice(-3), ['llm.cancel.observed', 'llm.cancelled', 'llm.response']);
+  assert.ok(events.indexOf('llm.cancel.observed') < events.indexOf('llm.cancelled'));
+  assert.ok(events.indexOf('llm.cancelled') < events.indexOf('llm.response'));
+});
+
 test('treats long literal task and system prompt values as literals', async () => {
   const provider = new SequenceProvider(['ok']);
   const longLiteral = 'word '.repeat(100);
