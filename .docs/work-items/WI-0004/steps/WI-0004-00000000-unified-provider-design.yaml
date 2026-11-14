@@ -1,0 +1,530 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0004
+taskUid: WI-0004-00000000
+orderKey: "00000000"
+parentTaskUid: null
+taskType: design
+processingStatus: processing_completed
+title: Define unified raw provider interface design
+objective: Define the version-discriminated provider request/response unions and one overloaded LlmProvider.complete boundary.
+references:
+  required:
+    - .docs/work-items/WI-0004/work-item.json
+    - .docs/work-items/WI-0004/classification-result.json
+    - src/types.ts
+    - src/complete.ts
+    - src/provider.ts
+    - src/index.ts
+    - tests/llm.test.ts
+    - SKILL.md
+  informational:
+    - schemas/request/v1/request.schema.json
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - schemas/response/v2/response.schema.json
+    - .docs/work-items/WI-0003/README.md
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0004/steps/
+  commitSubject: "WI-0004: 01: design(llm): define unified provider interface"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: envelope-schema
+      executable: schema-validate
+      arguments:
+        - --root
+        - /home/michael/.cline/skills/sdlc/schemas
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
+  intent:
+    summary: Define one extensible raw LlmProvider.complete interface for v1 and v2 provider transport while preserving public versioned completion contracts.
+    objectives:
+      - Replace LlmProviderV2.completeV2 with overloaded LlmProvider.complete methods.
+      - Add explicit protocol discrimination and correlated provider response types for future versions.
+      - Migrate OpenRouterProvider, v2 orchestration, tests, exports, and documentation without behavior changes.
+      - Remove raw v2-specific variants while retaining only justified high-level convenience compatibility.
+    inScope:
+      - ProviderCompletionRequest v1/v2 type modeling and protocol discrimination.
+      - LlmProvider overloads and correlated return types.
+      - OpenRouterProvider dispatch and completeV2Internal provider invocation.
+      - Test fixtures, public exports, generated declarations, and SKILL.md.
+    outOfScope:
+      - Removing public request/response version schemas or changing terminal response behavior.
+      - Changing finish_reason, tool orchestration, retry, or tool-result semantics.
+      - Adding a future v3 implementation; only preserve an extensible type shape.
+      - Live provider calls, deployment, and real tool side effects.
+    policy:
+      id: component-design
+      version: "1"
+    profile: implementable
+    scope: component
+    facets:
+      - structure
+      - behavior
+      - contract
+      - policy
+    references:
+      - id: REF-001
+        type: artifact
+        locator: sdlc://repo/local%2Fllm/WI-0004#work-item.json%23work-item/WI-0004
+        description: Authoritative WI-0004 refactor requirements and non-goals.
+      - id: REF-002
+        type: document
+        locator: src/types.ts
+        description: Current raw provider and high-level service interfaces.
+      - id: REF-003
+        type: document
+        locator: src/complete.ts
+        description: Current v1/v2 provider selection and orchestration calls.
+      - id: REF-004
+        type: document
+        locator: src/provider.ts
+        description: Current OpenRouterProvider complete and completeV2 methods.
+      - id: REF-005
+        type: document
+        locator: src/index.ts
+        description: Current public type exports.
+      - id: REF-006
+        type: document
+        locator: tests/llm.test.ts
+        description: Current v1/v2 provider fixtures and service tests.
+      - id: REF-007
+        type: document
+        locator: SKILL.md
+        description: Current public API and provider documentation.
+    provenance:
+      referenceRefs:
+        - REF-001
+        - REF-002
+        - REF-003
+        - REF-004
+        - REF-005
+        - REF-006
+        - REF-007
+      basis: Repository inspection shows high-level complete is already overloaded, while the lower-level raw provider seam remains split by complete versus completeV2.
+      confidence: 99
+    considerations:
+      - id: C-001
+        kind: interface
+        statement: One raw LlmProvider.complete overload set must preserve v1/v2 request-to-response correlation.
+        evaluation: Use protocol-discriminated provider request types and overloads ordered from specific v2 to broad v1 because v2 extends the v1 transport base.
+        referenceRefs:
+          - REF-001
+          - REF-002
+        status: accepted
+        impact: 100
+        confidence: 99
+      - id: C-002
+        kind: constraint
+        statement: Provider protocol unification must not change terminal LlmResponse/LlmResponseV2 behavior.
+        evaluation: Limit the refactor to raw provider request/response transport, orchestration call sites, exports, fixtures, declarations, and documentation.
+        referenceRefs:
+          - REF-001
+          - REF-003
+          - REF-004
+        status: accepted
+        impact: 100
+        confidence: 99
+      - id: C-003
+        kind: risk
+        statement: Removing raw v2-specific variants may affect callers that implemented LlmProviderV2 or injected completeV2.
+        evaluation: Remove them from canonical exports and tests, document the unified interface, and retain the exported high-level completeV2 function only if it is not a raw provider variant.
+        referenceRefs:
+          - REF-001
+          - REF-005
+          - REF-007
+        status: accepted
+        impact: 95
+        confidence: 96
+    activities:
+      - id: ACT-001
+        type: analysis
+        summary: Inspected raw and high-level provider interfaces, v1/v2 dispatch, OpenRouter implementations, tests, exports, and docs.
+        status: completed
+        referenceRefs:
+          - REF-001
+          - REF-002
+          - REF-003
+          - REF-004
+          - REF-005
+          - REF-006
+          - REF-007
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+            - REF-003
+            - REF-004
+            - REF-005
+            - REF-006
+            - REF-007
+          basis: The high-level interface is already unified; only the raw provider seam needs migration.
+          confidence: 99
+  result:
+    summary: The raw provider seam will use one overloaded LlmProvider.complete with discriminated v1/v2 requests and correlated responses; public request/response version contracts remain intact.
+    model:
+      name: unified-provider-interface-boundary
+      kind: interface
+      description: Version-discriminated provider transport requests, correlated responses, and one raw provider method.
+      notation: contract-model
+      version: "1"
+    elements:
+      - id: E-001
+        type: provider-request
+        name: provider-request-v1
+        description: Base provider request for v1 raw-text completion transport.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+          basis: v1 provider transport remains supported by the unified method.
+          confidence: 99
+      - id: E-002
+        type: provider-request
+        name: provider-request-v2
+        description: Discriminated v2 provider request extending the common provider transport with tools and tool results.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+          basis: v2 requires additional tool transport fields while sharing common provider fields.
+          confidence: 99
+      - id: E-003
+        type: provider-response
+        name: provider-response-v1
+        description: Raw string response correlated with a v1 provider request.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+          basis: Existing v1 LlmProvider.complete returns raw completion text.
+          confidence: 99
+      - id: E-004
+        type: provider-response
+        name: provider-response-v2
+        description: Normalized ProviderCompletionResponse correlated with a v2 provider request.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+          basis: Existing v2 normalized response retains tool calls and finish-reason decision.
+          confidence: 99
+      - id: E-005
+        type: provider-interface
+        name: unified-provider
+        description: One overloaded LlmProvider.complete method accepting versioned provider requests.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+            - REF-004
+          basis: The raw interface is unified while overloads preserve request/response correlation.
+          confidence: 99
+      - id: E-006
+        type: compatibility-boundary
+        name: high-level-completion-api
+        description: Existing complete and completeV2 high-level functions plus ILlmProvider terminal response overloads.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-003
+            - REF-005
+          basis: Public completion contracts are not the raw provider variants targeted for removal.
+          confidence: 98
+    relations:
+      - id: REL-001
+        type: overloads
+        source:
+          type: element
+          id: E-005
+        target:
+          type: element
+          id: E-001
+        description: Unified LlmProvider.complete accepts the v1 provider request.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+          basis: The v1 overload preserves existing raw string transport.
+          confidence: 99
+      - id: REL-002
+        type: overloads
+        source:
+          type: element
+          id: E-005
+        target:
+          type: element
+          id: E-002
+        description: Unified LlmProvider.complete accepts the v2 provider request.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+          basis: The v2 overload replaces the raw completeV2 method.
+          confidence: 99
+      - id: REL-003
+        type: correlates
+        source:
+          type: element
+          id: E-001
+        target:
+          type: element
+          id: E-003
+        description: v1 provider requests return raw string responses.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+          basis: Existing v1 provider behavior is preserved.
+          confidence: 99
+      - id: REL-004
+        type: correlates
+        source:
+          type: element
+          id: E-002
+        target:
+          type: element
+          id: E-004
+        description: v2 provider requests return normalized provider completion responses.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+          basis: Existing v2 tool/finish-reason behavior is preserved behind the unified method.
+          confidence: 99
+      - id: REL-005
+        type: preserves
+        source:
+          type: element
+          id: E-005
+        target:
+          type: element
+          id: E-006
+        description: Raw provider unification preserves the high-level completion API and terminal response contracts.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-003
+            - REF-005
+          basis: The refactor changes transport method selection, not public request/response envelopes.
+          confidence: 99
+    views:
+      - id: V-001
+        type: provider-interface-flow
+        name: unified-provider-overloads
+        description: Version-discriminated requests enter one provider complete method and return correlated responses.
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+          - E-004
+          - E-005
+          - E-006
+        relationRefs:
+          - REL-001
+          - REL-002
+          - REL-003
+          - REL-004
+          - REL-005
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+            - REF-003
+            - REF-004
+            - REF-005
+          basis: The view captures the unified raw seam and preserved high-level compatibility boundary.
+          confidence: 99
+    artifacts:
+      - id: A-001
+        type: interfaceDefinition
+        name: unified-provider-types
+        description: Unified LlmProvider overloads and version-correlated provider transport types.
+        locator: src/types.ts
+        format: typescript
+        status: complete
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+          basis: The implementation updates the public type declarations.
+          confidence: 99
+      - id: A-002
+        type: document
+        name: unified-provider-guidance
+        description: Public documentation for the unified raw provider interface and preserved high-level API.
+        locator: SKILL.md
+        format: markdown
+        status: complete
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-007
+          basis: The removed raw variants must not remain the documented integration path.
+          confidence: 98
+    outcomes:
+      - id: O-001
+        type: designDecision
+        statement: Use one overloaded LlmProvider.complete method with v2-specific overload before the broader v1/base overload.
+        status: accepted
+        impact: 100
+        confidence: 99
+        referenceRefs:
+          - REF-001
+          - REF-002
+        elementRefs:
+          - E-005
+        suggestedTaskType: implementation
+      - id: O-002
+        type: designDecision
+        statement: Add a protocol discriminator to provider transport requests and use overloads to preserve correlated return types for future versions.
+        status: accepted
+        impact: 100
+        confidence: 98
+        referenceRefs:
+          - REF-001
+          - REF-002
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+          - E-004
+        suggestedTaskType: implementation
+      - id: O-003
+        type: designDecision
+        statement: Remove LlmProviderV2 and the raw provider completeV2 method; retain high-level completeV2 only as a compatibility convenience if needed by current public callers.
+        status: accepted
+        impact: 95
+        confidence: 97
+        referenceRefs:
+          - REF-001
+          - REF-003
+          - REF-005
+        elementRefs:
+          - E-005
+          - E-006
+        suggestedTaskType: implementation
+      - id: O-004
+        type: testHandoff
+        statement: Verify declaration inference, one provider implementation for v1/v2, OpenRouter dispatch, unchanged finish-reason behavior, and all existing terminal response behavior.
+        status: accepted
+        impact: 100
+        confidence: 98
+        referenceRefs:
+          - REF-001
+          - REF-006
+          - REF-007
+        suggestedTaskType: validation
+    outputs:
+      - id: OUT-001
+        category: interface-contract
+        status: complete
+        sourceRefs:
+          - REF-001
+          - REF-002
+          - REF-005
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+          - E-004
+          - E-005
+        relationRefs:
+          - REL-001
+          - REL-002
+          - REL-003
+          - REL-004
+        description: One raw LlmProvider.complete overload set with version-correlated transport types.
+      - id: OUT-002
+        category: boundary
+        status: complete
+        sourceRefs:
+          - REF-001
+          - REF-003
+          - REF-005
+        elementRefs:
+          - E-006
+        relationRefs:
+          - REL-005
+        description: Preserved high-level complete/completeV2 and terminal response compatibility boundary.
+      - id: OUT-003
+        category: implementation-handoff
+        status: complete
+        sourceRefs:
+          - REF-001
+          - REF-004
+          - REF-006
+          - REF-007
+        description: Migrate provider implementation, v2 orchestration, fixtures, exports, generated declarations, and documentation.
+    verificationObligations:
+      - id: VER-001
+        kind: contract-test
+        status: planned
+        sourceRefs:
+          - REF-001
+          - REF-002
+        targetRefs:
+          - E-005
+        method:
+          type: contract-test
+          steps:
+            - Compile and exercise one provider implementation through v1 and v2 LlmProvider.complete overloads.
+            - Inspect generated declarations for removed LlmProviderV2 and raw completeV2 variants.
+          command: npm run typecheck && npm run build
+        requiredFor:
+          - implementable
+        description: Confirm one provider method supports correlated v1/v2 transport types and future extensibility.
+      - id: VER-002
+        kind: unit-test
+        status: planned
+        sourceRefs:
+          - REF-001
+          - REF-003
+          - REF-004
+          - REF-006
+        targetRefs:
+          - E-005
+          - E-006
+        method:
+          type: unit-test
+          steps:
+            - Run v1 raw completion, v2 tool transport, tool-loop, finish-reason, terminal response, and high-level service tests.
+          command: npm test
+        requiredFor:
+          - implementable
+        description: Confirm behavior remains unchanged while provider method selection is unified.
+      - id: VER-003
+        kind: inspection
+        status: planned
+        sourceRefs:
+          - REF-001
+          - REF-005
+          - REF-007
+        targetRefs:
+          - E-005
+          - E-006
+        method:
+          type: inspection
+          steps:
+            - Inspect index exports, SKILL.md, and generated declarations for obsolete raw v2 variants.
+          command: git diff --check
+        requiredFor:
+          - implementable
+        description: Confirm the documented and exported integration path is the unified LlmProvider.complete interface.
+    unresolvedQuestions: []
