@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0002",
-  "status": "planned",
+  "status": "complete",
   "title": "Expose executed tool results in llm response/v2",
   "type": "feature",
   "objective": "Extend llm/response/v2 so callers can inspect the bounded, ordered results of automatically executed tool calls without changing llm/request/v1 or llm/response/v1.",
