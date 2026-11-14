@@ -1,0 +1,151 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0006
+taskUid: WI-0006-80000000
+orderKey: "80000000"
+parentTaskUid: WI-0006-00000000
+taskType: validation
+processingStatus: processing_completed
+title: Validate executable feature samples and integration coverage
+objective: Independently validate all samples, dynamic integration discovery, package gates, and safety/scope boundaries.
+references:
+  required:
+    - .docs/work-items/WI-0006/work-item.json
+    - .docs/work-items/WI-0006/steps/WI-0006-00000000-sample-protocol-design.yaml
+    - .docs/work-items/WI-0006/steps/WI-0006-10000000-feature-samples-implementation.yaml
+    - package.json
+    - samples/
+    - tests/samples.test.ts
+    - tests/llm.test.ts
+    - SKILL.md
+  informational:
+    - schemas/request/v1/request.schema.json
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - schemas/response/v2/response.schema.json
+dependsOn:
+  - WI-0006-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths: [.docs/work-items/WI-0006/steps/]
+  commitSubject: "WI-0006: 03: test(llm): validate executable feature samples"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: package-gates
+      executable: npm
+      arguments: [run, typecheck]
+      expectedExitCode: 0
+    - id: tests-and-build
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+    - id: scope-check
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Validate every discovered sample child process, the common JSON output protocol, package gates, v1 regressions, and safety/scope constraints.
+    inputs:
+      - id: INPUT-IMPLEMENTATION
+        kind: implementation
+        ref: WI-0006|10000000#result/R-001
+        purpose: Identify samples and integration test implementation.
+        required: true
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0006|00000000#result/R-001
+        purpose: Identify sample protocol and feature coverage invariants.
+        required: true
+    targets:
+      - id: TARGET-PACKAGE
+        kind: repositoryState
+        ref: "#target/TARGET-PACKAGE"
+        purpose: Validate the exact package revision.
+        required: true
+      - id: TARGET-SAMPLES
+        kind: artifact
+        ref: "#target/TARGET-SAMPLES"
+        purpose: Execute and validate every discovered sample.
+        required: true
+    objectiveRefs: [WI-0006|10000000#objective/OBJ-001, WI-0006|10000000#objective/OBJ-002, WI-0006|10000000#objective/OBJ-003]
+    testCaseRefs: ["#test-case/TC-001", "#test-case/TC-002", "#test-case/TC-003", "#test-case/TC-004", "#test-case/TC-005", "#test-case/TC-006", "#test-case/TC-007", "#test-case/TC-008", "#test-case/TC-009", "#test-case/TC-010", "#test-case/TC-011"]
+    procedures:
+      - id: VAL-SAMPLES
+        sequence: 1
+        name: sample-integration
+        description: Run the discovery-based integration test for every samples/*.mjs script.
+        reason: Every executable example must run successfully through the common protocol.
+        targetRefs: ["#target/TARGET-SAMPLES"]
+        objectiveRefs: [WI-0006|10000000#objective/OBJ-001, WI-0006|10000000#objective/OBJ-002]
+        testCaseRefs: ["#test-case/TC-001", "#test-case/TC-002", "#test-case/TC-003", "#test-case/TC-004", "#test-case/TC-005", "#test-case/TC-006", "#test-case/TC-007", "#test-case/TC-008", "#test-case/TC-009", "#test-case/TC-010"]
+        method:
+          executionMode: executable
+          target: samples/ and tests/samples.test.ts
+          steps: [Run npm test and inspect the samples integration output., Confirm dynamic discovery executes every sample and validates stdout envelopes.]
+          command: npm test
+          paths: [samples/, tests/samples.test.ts]
+        expected: {outcome: passed, exitCode: 0}
+        evidenceTier: cli-audit
+        required: true
+      - id: VAL-PACKAGE
+        sequence: 2
+        name: package-gates
+        description: Run typecheck, full tests, and build after sample integration is present.
+        reason: Samples and harness must coexist with all existing package behavior.
+        targetRefs: ["#target/TARGET-PACKAGE"]
+        objectiveRefs: [WI-0006|10000000#objective/OBJ-002, WI-0006|10000000#objective/OBJ-003]
+        testCaseRefs: ["#test-case/TC-010", "#test-case/TC-011"]
+        method:
+          executionMode: executable
+          target: llm package
+          steps: [Run npm run typecheck., Run npm test., Run npm run build.]
+          command: npm run typecheck && npm test && npm run build
+          paths: [src/, tests/, samples/]
+        expected: {outcome: passed, exitCode: 0}
+        evidenceTier: cli-audit
+        required: true
+      - id: VAL-SCOPE
+        sequence: 3
+        name: safety-and-scope
+        description: Inspect samples, dependencies, conflict state, and unrelated worktree boundaries.
+        reason: Executable documentation must not require credentials, add forbidden runtimes, or absorb unrelated schema edits.
+        targetRefs: ["#target/TARGET-PACKAGE"]
+        objectiveRefs: [WI-0006|10000000#objective/OBJ-003]
+        testCaseRefs: ["#test-case/TC-011"]
+        method:
+          executionMode: inspection
+          target: samples/, package.json, git worktree
+          steps: [Inspect sample imports and commands for network/credential/side-effect usage., Inspect package.json for dependency changes., Run git diff --check and confirm request-schema edits remain outside the work-item commit.]
+          command: git diff --check
+          paths: [samples/, package.json, schemas/request/v1/request.schema.json, schemas/request/v2/request.schema.json]
+        expected: {outcome: passed, exitCode: 0}
+        evidenceTier: inspection
+        required: true
+    nonGoals:
+      - Do not make authenticated provider calls or execute real external tools.
+      - Do not claim production, deployment, LangGraph, persistence, or downstream integration behavior.
+  result:
+    status: blocked
+    summary: Validation is pending implementation and has not executed.
+    executions:
+      - id: EXEC-PENDING
+        procedureRef: "#procedure/VAL-SAMPLES"
+        status: blocked
+        observed:
+          outcome: blocked
+          summary: Validation has not started because the sample implementation dependency is incomplete.
+        evidenceTier: static
+        evidence:
+          - kind: record
+            source: task-state
+            claim: The validation task is prepared but blocked on implementation.
+    findings: []
+    evidenceTier: static
+    limitations: [No validation evidence exists until the implementation task completes.]
+    nonClaims: [This result does not claim that the sample set or integration harness is implemented.]
