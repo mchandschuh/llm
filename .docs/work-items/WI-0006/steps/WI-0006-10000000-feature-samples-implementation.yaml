@@ -52,7 +52,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -109,19 +109,71 @@ task:
       - Add dynamic tests/samples.test.ts child-process discovery and validation.
       - Document how to run samples and interpret their provider-free limitations.
   result:
-    status: blocked
+    status: implemented
     implementation:
-      summary: Implementation has not started; this task is prepared for execution after the design task.
+      summary: Implemented nine provider-free executable feature samples and tests/samples.test.ts discovery-based child-process integration coverage.
       changes:
-        - id: CHANGE-PENDING
+        - id: CHANGE-001
+          type: test-code
+          summary: Added nine executable provider-free feature samples covering CLI, v1/v2 completion, tools/results, finish_reason, DebugSink, cancellation, and unified provider behavior.
+          objectiveRefs: [OBJ-001, OBJ-003]
+          paths: [samples/]
+        - id: CHANGE-002
+          type: test-code
+          summary: Added dynamic child-process integration coverage that discovers and validates every samples/*.mjs result envelope.
+          objectiveRefs: [OBJ-002, OBJ-003]
+          paths: [tests/samples.test.ts]
+        - id: CHANGE-003
           type: documentation
-          summary: No implementation changes have been executed.
-          objectiveRefs: [OBJ-001]
-          paths: [.docs/work-items/WI-0006/steps/WI-0006-10000000-feature-samples-implementation.yaml]
-      testImplementations: []
+          summary: Documented executable samples and their provider-free limitations.
+          objectiveRefs: [OBJ-003]
+          paths: [SKILL.md]
+      testImplementations:
+        - testCaseRef: "#test-case/TC-001"
+          path: samples/cli-help-version.mjs
+          selector: CLI help and version sample
+        - testCaseRef: "#test-case/TC-002"
+          path: samples/v1-raw-completion.mjs
+          selector: v1 raw completion sample
+        - testCaseRef: "#test-case/TC-003"
+          path: samples/v1-structured-output.mjs
+          selector: v1 structured output sample
+        - testCaseRef: "#test-case/TC-004"
+          path: samples/v2-manual-tool-call.mjs
+          selector: v2 manual tool-call sample
+        - testCaseRef: "#test-case/TC-005"
+          path: samples/v2-automatic-tool-results.mjs
+          selector: v2 automatic tool-result sample
+        - testCaseRef: "#test-case/TC-006"
+          path: samples/provider-finish-reason.mjs
+          selector: provider finish_reason sample
+        - testCaseRef: "#test-case/TC-007"
+          path: samples/debug-tool-events.mjs
+          selector: DebugSink tool lifecycle sample
+        - testCaseRef: "#test-case/TC-008"
+          path: samples/cooperative-cancellation.mjs
+          selector: cooperative cancellation sample
+        - testCaseRef: "#test-case/TC-009"
+          path: samples/unified-provider.mjs
+          selector: unified provider sample
+        - testCaseRef: "#test-case/TC-010"
+          path: tests/samples.test.ts
+          selector: every executable feature sample runs and validates its result envelope
     verification:
-      status: not-run
+      status: passed
       objectiveRefs: [OBJ-001, OBJ-002, OBJ-003]
-      tests: []
+      tests:
+        - id: EXEC-001
+          type: integration
+          testCaseRefs: ["#test-case/TC-001", "#test-case/TC-002", "#test-case/TC-003", "#test-case/TC-004", "#test-case/TC-005", "#test-case/TC-006", "#test-case/TC-007", "#test-case/TC-008", "#test-case/TC-009", "#test-case/TC-010"]
+          command: npm run build && node --test --import tsx tests/samples.test.ts
+          status: passed
+          result: The discovery harness executed all nine samples in child processes and validated their JSON result envelopes.
+        - id: EXEC-002
+          type: static
+          testCaseRefs: ["#test-case/TC-010"]
+          command: npm run typecheck && npm run build
+          status: passed
+          result: TypeScript typecheck and native ESM build passed.
     limitations:
-      - No sample or integration-test implementation evidence exists yet.
+      - Samples and harness are provider-free and do not establish authenticated provider, production, deployment, or downstream integration behavior.
