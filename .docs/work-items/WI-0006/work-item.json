@@ -1,0 +1,115 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0006",
+  "status": "planned",
+  "title": "Add executable feature samples and sample integration coverage",
+  "type": "feature",
+  "objective": "Add a provider-free executable sample set under samples/ that documents and exercises the repository's public CLI, library, structured-output, tool-calling, provider, observability, cancellation, and unified-provider features, plus one integration test that discovers and validates every sample.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0006-executable-feature-samples",
+      "created": false,
+      "rationale": "The work item is prepared on the current repository branch; the branch name records the intended samples and integration-test boundary without requiring a topic branch."
+    }
+  },
+  "baseline": "a34095bd29a9130976856403ca1c41a9198b8488",
+  "request": {
+    "source": "conversation",
+    "text": "Review the set of features in this repository. Prepare a .docs/work-items/* to add a set of samples to be written under samples/* as executable scripts that document and exercise features. provide an integration test that runs and validates all of the samples.\n\nCommit the work item.",
+    "sha256": "1f0bd996dfe741eb0b2f27da4448636c79404003204dcf3299e8443e1639779a"
+  },
+  "scope": [
+    {
+      "name": "executable-feature-samples",
+      "description": "Add a provider-free set of executable native-ESM samples under samples/ covering CLI help/version, v1 raw and structured completion, v2 manual and automatic tools/results, finish_reason normalization, DebugSink lifecycle events, cooperative cancellation, and the unified raw provider interface.",
+      "reason": "The repository has extensive functionality but no executable examples that show consumers how to use the public package without credentials or real external side effects."
+    },
+    {
+      "name": "sample-integration-harness",
+      "description": "Add one integration test that discovers every samples/*.mjs script, runs each in a child process after build, validates its JSON result envelope and declared feature assertions, and fails when a sample is missing, non-executable, noisy, or unsuccessful.",
+      "reason": "A discovery-based harness prevents new samples from becoming untested documentation and verifies the complete sample set consistently."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "live-provider-execution",
+      "description": "Do not require API credentials, authenticated provider calls, OpenRouter availability, or network access for any sample or the integration test.",
+      "reason": "Samples must be deterministic and safe to run in local development and CI.",
+      "forbiddenFileWrites": [".env", ".env.*", "credentials/", "secrets/"],
+      "forbiddenFileReads": [".env", ".env.*", "credentials/", "secrets/"]
+    },
+    {
+      "name": "real-external-side-effects",
+      "description": "Do not invoke shell commands, arbitrary modules, real external tools, persistent services, or real filesystem/network side effects beyond temporary test fixtures.",
+      "reason": "Samples exercise injected providers, mocked transport, in-memory tools, and temporary bounded fixtures only.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "contract-mutation",
+      "description": "Do not change llm/request/v1, llm/response/v1, or unrelated request-schema worktree edits as part of the sample addition.",
+      "reason": "The sample set documents existing behavior and is not a public contract redesign.",
+      "forbiddenFileWrites": ["schemas/request/v1/", "schemas/response/v1/", "schemas/request/v1/request.schema.json", "schemas/request/v2/request.schema.json"],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "downstream-runtime-integration",
+      "description": "Do not add LangGraph, graph scheduling, persistence, checkpointing, deployment, registry publication, or downstream application integration.",
+      "reason": "Samples are package-local documentation and executable acceptance examples.",
+      "forbiddenFileWrites": ["package.json"],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0006_REQ_001",
+        "name": "feature-coverage-samples",
+        "description": "The sample set covers the repository's principal provider-free public features with focused executable scripts under samples/.",
+        "reason": "Consumers need runnable examples rather than only prose or unit-test fixtures.",
+        "acceptanceCriteria": [{
+          "id": "WI-0006_REQ_001_AC_001",
+          "description": "The repository contains executable .mjs samples covering CLI help/version, v1 raw and structured output, v2 manual tools, v2 automatic tool results, finish_reason provider mapping, DebugSink lifecycle events, cooperative cancellation, and unified LlmProvider.complete usage."
+        }]
+      },
+      {
+        "id": "WI-0006_REQ_002",
+        "name": "sample-output-protocol",
+        "description": "Every sample follows one deterministic machine-readable execution protocol suitable for discovery and validation.",
+        "reason": "The integration test needs a stable contract independent of sample-specific implementation details.",
+        "acceptanceCriteria": [{
+          "id": "WI-0006_REQ_002_AC_001",
+          "description": "Each sample is directly executable with Node.js from the repository root, exits zero on success, writes exactly one parseable JSON result envelope to stdout, keeps diagnostics off stdout, and includes a stable sample identifier plus feature assertions."
+        }]
+      },
+      {
+        "id": "WI-0006_REQ_003",
+        "name": "discovery-integration-test",
+        "description": "One integration test discovers and executes the complete samples/*.mjs set rather than maintaining a manually duplicated sample list.",
+        "reason": "Discovery ensures every newly added sample is exercised automatically.",
+        "acceptanceCriteria": [{
+          "id": "WI-0006_REQ_003_AC_001",
+          "description": "tests/samples.test.ts discovers sorted samples/*.mjs files, asserts the set is non-empty, runs every script in a child process after build, validates exit code/stdout JSON/stable result fields, and fails if any sample is skipped or invalid."
+        }]
+      },
+      {
+        "id": "WI-0006_REQ_004",
+        "name": "safe-provider-free-execution",
+        "description": "Samples and the harness remain deterministic, provider-free, bounded, and compatible with the existing package commands and contracts.",
+        "reason": "Executable documentation must be safe to run in CI and by users without credentials or external side effects.",
+        "acceptanceCriteria": [{
+          "id": "WI-0006_REQ_004_AC_001",
+          "description": "npm run typecheck, npm test, npm run build, and the sample integration pass; v1 regression tests remain green; no network credential dependency, LangGraph dependency, real tool execution, or unrelated request-schema change is introduced."
+        }]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0006/steps/"
+}
