@@ -2,9 +2,10 @@
 
 ## Status
 
-`planned` for the bounded local package scope. This work item defines additive
-`llm/request/v2` runtime observability and cancellation work; no implementation,
-provider, production, or downstream integration evidence is claimed yet.
+`complete` for the bounded local package scope. Additive v2 runtime observability
+and cooperative cancellation, validation, review, and delivery records are
+committed. No provider, production, or downstream integration evidence is
+claimed.
 
 ## Authority
 
@@ -44,11 +45,11 @@ does not add a second observer API.
 
 | Order | Task | Commit |
 | --- | --- | --- |
-| `00000000` | Design v2 observability and cancellation boundary | planned |
-| `10000000` | Implement DebugSink tool events and cancellation | planned |
-| `80000000` | Validate event ordering, cancellation, and scope | planned |
-| `90000000` | Review compatibility, safety, and evidence limits | planned |
-| `91000000` | Record local delivery and limitations | planned |
+| `00000000` | Design v2 observability and cancellation boundary | `587eabb` |
+| `10000000` | Implement DebugSink tool events and cancellation | `19be7c6` |
+| `80000000` | Validate event ordering, cancellation, and scope | `314552d` |
+| `90000000` | Review compatibility, safety, and evidence limits | `e12620f` |
+| `91000000` | Record local delivery and limitations | delivery commit |
 
 ## Explicit non-claims
 

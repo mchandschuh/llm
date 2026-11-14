@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0005",
-  "status": "planned",
+  "status": "complete",
   "title": "Add v2 tool-loop observability and monitor cancellation",
   "type": "feature",
   "objective": "Extend the additive llm/request/v2 runtime boundary with reusable DebugSink tool lifecycle events and monitor-triggered cooperative cancellation while preserving v1 contracts and existing bounded tool-loop behavior.",
