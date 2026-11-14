@@ -1,0 +1,283 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0004
+taskUid: WI-0004-80000000
+orderKey: "80000000"
+parentTaskUid: WI-0004-00000000
+taskType: validation
+processingStatus: processing_completed
+title: Validate unified raw provider interface
+objective: Independently validate the unified provider implementation, generated declarations, behavior preservation, exports, documentation, and repository scope.
+references:
+  required:
+    - .docs/work-items/WI-0004/work-item.json
+    - .docs/work-items/WI-0004/steps/WI-0004-00000000-unified-provider-design.yaml
+    - .docs/work-items/WI-0004/steps/WI-0004-10000000-unified-provider-implementation.yaml
+    - src/types.ts
+    - src/provider.ts
+    - src/complete.ts
+    - src/index.ts
+    - tests/llm.test.ts
+    - SKILL.md
+    - dist/types.d.ts
+  informational:
+    - schemas/request/v1/request.schema.json
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - schemas/response/v2/response.schema.json
+dependsOn:
+  - WI-0004-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0004/steps/
+  commitSubject: "WI-0004: 03: test(llm): validate unified provider interface"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: package-gates
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: tests-and-build
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+    - id: declarations-and-scope
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Independently validate that one overloaded LlmProvider.complete replaces raw v2-specific variants while preserving all package behavior.
+    inputs:
+      - id: INPUT-IMPLEMENTATION
+        kind: implementation
+        ref: WI-0004|10000000#result/R-001
+        purpose: Identify the implementation result and owned paths.
+        required: true
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0004|00000000#result/R-001
+        purpose: Identify the overload, discriminator, correlation, and compatibility invariants.
+        required: true
+    targets:
+      - id: TARGET-PACKAGE
+        kind: repositoryState
+        ref: "#target/TARGET-PACKAGE"
+        purpose: Validate the exact committed package revision.
+        required: true
+      - id: TARGET-DECLARATIONS
+        kind: artifact
+        ref: "#target/TARGET-DECLARATIONS"
+        purpose: Inspect generated public TypeScript declarations.
+        required: true
+      - id: TARGET-DOCUMENTATION
+        kind: artifact
+        ref: "#target/TARGET-DOCUMENTATION"
+        purpose: Inspect the unified provider guidance.
+        required: true
+    objectiveRefs:
+      - WI-0004|10000000#objective/OBJ-001
+      - WI-0004|10000000#objective/OBJ-002
+      - WI-0004|10000000#objective/OBJ-003
+    testCaseRefs:
+      - "#test-case/TC-001"
+      - "#test-case/TC-002"
+      - "#test-case/TC-003"
+      - "#test-case/TC-004"
+      - "#test-case/TC-005"
+      - "#test-case/TC-006"
+      - "#test-case/TC-007"
+    procedures:
+      - id: VAL-PACKAGE
+        sequence: 1
+        name: package-gates
+        description: Run typecheck, complete deterministic tests, and native ESM build.
+        reason: Unified types, provider dispatch, orchestration, and compatibility behavior must compile and pass together.
+        targetRefs:
+          - "#target/TARGET-PACKAGE"
+        objectiveRefs:
+          - WI-0004|10000000#objective/OBJ-001
+          - WI-0004|10000000#objective/OBJ-002
+          - WI-0004|10000000#objective/OBJ-003
+        testCaseRefs:
+          - "#test-case/TC-001"
+          - "#test-case/TC-002"
+          - "#test-case/TC-003"
+          - "#test-case/TC-004"
+          - "#test-case/TC-005"
+          - "#test-case/TC-006"
+        method:
+          executionMode: executable
+          target: llm package
+          steps:
+            - Run npm run typecheck.
+            - Run npm test.
+            - Run npm run build.
+          command: npm run typecheck && npm test && npm run build
+          paths:
+            - src/types.ts
+            - src/provider.ts
+            - src/complete.ts
+            - src/index.ts
+            - tests/llm.test.ts
+        expected:
+          outcome: passed
+          exitCode: 0
+        evidenceTier: cli-audit
+        required: true
+      - id: VAL-DECLARATIONS
+        sequence: 2
+        name: declarations-and-exports
+        description: Inspect generated declarations, exports, protocol discriminators, and documentation for obsolete raw variants.
+        reason: The refactor is successful only when consumers see one raw complete method and correlated request/response types.
+        targetRefs:
+          - "#target/TARGET-DECLARATIONS"
+          - "#target/TARGET-DOCUMENTATION"
+        objectiveRefs:
+          - WI-0004|10000000#objective/OBJ-001
+          - WI-0004|10000000#objective/OBJ-003
+        testCaseRefs:
+          - "#test-case/TC-007"
+        method:
+          executionMode: inspection
+          target: dist/types.d.ts, dist/index.d.ts, src/index.ts, SKILL.md
+          steps:
+            - Confirm LlmProvider has overloaded complete methods for v2 and v1.
+            - Confirm no LlmProviderV2 declaration or raw completeV2 provider method exists.
+            - Confirm ProviderCompletionRequest protocol discriminators are emitted.
+            - Confirm SKILL.md describes the unified raw provider seam.
+          command: npm run build && grep -n "LlmProvider\|completeV2\|protocol" dist/types.d.ts dist/index.d.ts SKILL.md
+          paths:
+            - dist/types.d.ts
+            - dist/index.d.ts
+            - src/index.ts
+            - SKILL.md
+        expected:
+          outcome: passed
+          exitCode: 0
+        evidenceTier: inspection
+        required: true
+      - id: VAL-INTEGRITY
+        sequence: 3
+        name: repository-integrity
+        description: Inspect whitespace, conflict-marker state, and unrelated worktree boundaries.
+        reason: The refactor must not absorb pre-existing request-schema changes or introduce merge hazards.
+        targetRefs:
+          - "#target/TARGET-PACKAGE"
+        objectiveRefs:
+          - WI-0004|10000000#objective/OBJ-003
+        testCaseRefs:
+          - "#test-case/TC-007"
+        method:
+          executionMode: inspection
+          target: repository worktree
+          steps:
+            - Run git diff --check.
+            - Scan tracked source, schema, test, documentation, and work-item paths for conflict markers.
+            - Confirm request-schema changes remain outside WI-0004 commits.
+          command: git diff --check
+          paths:
+            - .docs/
+            - src/
+            - schemas/
+            - tests/
+            - SKILL.md
+        expected:
+          outcome: passed
+          exitCode: 0
+        evidenceTier: inspection
+        required: true
+    nonGoals:
+      - Do not make authenticated provider requests.
+      - Do not execute real tools.
+      - Do not claim production, deployment, or downstream integration behavior.
+  result:
+    status: passed
+    summary: The unified provider implementation passed package gates, declaration/export inspection, behavior-preserving tests, documentation inspection, and repository integrity checks.
+    executions:
+      - id: EXEC-PACKAGE
+        procedureRef: "#procedure/VAL-PACKAGE"
+        status: passed
+        observed:
+          outcome: passed
+          exitCode: 0
+          summary: npm run typecheck, npm test, and npm run build passed; the suite reported 50 passing tests.
+          assertions:
+            - Unified LlmProvider overloads compiled.
+            - v1 raw completion and v2 tool transport tests passed.
+            - Finish-reason, tool-loop, terminal response, and high-level service tests passed.
+        evidenceTier: cli-audit
+        evidence:
+          - kind: command
+            source: package validation
+            claim: The package gates passed with 50 deterministic tests.
+            command: npm run typecheck && npm test && npm run build
+            path: /home/michael/src/github/llm
+      - id: EXEC-DECLARATIONS
+        procedureRef: "#procedure/VAL-DECLARATIONS"
+        status: passed
+        observed:
+          outcome: passed
+          exitCode: 0
+          summary: Generated declarations expose one LlmProvider.complete overload set with protocol-discriminated requests; raw LlmProviderV2 and provider completeV2 are absent, while high-level completeV2 remains available.
+          assertions:
+            - v2 provider overload returns ProviderCompletionResponse.
+            - v1 provider overload returns string.
+            - Provider requests contain protocol v1/v2 discriminators.
+            - SKILL.md documents the unified raw seam.
+        evidenceTier: inspection
+        evidence:
+          - kind: file
+            source: generated declarations
+            claim: dist/types.d.ts contains the unified provider interface and no raw LlmProviderV2 variant.
+            path: dist/types.d.ts
+          - kind: file
+            source: public documentation
+            claim: SKILL.md describes the unified raw provider complete overload.
+            path: SKILL.md
+      - id: EXEC-INTEGRITY
+        procedureRef: "#procedure/VAL-INTEGRITY"
+        status: passed
+        observed:
+          outcome: passed
+          exitCode: 0
+          summary: git diff --check passed and no conflict markers were found; pre-existing request-schema changes remain outside WI-0004.
+          assertions:
+            - No whitespace errors were observed.
+            - No conflict markers were observed.
+            - Unrelated request-schema modifications were not staged or committed.
+        evidenceTier: inspection
+        evidence:
+          - kind: git
+            source: repository worktree
+            claim: Repository integrity checks passed without absorbing unrelated modifications.
+            command: git diff --check
+            path: .git/
+    findings: []
+    evidenceTier: cli-audit
+    limitations:
+      - Evidence is provider-free, unit, build, declaration, documentation, and inspection evidence.
+      - No authenticated provider request or real tool side effect was observed.
+      - No production, deployment, or downstream integration evidence was collected.
+    nonClaims:
+      - This validation does not claim provider availability or production readiness.
+      - This validation does not authorize real tool execution.
