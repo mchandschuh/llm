@@ -1,0 +1,69 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/classification-result/v1",
+  "status": "classified",
+  "workItemRef": "sdlc://repo/local%2Fllm/WI-0003#work-item.json%23work-item/WI-0003",
+  "workItemSha256": "sha256:1350af804f0893d80d03b19f97f64663a8281a1e46c1d96e373e117d461b08fe",
+  "classification": {
+    "workKind": "feature",
+    "scopeClass": "composite",
+    "architectureImpact": "none",
+    "integrationImpact": "none",
+    "migrationImpact": "none",
+    "deploymentImpact": "none",
+    "risk": "unknown",
+    "uncertainty": "high",
+    "acceptanceCriteriaTestable": true,
+    "reasons": [
+      {
+        "statement": "The work item declares a feature classification.",
+        "sourceRefs": [
+          "#/type"
+        ]
+      },
+      {
+        "statement": "The work item declares 4 requirements.",
+        "sourceRefs": [
+          "#/requirements/items"
+        ]
+      },
+      {
+        "statement": "The work item declares one scope entry.",
+        "sourceRefs": [
+          "#/scope"
+        ]
+      },
+      {
+        "statement": "Every declared acceptance criterion has a non-empty observable description.",
+        "sourceRefs": [
+          "#/requirements/items/0/acceptanceCriteria"
+        ]
+      },
+      {
+        "statement": "The request text contains a scope-expanding impact signal.",
+        "sourceRefs": [
+          "#/objective",
+          "#/scope",
+          "#/nonGoals",
+          "#/requirements/items"
+        ]
+      }
+    ]
+  },
+  "workflow": {
+    "profile": "unselected",
+    "topology": "unselected"
+  },
+  "research": {
+    "disposition": "recommended",
+    "reasons": [
+      {
+        "statement": "The initial classifier did not establish the atomic-feature profile, so research disposition is not reduced to not-required.",
+        "sourceRefs": [
+          "#/type",
+          "#/scope",
+          "#/requirements/items"
+        ]
+      }
+    ]
+  }
+}

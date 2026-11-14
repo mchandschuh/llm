@@ -1,0 +1,114 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0003",
+  "status": "planned",
+  "title": "Use provider finish reasons for bounded tool-loop termination",
+  "type": "feature",
+  "objective": "Make automatic v2 tool orchestration continue or stop from an explicit provider-normalized decision derived from provider-specific finish_reason metadata instead of inferring termination from an empty tool-call collection.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0003-llm-finish-reason-termination",
+      "created": false,
+      "rationale": "The work item is processed as a serial set of scoped commits on the current repository branch; the branch name records the intended change boundary without requiring a topic branch."
+    }
+  },
+  "baseline": "2178980358bfbb9f0b6a8f2c484df2af53588588",
+  "request": {
+    "source": "conversation",
+    "text": "OK -- prepare a new .docs/work-items/* that takes into account provider specific finish_reason, update the ProviderCompletionResponse as indicated. commit the new work item.\n\nProcess the work item until completion, making commits as you go.",
+    "sha256": "4cd50aa326af6335bf4eeb37283274e16176efff72ec7854f011b11dd3790c9d"
+  },
+  "scope": [
+    {
+      "name": "provider-finish-reason-termination",
+      "description": "Parse OpenRouter finish_reason metadata, normalize it into an explicit ProviderCompletionResponse decision, and make automatic tool orchestration continue only for tool_calls and stop only for stop.",
+      "reason": "The current loop treats an empty tool-call collection as an implicit stop and loses the provider's explicit termination signal."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "v1-contract-mutation",
+      "description": "Do not change llm/request/v1 or llm/response/v1 fields or behavior.",
+      "reason": "The existing v1 contracts are closed public compatibility boundaries.",
+      "forbiddenFileWrites": [
+        "schemas/request/v1/",
+        "schemas/response/v1/"
+      ],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "new-model-envelope",
+      "description": "Do not introduce a second application-level JSON decision envelope or a new terminal control tool.",
+      "reason": "OpenRouter already exposes an OpenAI-compatible provider termination field that can be normalized at the adapter boundary.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "provider-expansion",
+      "description": "Do not add live providers, streaming support, provider retries beyond the existing bounded retry path, persistence, or real external tool execution.",
+      "reason": "This change only makes the existing OpenRouter v2 loop consume explicit termination metadata.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0003_REQ_001",
+        "name": "normalized-provider-decision",
+        "description": "ProviderCompletionResponse includes a required provider-neutral decision that represents whether the model selected continuation or termination.",
+        "reason": "The orchestration layer needs an explicit control signal rather than deriving lifecycle state from tool-call collection length.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0003_REQ_001_AC_001",
+            "description": "The exported ProviderCompletionResponse type requires decision: 'continue' | 'stop', and deterministic injected-provider tests compile and exercise both decisions."
+          }
+        ]
+      },
+      {
+        "id": "WI-0003_REQ_002",
+        "name": "openrouter-finish-reason-mapping",
+        "description": "The OpenRouter adapter maps choices[0].finish_reason='tool_calls' to continue and finish_reason='stop' to stop, while rejecting missing or unsupported termination values.",
+        "reason": "Provider-specific response metadata must be translated once at the provider boundary and must not leak into orchestration policy.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0003_REQ_002_AC_001",
+            "description": "Mocked fetch tests verify tool_calls and stop mappings, and verify missing, null, and unsupported finish reasons fail closed without being interpreted from message.tool_calls length."
+          }
+        ]
+      },
+      {
+        "id": "WI-0003_REQ_003",
+        "name": "explicit-bounded-loop-control",
+        "description": "Automatic v2 orchestration continues only when decision is continue with at least one tool-call batch, stops only when decision is stop, and rejects contradictory combinations.",
+        "reason": "The model-selected termination decision must be the authoritative loop control while existing tool, round, retry, and v1 compatibility bounds remain intact.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0003_REQ_003_AC_001",
+            "description": "Tests prove explicit stop terminates after tool results, explicit continue invokes tools, continue without calls fails closed, stop with calls fails closed, and existing v1/v2 regression tests remain passing."
+          }
+        ]
+      },
+      {
+        "id": "WI-0003_REQ_004",
+        "name": "termination-documentation",
+        "description": "The public package documentation explains the provider-specific finish_reason mapping and states that empty tool-call collections do not determine automatic-loop termination.",
+        "reason": "The termination decision is part of the provider boundary and must be discoverable by consumers and adapter authors.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0003_REQ_004_AC_001",
+            "description": "SKILL.md documents choices[0].finish_reason, the tool_calls/stop mapping, the fail-closed invalid combinations, and the distinction between ProviderCompletionResponse and terminal LlmResponseV2."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0003/steps/"
+}
