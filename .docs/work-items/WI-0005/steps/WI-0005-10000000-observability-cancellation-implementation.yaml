@@ -1,0 +1,140 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0005
+taskUid: WI-0005-10000000
+orderKey: "10000000"
+parentTaskUid: WI-0005-00000000
+taskType: implementation
+processingStatus: processing_completed
+title: Implement v2 DebugSink events and cooperative cancellation
+objective: Implement the scoped v2 tool lifecycle events, AbortSignal propagation, cancelled response behavior, tests, and documentation defined by the design step.
+references:
+  required:
+    - .docs/work-items/WI-0005/work-item.json
+    - .docs/work-items/WI-0005/steps/WI-0005-00000000-observability-cancellation-design.yaml
+    - src/types.ts
+    - src/complete.ts
+    - src/provider.ts
+    - src/debug.ts
+    - schemas/response/v2/response.schema.json
+    - tests/llm.test.ts
+    - SKILL.md
+  informational:
+    - schemas/request/v1/request.schema.json
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - package.json
+dependsOn:
+  - WI-0005-00000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/types.ts
+    - src/complete.ts
+    - src/provider.ts
+    - src/debug.ts
+    - schemas/response/v2/response.schema.json
+    - tests/llm.test.ts
+    - SKILL.md
+    - .docs/work-items/WI-0005/steps/
+  commitSubject: "WI-0005: 02: feat(llm): add v2 observability and cancellation"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments: [run, typecheck]
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments: [run, build]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement additive v2 DebugSink tool lifecycle events and cooperative monitor cancellation without changing v1 or absorbing unrelated worktree changes.
+    changeTypes: [production-code, test-code, documentation, schema]
+    changeIntent: feature
+    inputs:
+      - id: INPUT-REQ-001
+        kind: requirement
+        ref: WI-0005|00000000#requirement/WI-0005_REQ_001
+        purpose: Define required tool lifecycle events and correlation behavior.
+        required: true
+      - id: INPUT-REQ-002
+        kind: requirement
+        ref: WI-0005|00000000#requirement/WI-0005_REQ_002
+        purpose: Define cooperative cancellation control and no-later-work behavior.
+        required: true
+      - id: INPUT-REQ-003
+        kind: requirement
+        ref: WI-0005|00000000#requirement/WI-0005_REQ_003
+        purpose: Define provider/tool signal propagation and cancelled response semantics.
+        required: true
+      - id: INPUT-REQ-004
+        kind: requirement
+        ref: WI-0005|00000000#requirement/WI-0005_REQ_004
+        purpose: Define compatibility, redaction, and repository scope boundaries.
+        required: true
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0005|00000000#result/OUT-001
+        purpose: Provide the approved v2 observability and cancellation design.
+        required: true
+    objectives:
+      - id: OBJ-001
+        statement: Emit sanitized, ordered DebugSink tool lifecycle and cancellation events for automatic v2 execution.
+        inputRefs: [INPUT-REQ-001, INPUT-DESIGN]
+        testCaseRefs: ["#test-case/TC-001", "#test-case/TC-002"]
+      - id: OBJ-002
+        statement: Propagate AbortSignal through provider fetches and injected tools, stop future work, and return a bounded cancelled response.
+        inputRefs: [INPUT-REQ-002, INPUT-REQ-003, INPUT-DESIGN]
+        testCaseRefs: ["#test-case/TC-003", "#test-case/TC-004", "#test-case/TC-005"]
+      - id: OBJ-003
+        statement: Preserve v1 behavior, DebugSink failure isolation, redaction, build/test compatibility, and unrelated worktree boundaries.
+        inputRefs: [INPUT-REQ-004, INPUT-DESIGN]
+        testCaseRefs: ["#test-case/TC-006", "#test-case/TC-007"]
+    ownedPaths:
+      - src/types.ts
+      - src/complete.ts
+      - src/provider.ts
+      - src/debug.ts
+      - schemas/response/v2/response.schema.json
+      - tests/llm.test.ts
+      - SKILL.md
+      - .docs/work-items/WI-0005/steps/
+    nonGoals:
+      - Do not modify request/v1 or response/v1.
+      - Do not add a second observer API or callbacks to request/v2.
+      - Do not add LangGraph, persistence, checkpointing, resume, or interrupt/resume.
+      - Do not stage schemas/request/v1/request.schema.json or schemas/request/v2/request.schema.json.
+      - Do not make authenticated provider calls or execute real external tools.
+    steps:
+      - Add the four tool lifecycle debug event emissions and cancellation observation events through emitDebug.
+      - Propagate the existing runtime signal to provider fetches and active tool invocations; stop retries and future loop work after cancellation.
+      - Add the bounded v2 cancelled status/error contract while preserving completed tool results.
+      - Add deterministic tests, response examples, and package documentation.
+  result:
+    status: blocked
+    implementation:
+      summary: Implementation has not started; this planned task is awaiting acceptance and execution.
+      changes:
+        - id: CHANGE-PENDING
+          type: documentation
+          summary: No implementation changes have been executed; this placeholder records the pending result boundary.
+          objectiveRefs: [OBJ-001]
+          paths: [.docs/work-items/WI-0005/steps/WI-0005-10000000-observability-cancellation-implementation.yaml]
+      testImplementations: []
+    verification:
+      status: not-run
+      objectiveRefs: [OBJ-001, OBJ-002, OBJ-003]
+      tests: []
+    limitations:
+      - This task result is blocked pending the planned implementation; it contains no production or test evidence.

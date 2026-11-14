@@ -1,0 +1,271 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0005
+taskUid: WI-0005-00000000
+orderKey: "00000000"
+parentTaskUid: null
+taskType: design
+processingStatus: processing_completed
+title: Define v2 observability and monitor cancellation design
+objective: Define the bounded DebugSink event protocol, cooperative AbortSignal cancellation flow, response semantics, and compatibility boundaries for v2 tool loops.
+references:
+  required:
+    - .docs/work-items/WI-0005/work-item.json
+    - .docs/work-items/WI-0005/classification-result.json
+    - .docs/work-items/WI-0004/README.md
+    - src/types.ts
+    - src/complete.ts
+    - src/provider.ts
+    - src/debug.ts
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v2/response.schema.json
+    - tests/llm.test.ts
+    - SKILL.md
+  informational:
+    - .docs/work-items/WI-0002/README.md
+    - .docs/work-items/WI-0003/README.md
+    - package.json
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0005/steps/
+  commitSubject: "WI-0005: 01: design(llm): define v2 observability and cancellation"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: envelope-schema
+      executable: schema-validate
+      arguments: [--root, /home/michael/.cline/skills/sdlc/schemas]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
+  intent:
+    summary: Define additive v2 DebugSink tool lifecycle events and cooperative monitor cancellation without placing callbacks in the serializable request schema or embedding LangGraph in llm.
+    objectives:
+      - Define event names and payloads for tool batch start, tool call, tool result, and batch end.
+      - Define AbortSignal observation points and propagation to provider fetches and injected tools.
+      - Define cancelled response/error semantics, preservation of completed results, and no-retry behavior.
+      - Define redaction, event ordering, debug-sink failure isolation, and v1/non-goal boundaries.
+    inScope:
+      - Existing DebugSink and stderrDebugSink event delivery.
+      - Runtime CompletionOptions signal propagation through v2 provider and tool execution.
+      - Additive v2 response cancelled status and bounded cancellation diagnostic.
+      - Deterministic tests, package documentation, schema examples, validation, review, and delivery records.
+    outOfScope:
+      - Request callbacks or executable values in llm/request/v2.
+      - A second observer API, streaming protocol, LangGraph dependency, graph runtime, persistence, checkpointing, resume, or interrupt/resume semantics.
+      - v1 contract changes, provider expansion, authenticated calls, or real external side effects.
+      - Modification or staging of pre-existing request-schema worktree changes.
+    policy: {id: component-design, version: "1"}
+    profile: implementable
+    scope: component
+    facets: [structure, behavior, contract, policy]
+    references:
+      - id: REF-001
+        type: artifact
+        locator: sdlc://repo/local%2Fllm/WI-0005#work-item.json%23work-item/WI-0005
+        description: Authoritative WI-0005 requirements and non-goals.
+      - id: REF-002
+        type: document
+        locator: src/debug.ts
+        description: Existing sanitized DebugSink and stderr JSONL delivery boundary.
+      - id: REF-003
+        type: document
+        locator: src/complete.ts
+        description: Existing v2 automatic tool-loop orchestration and current signal/tool boundary.
+      - id: REF-004
+        type: document
+        locator: src/provider.ts
+        description: Existing provider transport and OpenRouter fetch boundary.
+      - id: REF-005
+        type: document
+        locator: src/types.ts
+        description: Existing CompletionOptions, ToolInvocationContext, and v2 response types.
+      - id: REF-006
+        type: document
+        locator: schemas/response/v2/response.schema.json
+        description: Existing versioned v2 response contract and status vocabulary.
+      - id: REF-007
+        type: document
+        locator: tests/llm.test.ts
+        description: Existing deterministic v2 tool-loop, abort-signal, and debug tests.
+      - id: REF-008
+        type: document
+        locator: SKILL.md
+        description: Existing package boundary and provider-free evidence guidance.
+    provenance:
+      referenceRefs: [REF-001, REF-002, REF-003, REF-004, REF-005, REF-006, REF-007, REF-008]
+      basis: The design follows the current runtime DebugSink, existing signal option, provider adapter, response schema, and explicit v2 work-item boundaries.
+      confidence: 94
+    considerations:
+      - id: C-001
+        kind: constraint
+        statement: DebugSink must remain sanitized, bounded, JSONL-compatible, and unable to change completion behavior when its sink throws.
+        evaluation: Accepted; tool and cancellation events reuse emitDebug rather than adding another delivery mechanism.
+        referenceRefs: [REF-002, REF-008]
+        status: accepted
+        impact: 95
+        confidence: 98
+      - id: C-002
+        kind: constraint
+        statement: The request document remains serializable and does not contain callbacks or monitor objects.
+        evaluation: Accepted; monitor control is represented by a runtime AbortSignal in completion options.
+        referenceRefs: [REF-001, REF-005]
+        status: accepted
+        impact: 95
+        confidence: 98
+      - id: C-003
+        kind: constraint
+        statement: Cancellation is cooperative and must not be described as rollback or forced termination of arbitrary tools.
+        evaluation: Accepted; provider fetches and signal-aware tools can stop, while completed side effects remain external and unrolled back.
+        referenceRefs: [REF-001, REF-003, REF-004]
+        status: accepted
+        impact: 90
+        confidence: 96
+      - id: C-004
+        kind: decision
+        statement: Intermediate tool lifecycle visibility is emitted as DebugSink events, while normalized terminal cancellation is returned through response/v2.
+        evaluation: Accepted; this separates diagnostic event transport from the terminal response contract without adding a graph runtime.
+        referenceRefs: [REF-002, REF-006]
+        status: accepted
+        impact: 92
+        confidence: 94
+    activities:
+      - id: ACT-001
+        type: analysis
+        summary: Inspect current DebugSink, automatic v2 loop, provider fetch, tool signal, response schema, tests, and package guidance.
+        status: completed
+        referenceRefs: [REF-002, REF-003, REF-004, REF-005, REF-006, REF-007, REF-008]
+        provenance:
+          referenceRefs: [REF-001, REF-002, REF-003, REF-004, REF-005, REF-006, REF-007, REF-008]
+          basis: Repository inspection was performed before authoring the work-item boundary.
+          confidence: 96
+  result:
+    summary: A bounded design for DebugSink tool lifecycle events and cooperative v2 cancellation, preserving serializable requests, v1 compatibility, and the package/runtime boundary.
+    model:
+      name: wi-0005-v2-observability-cancellation
+      kind: process
+      description: Additive v2 runtime observability and cancellation for automatic tool loops.
+    elements:
+      - id: E-001
+        type: boundary
+        name: debug-sink-tool-events
+        description: Existing DebugSink emits sanitized tool batch and call lifecycle events in automatic v2 execution.
+        provenance: {referenceRefs: [REF-001, REF-002], basis: The event path reuses the current debug transport., confidence: 96}
+      - id: E-002
+        type: boundary
+        name: abort-signal-control
+        description: Runtime AbortSignal is the monitor-triggered cooperative cancellation control plane.
+        provenance: {referenceRefs: [REF-001, REF-003, REF-004], basis: CompletionOptions already exposes a signal and ToolInvocationContext already carries one., confidence: 95}
+      - id: E-003
+        type: contract
+        name: cancelled-response-v2
+        description: Versioned v2 terminal response reports cancelled with bounded CANCELLED diagnostics and completed tool results.
+        provenance: {referenceRefs: [REF-001, REF-005, REF-006], basis: The additive v2 response is the terminal monitor-visible result., confidence: 91}
+      - id: E-004
+        type: policy
+        name: cooperative-cancellation-limit
+        description: Cancellation stops future orchestration but does not undo external side effects or terminate uncooperative tools.
+        provenance: {referenceRefs: [REF-001, REF-003], basis: AbortSignal is cooperative by platform semantics., confidence: 98}
+    relations:
+      - id: REL-001
+        type: observes
+        source: {type: element, id: E-001}
+        target: {type: element, id: E-002}
+        description: A monitor observes DebugSink lifecycle events and aborts the associated runtime signal.
+        provenance: {referenceRefs: [REF-001, REF-002, REF-003], basis: Event observation and runtime signal control are separate but connected boundaries., confidence: 95}
+      - id: REL-002
+        type: propagates
+        source: {type: element, id: E-002}
+        target: {type: element, id: E-003}
+        description: Observed cancellation stops future work and produces the terminal cancelled response.
+        provenance: {referenceRefs: [REF-001, REF-005, REF-006], basis: The response preserves completed work while classifying cancellation distinctly., confidence: 94}
+      - id: REL-003
+        type: constrains
+        source: {type: element, id: E-004}
+        target: {type: element, id: E-002}
+        description: Cooperative cancellation limits the guarantee of AbortSignal propagation.
+        provenance: {referenceRefs: [REF-001, REF-003], basis: The package cannot roll back external side effects or force arbitrary code to stop., confidence: 98}
+    views:
+      - id: V-001
+        type: flow
+        name: cancellation-flow
+        description: Monitor observes DebugSink events, aborts the runtime signal, provider/tools settle, and llm returns cancelled.
+        elementRefs: [E-001, E-002, E-003, E-004]
+        relationRefs: [REL-001, REL-002, REL-003]
+        provenance: {referenceRefs: [REF-001, REF-002, REF-003, REF-004, REF-006], basis: The flow covers the requested monitor-to-runtime control path., confidence: 94}
+    artifacts: []
+    outcomes:
+      - id: O-001
+        type: designDecision
+        statement: Automatic v2 loops have an explicit, bounded, sanitized DebugSink lifecycle event sequence for tool batches and cancellation observation.
+        status: proposed
+        impact: 95
+        confidence: 94
+        referenceRefs: [REF-001, REF-002, REF-007]
+      - id: O-002
+        type: implementationHandoff
+        statement: Provider fetches and injected tools receive the runtime abort signal, and cancellation does not start later retries or work.
+        status: proposed
+        impact: 95
+        confidence: 92
+        referenceRefs: [REF-001, REF-003, REF-004, REF-007]
+      - id: O-003
+        type: testHandoff
+        statement: v1 behavior and existing DebugSink redaction/failure isolation remain intact, with no LangGraph dependency or unrelated worktree changes absorbed.
+        status: proposed
+        impact: 90
+        confidence: 95
+        referenceRefs: [REF-001, REF-002, REF-008]
+    outputs:
+      - id: OUT-001
+        category: interface-contract
+        status: proposed
+        sourceRefs: [REF-001, REF-002, REF-005]
+        description: DebugSink tool lifecycle and cancellation event contract.
+      - id: OUT-002
+        category: implementation-handoff
+        status: proposed
+        sourceRefs: [REF-001, REF-003, REF-004, REF-005]
+        description: AbortSignal propagation and cancelled response implementation handoff.
+      - id: OUT-003
+        category: test-handoff
+        status: proposed
+        sourceRefs: [REF-001, REF-007, REF-008]
+        description: Deterministic event, cancellation, compatibility, and scope validation handoff.
+    verificationObligations:
+      - id: VER-001
+        kind: contract-test
+        status: planned
+        sourceRefs: [REF-001, REF-002, REF-007]
+        targetRefs: [E-001, E-002]
+        method:
+          type: contract-test
+          steps: [Exercise automatic v2 tool calls and collect DebugSink events., Assert event names, order, correlation fields, redaction, and parallel result behavior.]
+        requiredFor: [implementable]
+        description: Verify tool lifecycle visibility through the existing debug boundary.
+      - id: VER-002
+        kind: unit-test
+        status: planned
+        sourceRefs: [REF-001, REF-003, REF-004, REF-007]
+        targetRefs: [E-002, E-003, E-004]
+        method:
+          type: unit-test
+          steps: [Abort before provider execution, during provider fetch, during a tool call, and during a parallel batch., Assert signal propagation, no later work, preserved completed results, cancelled response, and no retry.]
+        requiredFor: [implementable]
+        description: Verify cooperative cancellation behavior and its bounded terminal response.
+      - id: VER-003
+        kind: inspection
+        status: planned
+        sourceRefs: [REF-001, REF-006, REF-008]
+        targetRefs: [E-003]
+        method:
+          type: inspection
+          steps: [Validate response/v2 examples and cancellation status against the closed schema., Run typecheck and build, then inspect package dependencies and worktree scope.]
+        requiredFor: [implementable]
+        description: Verify additive v2 contract and repository boundaries.
+    unresolvedQuestions: []

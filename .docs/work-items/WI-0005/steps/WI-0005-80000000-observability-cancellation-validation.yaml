@@ -1,0 +1,162 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0005
+taskUid: WI-0005-80000000
+orderKey: "80000000"
+parentTaskUid: WI-0005-00000000
+taskType: validation
+processingStatus: processing_completed
+title: Validate v2 observability and monitor cancellation
+objective: Independently validate the committed v2 event, cancellation, response, compatibility, and scope implementation.
+references:
+  required:
+    - .docs/work-items/WI-0005/work-item.json
+    - .docs/work-items/WI-0005/steps/WI-0005-00000000-observability-cancellation-design.yaml
+    - .docs/work-items/WI-0005/steps/WI-0005-10000000-observability-cancellation-implementation.yaml
+    - src/types.ts
+    - src/complete.ts
+    - src/provider.ts
+    - src/debug.ts
+    - schemas/response/v2/response.schema.json
+    - tests/llm.test.ts
+    - SKILL.md
+  informational:
+    - schemas/request/v1/request.schema.json
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - package.json
+dependsOn:
+  - WI-0005-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0005/steps/
+  commitSubject: "WI-0005: 03: test(llm): validate v2 observability and cancellation"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: package-gates
+      executable: npm
+      arguments: [run, typecheck]
+      expectedExitCode: 0
+    - id: tests-and-build
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+    - id: scope-check
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Validate event ordering, tool correlation, cooperative cancellation, response/v2 contract behavior, v1 regressions, package gates, and repository scope.
+    inputs:
+      - id: INPUT-IMPLEMENTATION
+        kind: implementation
+        ref: WI-0005|10000000#result/R-001
+        purpose: Identify the implementation result and changed-path boundary.
+        required: true
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0005|00000000#result/OUT-001
+        purpose: Identify event, cancellation, response, and compatibility invariants.
+        required: true
+    targets:
+      - id: TARGET-PACKAGE
+        kind: repositoryState
+        ref: "#target/TARGET-PACKAGE"
+        purpose: Validate the exact committed package revision.
+        required: true
+      - id: TARGET-RESPONSE-SCHEMA
+        kind: artifact
+        ref: "#artifact/response-v2-schema"
+        purpose: Validate the additive cancelled response contract and examples.
+        required: true
+      - id: TARGET-DOCUMENTATION
+        kind: artifact
+        ref: "#artifact/package-documentation"
+        purpose: Inspect the documented DebugSink and cancellation behavior.
+        required: true
+    objectiveRefs: [WI-0005|10000000#objective/OBJ-001, WI-0005|10000000#objective/OBJ-002, WI-0005|10000000#objective/OBJ-003]
+    testCaseRefs: ["#test-case/TC-001", "#test-case/TC-002", "#test-case/TC-003", "#test-case/TC-004", "#test-case/TC-005", "#test-case/TC-006", "#test-case/TC-007"]
+    procedures:
+      - id: VAL-PACKAGE
+        sequence: 1
+        name: package-gates
+        description: Run typecheck, the complete deterministic test suite, and native ESM build.
+        reason: Runtime types, event emissions, cancellation propagation, response contract, tests, exports, and documentation must compile and pass together.
+        targetRefs: ["#target/TARGET-PACKAGE"]
+        objectiveRefs: [WI-0005|10000000#objective/OBJ-001, WI-0005|10000000#objective/OBJ-002, WI-0005|10000000#objective/OBJ-003]
+        testCaseRefs: ["#test-case/TC-001", "#test-case/TC-002", "#test-case/TC-003", "#test-case/TC-004", "#test-case/TC-005", "#test-case/TC-006"]
+        method:
+          executionMode: executable
+          target: llm package
+          steps: [Run npm run typecheck., Run npm test., Run npm run build.]
+          command: npm run typecheck && npm test && npm run build
+          paths: [src/types.ts, src/complete.ts, src/provider.ts, src/debug.ts, schemas/response/v2/response.schema.json, tests/llm.test.ts]
+        expected: {outcome: passed, exitCode: 0}
+        evidenceTier: cli-audit
+        required: true
+      - id: VAL-CONTRACT
+        sequence: 2
+        name: response-and-event-contract
+        description: Validate response/v2 examples and inspect event names, cancellation statuses, redaction, and documentation.
+        reason: The additive public v2 behavior must be closed, documented, bounded, and consistent with the existing DebugSink boundary.
+        targetRefs: ["#target/TARGET-RESPONSE-SCHEMA", "#target/TARGET-DOCUMENTATION"]
+        objectiveRefs: [WI-0005|10000000#objective/OBJ-001, WI-0005|10000000#objective/OBJ-002, WI-0005|10000000#objective/OBJ-003]
+        testCaseRefs: ["#test-case/TC-001", "#test-case/TC-002", "#test-case/TC-007"]
+        method:
+          executionMode: executable
+          target: response/v2 schema, source, and package documentation
+          steps: [Run the published request/response schema-example test., Inspect DebugSink event names and cancellation documentation., Confirm no second observer API or LangGraph dependency was added.]
+          command: npm test && git diff --check
+          paths: [schemas/response/v2/response.schema.json, src/debug.ts, src/complete.ts, SKILL.md]
+        expected: {outcome: passed, exitCode: 0}
+        evidenceTier: cli-audit
+        required: true
+      - id: VAL-SCOPE
+        sequence: 3
+        name: repository-scope-audit
+        description: Inspect the final diff and worktree to ensure only WI-0005 implementation paths are staged and pre-existing request-schema changes remain untouched.
+        reason: The work item must not absorb unrelated request-schema edits or add graph/runtime scope.
+        targetRefs: ["#target/TARGET-PACKAGE"]
+        objectiveRefs: [WI-0005|10000000#objective/OBJ-003]
+        testCaseRefs: ["#test-case/TC-007"]
+        method:
+          executionMode: executable
+          target: git worktree and package dependency manifest
+          steps: [Run git diff --check and inspect git status., Inspect package.json for LangGraph dependency changes., Confirm request-schema changes are not staged by WI-0005.]
+          command: git diff --check && git status --short && git diff --cached --name-only
+          paths: [package.json, schemas/request/v1/request.schema.json, schemas/request/v2/request.schema.json]
+        expected: {outcome: passed, exitCode: 0}
+        evidenceTier: inspection
+        required: true
+    nonGoals:
+      - Do not make authenticated provider calls.
+      - Do not execute real external tools or claim rollback.
+      - Do not claim production, persistence, resume, or LangGraph behavior.
+  result:
+    status: blocked
+    summary: Validation is pending the implementation task and has not executed.
+    executions:
+      - id: EXEC-000
+        procedureRef: "#procedure/VAL-PACKAGE"
+        status: blocked
+        observed:
+          outcome: inconclusive
+          summary: Validation has not started because the implementation dependency is incomplete.
+        evidenceTier: static
+        evidence:
+          - kind: record
+            source: task-state
+            claim: The validation task is planned and its implementation dependency is incomplete.
+    findings: []
+    evidenceTier: static
+    limitations:
+      - No validation evidence exists until the implementation step is completed.
+    nonClaims:
+      - This result does not claim that v2 observability or cancellation is implemented.

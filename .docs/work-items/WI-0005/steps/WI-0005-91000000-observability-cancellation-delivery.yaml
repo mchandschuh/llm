@@ -1,0 +1,108 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0005
+taskUid: WI-0005-91000000
+orderKey: "91000000"
+parentTaskUid: WI-0005-00000000
+taskType: delivery
+processingStatus: processing_completed
+title: Record local v2 observability and cancellation delivery
+objective: Record local delivery of the validated v2 DebugSink and cooperative cancellation capability without publication, deployment, or operational claims.
+references:
+  required:
+    - .docs/work-items/WI-0005/work-item.json
+    - .docs/work-items/WI-0005/README.md
+    - .docs/work-items/WI-0005/steps/WI-0005-10000000-observability-cancellation-implementation.yaml
+    - .docs/work-items/WI-0005/steps/WI-0005-80000000-observability-cancellation-validation.yaml
+    - .docs/work-items/WI-0005/steps/WI-0005-90000000-observability-cancellation-review.yaml
+    - package.json
+  informational:
+    - schemas/request/v1/request.schema.json
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - schemas/response/v2/response.schema.json
+dependsOn:
+  - WI-0005-90000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0005/
+  commitSubject: "WI-0005: 05: chore(llm): record v2 observability and cancellation delivery"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: final-build
+      executable: npm
+      arguments: [run, build]
+      expectedExitCode: 0
+    - id: final-tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/result
+  intent:
+    summary: Deliver the locally validated additive v2 observability and cooperative cancellation package through the ordered work-item evidence chain.
+    deliveryTypes: [package, release]
+    inputs:
+      - id: INPUT-VALIDATION
+        kind: validation
+        ref: WI-0005|80000000#result/R-001
+        purpose: Provide independent package, event, cancellation, contract, and scope validation.
+        required: true
+      - id: INPUT-REVIEW
+        kind: approval
+        ref: WI-0005|90000000#result/R-001
+        purpose: Provide the accepted independent review result.
+        required: true
+      - id: INPUT-REPOSITORY
+        kind: repositoryState
+        ref: "#repository-state/HEAD"
+        purpose: Identify the repository revision being delivered.
+        required: true
+    artifacts:
+      - id: ART-RECORD
+        kind: releaseRecord
+        path: .docs/work-items/WI-0005/
+        purpose: Complete WI-0005 work-item, classification, step, and delivery records.
+        required: true
+    procedures:
+      - id: PROC-FINAL-VERIFY
+        sequence: 1
+        name: final-build-and-test
+        description: Rebuild and rerun provider-free tests from the final delivery revision.
+        steps:
+          - Verify the final WI-0005 implementation, validation, and review records.
+          - Run npm run build.
+          - Run npm test.
+          - Confirm pre-existing request-schema modifications remain outside the delivery commit.
+        command: npm run build && npm test
+        expected:
+          result: The final local package builds and all provider-free tests pass.
+        required: true
+    nonGoals:
+      - Do not publish to a registry.
+      - Do not deploy to production.
+      - Do not make authenticated provider calls.
+      - Do not execute real external tools.
+      - Do not claim rollback, forced tool termination, persistence, resume, or LangGraph behavior.
+  result:
+    status: blocked
+    summary: Delivery is pending validation and review.
+    artifacts:
+      - id: ART-PENDING
+        kind: releaseRecord
+        path: .docs/work-items/WI-0005/
+        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executions:
+      - id: EXEC-000
+        procedureRef: "#procedure/PROC-FINAL-VERIFY"
+        result:
+          status: blocked
+          summary: Delivery has not started because validation and review are incomplete.
+        command: npm run build && npm test
+    limitations:
+      - No delivery evidence exists until implementation, validation, and review complete.

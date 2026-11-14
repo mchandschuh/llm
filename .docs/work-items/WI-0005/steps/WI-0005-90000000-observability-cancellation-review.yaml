@@ -1,0 +1,127 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0005
+taskUid: WI-0005-90000000
+orderKey: "90000000"
+parentTaskUid: WI-0005-00000000
+taskType: review
+processingStatus: processing_completed
+title: Review v2 observability and monitor cancellation
+objective: Review the exact v2 event and cancellation implementation for scope, compatibility, boundedness, cooperative behavior, evidence, and documentation consistency.
+references:
+  required:
+    - .docs/work-items/WI-0005/work-item.json
+    - .docs/work-items/WI-0005/steps/WI-0005-00000000-observability-cancellation-design.yaml
+    - .docs/work-items/WI-0005/steps/WI-0005-10000000-observability-cancellation-implementation.yaml
+    - .docs/work-items/WI-0005/steps/WI-0005-80000000-observability-cancellation-validation.yaml
+    - src/types.ts
+    - src/complete.ts
+    - src/provider.ts
+    - src/debug.ts
+    - schemas/response/v2/response.schema.json
+    - tests/llm.test.ts
+    - SKILL.md
+  informational:
+    - schemas/request/v1/request.schema.json
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - package.json
+dependsOn:
+  - WI-0005-80000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0005/steps/
+  commitSubject: "WI-0005: 04: review(llm): assess v2 observability and cancellation"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review the exact implementation and validation evidence for DebugSink tool events, cooperative cancellation, v2 response semantics, compatibility, and declared non-goals.
+    reviewKind: code
+    target:
+      taskType: implementation
+      taskRef: WI-0005|10000000
+      result:
+        ref: WI-0005|10000000#result/R-001
+        sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    gateId: v2-observability-cancellation-implementation
+    policyRef:
+      ref: README.md
+      sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    criteria:
+      - id: CRIT-001
+        statement: The implementation remains within the additive v2 DebugSink and cooperative cancellation scope and does not absorb v1, LangGraph, persistence, or unrelated request-schema work.
+        purpose: Prevent scope expansion and compatibility regressions.
+        required: true
+        evidenceRefs: [WI-0005|80000000#result/R-001]
+      - id: CRIT-002
+        statement: Automatic v2 tool execution emits bounded, sanitized, correlated lifecycle events through DebugSink without changing debug failure isolation.
+        purpose: Confirm monitors can observe tool-heavy workloads through the existing boundary.
+        required: true
+        evidenceRefs: [WI-0005|00000000#result/OUT-001, WI-0005|80000000#result/R-001]
+      - id: CRIT-003
+        statement: AbortSignal cancellation reaches provider fetches and tools, prevents later work and retries, preserves completed results, and returns a distinct cancelled response.
+        purpose: Confirm cancellation is actionable, fail-safe, and not misclassified as ordinary provider/tool failure.
+        required: true
+        evidenceRefs: [WI-0005|00000000#result/OUT-002, WI-0005|80000000#result/R-001]
+      - id: CRIT-004
+        statement: The evidence is provider-free and does not claim rollback, forced termination of arbitrary tools, persistence, resume, production readiness, or downstream integration.
+        purpose: Keep claims within the available evidence tier and cooperative cancellation semantics.
+        required: true
+        evidenceRefs: [WI-0005|80000000#result/R-001]
+    evidenceRequirements:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0005|80000000#result/R-001
+        purpose: Independent package, contract, cancellation, event, and scope validation.
+        required: true
+        minimumTier: cli-audit
+      - id: EVID-002
+        kind: artifact
+        ref: SKILL.md
+        purpose: Inspect public DebugSink and cancellation documentation.
+        required: true
+        minimumTier: inspection
+    nonGoals:
+      - id: NON-001
+        statement: Do not authorize real provider calls or real tool execution.
+      - id: NON-002
+        statement: Do not treat cooperative cancellation as rollback or forced termination.
+      - id: NON-003
+        statement: Do not approve LangGraph embedding or persistence scope.
+    context: []
+  result:
+    status: blocked
+    decision: null
+    summary: Review is pending implementation and validation results.
+    actor:
+      id: WI-0005-reviewer
+      role: reviewer
+      authorityRef: README.md
+    criteriaEvaluations: []
+    findings: []
+    evidence: []
+    limitations:
+      - No implementation or validation result is available for review yet.
+    nonClaims:
+      - This result does not accept or reject an implementation.
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: EXEC-REVIEW-WI-0005
+      status: blocked
+      startedAt: "2026-11-14T00:00:00Z"
+      finishedAt: "2026-11-14T00:00:00Z"

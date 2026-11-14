@@ -1,0 +1,122 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0005",
+  "status": "planned",
+  "title": "Add v2 tool-loop observability and monitor cancellation",
+  "type": "feature",
+  "objective": "Extend the additive llm/request/v2 runtime boundary with reusable DebugSink tool lifecycle events and monitor-triggered cooperative cancellation while preserving v1 contracts and existing bounded tool-loop behavior.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0005-v2-observability-cancellation",
+      "created": false,
+      "rationale": "The work item is processed as a serial set of scoped commits on the current repository branch; the branch name records the intended v2 capability boundary without requiring a topic branch."
+    }
+  },
+  "baseline": "ea14ac30326171742d6a5feb92692772bc56b16e",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare a new .docs/work-items/* in the llm repository for additive llm/request/v2 observability and monitor-triggered cancellation. Reuse DebugSink for tool lifecycle events and cancellation signaling, preserve v1, do not extend scope into LangGraph embedding, persistence, or unrelated request-schema edits. Review for correctness/consistency and commit the documentation.",
+    "sha256": "8a7c5450e25bd2c8aca58840a4640b571902cc49e5b5b162dc74258381b5c1af"
+  },
+  "scope": [
+    {
+      "name": "v2-debug-tool-events",
+      "description": "Reuse DebugSink to emit bounded llm.tool.batch.start, llm.tool.call, llm.tool.result, and llm.tool.batch.end events for automatic v2 tool execution without changing existing JSONL stderr delivery.",
+      "reason": "Monitors need visibility into tool-heavy workloads, including parallel call correlation and sanitized results, while the existing debug boundary is already integrated with the package and CLI."
+    },
+    {
+      "name": "v2-monitor-cancellation",
+      "description": "Use the existing runtime AbortSignal option as a cooperative cancellation signal, propagate it to provider fetches and injected tools, stop future loop work, preserve completed results, and return a bounded v2 cancelled response with cancellation events.",
+      "reason": "A monitor that can observe a run must be able to halt expensive or unsafe continued processing without adding callbacks to the serializable request document."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "v1-contract-mutation",
+      "description": "Do not change llm/request/v1, llm/response/v1, or their behavior.",
+      "reason": "The v1 contracts are closed compatibility boundaries and the requested capability is additive to v2.",
+      "forbiddenFileWrites": ["schemas/request/v1/", "schemas/response/v1/"],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "new-observer-api",
+      "description": "Do not add a second response observer, callback field, event-stream abstraction, or callback value to llm/request/v2; reuse DebugSink through runtime completion options.",
+      "reason": "The existing DebugSink already provides sanitized, JSONL-compatible event delivery and the request contract must remain serializable.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "langgraph-runtime",
+      "description": "Do not add LangGraph, a native graph runtime, persistence, checkpointing, resume, or graph-level scheduling to the llm package.",
+      "reason": "Provider transport and bounded convenience orchestration remain separate from the authoritative graph runtime in downstream consumers.",
+      "forbiddenFileWrites": ["package.json", "src/graph.ts", "src/loop.ts"],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "unrelated-worktree-changes",
+      "description": "Do not stage or modify the pre-existing request-schema edits outside this work item.",
+      "reason": "Those changes predate WI-0005 and are unrelated to v2 observability and cancellation.",
+      "forbiddenFileWrites": ["schemas/request/v1/request.schema.json", "schemas/request/v2/request.schema.json"],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "operational-expansion",
+      "description": "Do not claim authenticated provider behavior, real external tool side effects, rollback, forced termination of arbitrary code, production deployment, or downstream integration.",
+      "reason": "The work item is limited to local provider-free contracts, cooperative runtime cancellation, deterministic tests, and package documentation.",
+      "forbiddenFileWrites": [".env", ".env.*", "credentials/", "secrets/"],
+      "forbiddenFileReads": [".env", ".env.*", "credentials/", "secrets/"]
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0005_REQ_001",
+        "name": "tool-lifecycle-debug-events",
+        "description": "Automatic v2 tool execution emits sanitized lifecycle events for sequential batches, individual calls, individual results, and batch completion through the existing DebugSink.",
+        "reason": "Monitors need to observe tool-heavy workloads and correlate parallel calls without introducing a second event transport.",
+        "acceptanceCriteria": [{
+          "id": "WI-0005_REQ_001_AC_001",
+          "description": "Deterministic tests verify llm.tool.batch.start, llm.tool.call, llm.tool.result, and llm.tool.batch.end events, including round, batchIndex, callId, sanitized result status, and parallel result correlation."
+        }]
+      },
+      {
+        "id": "WI-0005_REQ_002",
+        "name": "cooperative-cancellation-control",
+        "description": "A runtime AbortSignal can cancel a v2 completion before or during provider and tool work, and cancellation is observed without starting later retries, tool batches, or model requests.",
+        "reason": "A monitor needs a control path that can halt continued processing while preserving the existing serializable request contract.",
+        "acceptanceCriteria": [{
+          "id": "WI-0005_REQ_002_AC_001",
+          "description": "Deterministic tests cover an already-aborted signal, cancellation during provider fetch, cancellation during a tool call, cancellation during a parallel batch, and no work beginning after cancellation is observed."
+        }]
+      },
+      {
+        "id": "WI-0005_REQ_003",
+        "name": "cancellation-propagation-and-response",
+        "description": "Provider requests and ToolInvocationContext receive the cancellation signal, completed bounded results remain available, and v2 returns a terminal cancelled response with sanitized cancellation diagnostics.",
+        "reason": "Cancellation must be observable and actionable without misclassifying it as an ordinary provider or tool failure.",
+        "acceptanceCriteria": [{
+          "id": "WI-0005_REQ_003_AC_001",
+          "description": "The response/v2 contract and implementation represent cancelled with a bounded CANCELLED diagnostic, tests verify provider/tool signal identity and preserved completed results, and cancellation is not retried."
+        }]
+      },
+      {
+        "id": "WI-0005_REQ_004",
+        "name": "v2-compatibility-and-scope",
+        "description": "The implementation remains additive to v2, preserves v1 behavior, retains DebugSink failure isolation and redaction, and does not add LangGraph or absorb unrelated worktree changes.",
+        "reason": "The requested capability is safe to add before v2 downstream consumers exist, but its compatibility and repository boundaries must remain explicit.",
+        "acceptanceCriteria": [{
+          "id": "WI-0005_REQ_004_AC_001",
+          "description": "Typecheck, deterministic tests, build, schema-example validation, static scope inspection, and diff checks pass; v1 regression coverage remains green; no LangGraph dependency or pre-existing request-schema edit is staged."
+        }]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0005/steps/"
+}
