@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0004",
-  "status": "planned",
+  "status": "complete",
   "title": "Unify the raw LLM provider interface across request versions",
   "type": "refactor",
   "objective": "Replace the split LlmProvider/LlmProviderV2 raw adapter seam with one overloaded LlmProvider.complete interface that accepts version-discriminated provider requests and returns the correlated provider response while preserving the versioned public completion contracts.",
