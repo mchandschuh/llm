@@ -3,7 +3,7 @@ import { OpenRouterProvider } from './provider.js';
 import { assertMatchesSchema, parseSchema, validateResponse, validateResponseV2 } from './schema.js';
 import { boundedMessage, errorFromFailure, LlmFailure } from './errors.js';
 import { normalizeRequest } from './normalize.js';
-import type { CompletionOptions, CompletionOptionsV2, LlmError, LlmOutput, LlmRequest, LlmRequestV2, LlmResponse, LlmResponseV2, LlmProvider, LlmProviderV2, NormalizedRequest, NormalizedRequestV2, ProviderCompletionResponse, ToolCall, ToolCalls, ToolResult } from './types.js';
+import type { CompletionOptions, CompletionOptionsV2, LlmError, LlmOutput, LlmRequest, LlmRequestV2, LlmResponse, LlmResponseV2, LlmProvider, NormalizedRequest, NormalizedRequestV2, ProviderCompletionResponse, ToolCall, ToolCalls, ToolResult } from './types.js';
 import { RESPONSE_SCHEMA, RESPONSE_SCHEMA_V2 } from './types.js';
 import { normalizeRequestV2 } from './normalize.js';
 import { LlmFailure as Failure } from './errors.js';
@@ -106,8 +106,7 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
     const failure = error instanceof Failure ? error : new Failure('REQUEST_INVALID', 'request', 'Request preparation failed.');
     return v2Response(failureStatus(failure) as LlmResponseV2['status'], null, 0, 0, 0, 0, [], [errorFromFailure(failure)]);
   }
-  const provider = options.provider as LlmProviderV2 | undefined ?? new OpenRouterProvider();
-  if (typeof provider.completeV2 !== 'function') return v2Response('configuration_error', null, 0, 0, 0, 0, [], [toolFailure('CONFIGURATION_INVALID', 'The configured provider does not support v2 tool transport.', 'configuration')]);
+  const provider = options.provider ?? new OpenRouterProvider();
   if (normalized.autoInvokeTools && !options.toolInvoker) return v2Response('configuration_error', null, 0, 0, 0, 0, [], [toolFailure('CONFIGURATION_INVALID', 'autoInvokeTools requires an injected ToolInvoker.', 'configuration')]);
   let failedAttempts = 0;
   let iterations = 0;
@@ -120,10 +119,10 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
   while (iterations < normalized.maxIterations) {
     let providerResult: ProviderCompletionResponse;
     try {
-      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials, tools: normalized.tools, toolResults };
+      const providerRequest = { protocol: 'v2' as const, provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials, tools: normalized.tools, toolResults };
       emitDebug(options.debug, 'llm.request', request);
       emitDebug(options.debug, 'llm.provider.request', providerRequest);
-      providerResult = await provider.completeV2(providerRequest);
+      providerResult = await provider.complete(providerRequest);
       emitDebug(options.debug, 'llm.provider.response', providerResult);
       iterations += 1;
     } catch (error) {
@@ -213,7 +212,7 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
   while (iterations < normalized.maxIterations) {
     let raw: string;
     try {
-      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials };
+      const providerRequest = { protocol: 'v1' as const, provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials };
       emitDebug(options.debug, 'llm.request', request);
       emitDebug(options.debug, 'llm.provider.request', providerRequest);
       raw = await provider.complete(providerRequest);

@@ -303,6 +303,8 @@ The public exports also include:
 - `normalizeRequest` for request preparation and source resolution;
 - `composePrompt`, `composeRequestPrompt`, and `composeCorrectionPrompt`;
 - `OpenRouterProvider`;
+- `LlmProvider`, whose single overloaded `complete` method accepts the raw v1
+  or v2 provider request and returns the correlated raw response;
 - `LlmFailure`;
 - the request, response, provider, output, and configuration TypeScript types.
 
@@ -340,6 +342,14 @@ An injected provider receives a normalized `ProviderCompletionRequest` and must
 return raw completion text. It is the preferred seam for unit tests and local
 adapters. Do not instantiate network providers in tests unless an integration
 test explicitly requires that evidence.
+
+The raw provider seam is unified across protocol versions. Implement one
+`LlmProvider.complete` overload set: v1 requests return raw text, while v2
+requests return `ProviderCompletionResponse`. The v2 request overload must be
+declared before the broader v1 overload because v2 extends the common provider
+request shape. The high-level `complete` and `completeV2` functions remain
+versioned convenience entry points for terminal `llm/response/v1` and
+`llm/response/v2` envelopes.
 
 ## Agent workflow
 

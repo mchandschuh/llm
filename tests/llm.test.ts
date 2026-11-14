@@ -96,7 +96,7 @@ test('preserves structured v1 and v2 tasks and inline schemas at the request bou
   const v2Provider = new V2SequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
   const v2Events: Array<{ event: string; data?: unknown }> = [];
   const v2Task = { operation: 'inspect', target: 'records' };
-  const v2 = await completeV2(v2Request({ task: v2Task, outputSchema: v1OutputSchema }), { provider: v2Provider as unknown as import('../src/types.js').LlmProviderV2, debug: (event) => v2Events.push(event) });
+  const v2 = await completeV2(v2Request({ task: v2Task, outputSchema: v1OutputSchema }), { provider: v2Provider, debug: (event) => v2Events.push(event) });
   assert.equal(v2.status, 'success');
   const v2RequestEvent = v2Events.find((event) => event.event === 'llm.request')?.data as Record<string, unknown>;
   assert.deepEqual(v2RequestEvent.task, v2Task);
@@ -120,9 +120,13 @@ class V2SequenceProvider implements LlmProvider {
   private readonly sequence: readonly string[];
   readonly calls: ProviderCompletionRequest[] = [];
   constructor(sequence: readonly string[]) { this.sequence = sequence; }
-  async complete(request: ProviderCompletionRequest): Promise<string> { this.calls.push(request); return this.sequence[this.calls.length - 1] ?? this.sequence.at(-1) ?? ''; }
-  async completeV2(request: ProviderCompletionRequestV2): Promise<import('../src/types.js').ProviderCompletionResponse> {
+  async complete(request: ProviderCompletionRequestV2): Promise<import('../src/types.js').ProviderCompletionResponse>;
+
+  async complete(request: ProviderCompletionRequest): Promise<string>;
+
+  async complete(request: ProviderCompletionRequest | ProviderCompletionRequestV2): Promise<string | import('../src/types.js').ProviderCompletionResponse> {
     this.calls.push(request);
+    if (request.protocol === 'v1') return this.sequence[this.calls.length - 1] ?? this.sequence.at(-1) ?? '';
     const value = JSON.parse(this.sequence[this.calls.length - 1] ?? this.sequence.at(-1) ?? '{}') as { content?: string | null; toolCalls?: unknown[] | unknown[][]; decision?: 'continue' | 'stop' };
     const rawCalls = value.toolCalls ?? [];
     const toolCalls = Array.isArray(rawCalls[0]) ? rawCalls as import('../src/types.js').ToolCalls : (rawCalls.length > 0 ? [rawCalls as import('../src/types.js').ToolCall[]] : []);
@@ -143,7 +147,7 @@ const v2Request = (overrides: Record<string, unknown> = {}) => ({
 test('v2 manual mode returns pending parallel tool call batches without invoking tools', async () => {
   const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-1', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
   let invoked = 0;
-  const result = await completeV2(v2Request(), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  const result = await completeV2(v2Request(), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
   assert.equal(result.status, 'tool_calls_pending');
   assert.equal(invoked, 0);
   assert.equal(result.toolCalls, 1);
@@ -152,7 +156,7 @@ test('v2 manual mode returns pending parallel tool call batches without invoking
 test('v2 tool-round-limit violation is unvalidated and invokes zero calls', async () => {
   const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-1', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
   let invoked = 0;
-  const result = await completeV2(v2Request({ autoInvokeTools: true, maxToolRounds: 0 }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  const result = await completeV2(v2Request({ autoInvokeTools: true, maxToolRounds: 0 }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
   assert.equal(result.status, 'unvalidated');
   assert.equal(invoked, 0);
   assert.equal(result.toolRounds, 0);
@@ -166,7 +170,7 @@ test('v2 automatic invocation runs calls in parallel within each batch and batch
   const active: string[] = [];
   let maxActive = 0;
   const result = await completeV2(v2Request({ autoInvokeTools: true, maxToolRounds: 3 }), {
-    provider: provider as unknown as import('../src/types.js').LlmProviderV2,
+    provider: provider,
     toolInvoker: { invoke: async (call) => { active.push(call.id); maxActive = Math.max(maxActive, active.length); await new Promise((resolve) => setTimeout(resolve, call.id === 'call-a' ? 5 : 1)); active.splice(active.indexOf(call.id), 1); return { id: call.id }; } },
   });
   assert.equal(result.status, 'success');
@@ -185,7 +189,7 @@ test('v2 automatic invocation executes multiple parallel tool call batches seque
   ]);
   const events: string[] = [];
   const result = await completeV2(v2Request({ autoInvokeTools: true }), {
-    provider: provider as unknown as import('../src/types.js').LlmProviderV2,
+    provider: provider,
     toolInvoker: { invoke: async (call) => { events.push(`start:${call.id}`); await new Promise((resolve) => setTimeout(resolve, call.id === 'call-a' ? 5 : 1)); events.push(`end:${call.id}`); return call.id; } },
   });
   assert.equal(result.status, 'success');
@@ -201,7 +205,7 @@ test('v2 automatic invocation executes multiple parallel tool call batches seque
 test('v2 rejects undeclared tool calls before invoking any tool', async () => {
   const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-unknown', name: 'delete_everything', arguments: {} }] })]);
   let invoked = 0;
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
   assert.equal(result.status, 'output_invalid');
   assert.equal(invoked, 0);
   assert.equal(result.errors[0]?.code, 'TOOL_CALL_INVALID');
@@ -211,7 +215,7 @@ test('v2 rejects duplicate call IDs before invoking any tool', async () => {
   const calls = [{ id: 'same-id', name: 'read_record', arguments: { logicalId: 'a' } }, { id: 'same-id', name: 'read_record', arguments: { logicalId: 'b' } }];
   const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: calls })]);
   let invoked = 0;
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
   assert.equal(result.status, 'output_invalid');
   assert.equal(invoked, 0);
   assert.match(result.errors[0]?.message ?? '', /unique/u);
@@ -220,7 +224,7 @@ test('v2 rejects duplicate call IDs before invoking any tool', async () => {
 test('v2 rejects invalid arguments before invoking any tool', async () => {
   const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-invalid', name: 'read_record', arguments: { wrong: true } }] })]);
   let invoked = 0;
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
   assert.equal(result.status, 'output_invalid');
   assert.equal(invoked, 0);
   assert.equal(result.errors[0]?.code, 'TOOL_SCHEMA_VALIDATION_FAILED');
@@ -229,7 +233,7 @@ test('v2 rejects invalid arguments before invoking any tool', async () => {
 test('v2 rejects empty parallel tool call batches before invoking any tool', async () => {
   const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [[]] })]);
   let invoked = 0;
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
   assert.equal(result.status, 'output_invalid');
   assert.equal(invoked, 0);
 });
@@ -237,7 +241,7 @@ test('v2 rejects empty parallel tool call batches before invoking any tool', asy
 test('v2 rejects maxToolCalls before invoking any tool', async () => {
   const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-a', name: 'read_record', arguments: { logicalId: 'a' } }, { id: 'call-b', name: 'read_record', arguments: { logicalId: 'b' } }] })]);
   let invoked = 0;
-  const result = await completeV2(v2Request({ autoInvokeTools: true, maxToolCalls: 1 }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  const result = await completeV2(v2Request({ autoInvokeTools: true, maxToolCalls: 1 }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
   assert.equal(result.status, 'unvalidated');
   assert.equal(invoked, 0);
   assert.equal(result.toolCalls, 0);
@@ -245,14 +249,14 @@ test('v2 rejects maxToolCalls before invoking any tool', async () => {
 
 test('v2 requires a ToolInvoker when autoInvokeTools is enabled', async () => {
   const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-1', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2 });
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider });
   assert.equal(result.status, 'configuration_error');
   assert.equal(result.errors[0]?.code, 'CONFIGURATION_INVALID');
 });
 
 test('v2 converts tool failures into bounded error results and continues', async () => {
   const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-fail', name: 'read_record', arguments: { logicalId: 'a' } }] }), JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => { throw new Error('secret=hidden'); } } });
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider, toolInvoker: { invoke: async () => { throw new Error('secret=hidden'); } } });
   assert.equal(result.status, 'success');
   assert.equal(provider.calls[1]?.toolResults[0]?.status, 'error');
   assert.deepEqual(result.toolResults, [{
@@ -270,7 +274,7 @@ test('v2 automatic invocation stops only on an explicit provider decision', asyn
     JSON.stringify({ decision: 'stop', content: '{"ok":true}', toolCalls: [] }),
   ]);
   const result = await completeV2(v2Request({ autoInvokeTools: true }), {
-    provider: provider as unknown as import('../src/types.js').LlmProviderV2,
+    provider: provider,
     toolInvoker: { invoke: async () => ({ ok: true }) },
   });
   assert.equal(result.status, 'success');
@@ -280,12 +284,12 @@ test('v2 automatic invocation stops only on an explicit provider decision', asyn
 
 test('v2 rejects invalid provider decision and tool-call combinations', async () => {
   const stopWithCalls = new V2SequenceProvider([JSON.stringify({ decision: 'stop', toolCalls: [{ id: 'call-invalid-stop', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
-  const stopResult = await completeV2(v2Request({ autoInvokeTools: true }), { provider: stopWithCalls as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => ({}) } });
+  const stopResult = await completeV2(v2Request({ autoInvokeTools: true }), { provider: stopWithCalls, toolInvoker: { invoke: async () => ({}) } });
   assert.equal(stopResult.status, 'provider_error');
   assert.equal(stopResult.errors[0]?.code, 'PROVIDER_REQUEST_FAILED');
 
   const continueWithoutCalls = new V2SequenceProvider([JSON.stringify({ decision: 'continue', content: 'not enough' })]);
-  const continueResult = await completeV2(v2Request({ autoInvokeTools: true }), { provider: continueWithoutCalls as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => ({}) } });
+  const continueResult = await completeV2(v2Request({ autoInvokeTools: true }), { provider: continueWithoutCalls, toolInvoker: { invoke: async () => ({}) } });
   assert.equal(continueResult.status, 'provider_error');
   assert.equal(continueResult.errors[0]?.code, 'PROVIDER_REQUEST_FAILED');
 });
@@ -294,7 +298,7 @@ test('v2 forwards the abort signal to each tool invocation', async () => {
   const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-abort', name: 'read_record', arguments: { logicalId: 'a' } }] }), JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
   const controller = new AbortController();
   let received: AbortSignal | undefined;
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider as unknown as import('../src/types.js').LlmProviderV2, signal: controller.signal, toolInvoker: { invoke: async (_call, context) => { received = context.signal; return {}; } } });
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider, signal: controller.signal, toolInvoker: { invoke: async (_call, context) => { received = context.signal; return {}; } } });
   assert.equal(result.status, 'success');
   assert.equal(received, controller.signal);
 });
@@ -318,14 +322,14 @@ test('exposes the normalized completion service through ILlmProvider', async () 
 
 test('unified complete dispatches v1 and v2 requests to matching response schemas', async () => {
   const v1 = await complete({ schema, task: 'task', systemPrompt: 'system' }, { provider: new SequenceProvider(['ok']) });
-  const v2 = await complete(v2Request(), { provider: new V2SequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]) as unknown as import('../src/types.js').LlmProviderV2 });
+  const v2 = await complete(v2Request(), { provider: new V2SequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]) });
   assert.equal(v1.schema, 'https://schemas.handschuh.dev/llm/response/v1');
   assert.equal(v2.schema, 'https://schemas.handschuh.dev/llm/response/v2');
   assert.equal(v2.status, 'success');
 });
 
 test('unified complete routes malformed known v2 requests to response/v2', async () => {
-  const result = await complete({ schema: schemaV2, task: '', systemPrompt: 'system' }, { provider: new V2SequenceProvider([]) as unknown as import('../src/types.js').LlmProviderV2 });
+  const result = await complete({ schema: schemaV2, task: '', systemPrompt: 'system' }, { provider: new V2SequenceProvider([]) });
   assert.equal(result.schema, 'https://schemas.handschuh.dev/llm/response/v2');
   assert.equal(result.status, 'input_invalid');
 });
@@ -346,7 +350,7 @@ test('reports v1 and v2 request-schema violations before provider invocation', a
   assert.equal(v1Provider.calls.length, 0);
 
   const v2Provider = new V2SequenceProvider([]);
-  const v2 = await complete(v2Request({ extra: true }), { provider: v2Provider as unknown as import('../src/types.js').LlmProviderV2 });
+  const v2 = await complete(v2Request({ extra: true }), { provider: v2Provider });
   assert.equal(v2.schema, 'https://schemas.handschuh.dev/llm/response/v2');
   assert.equal(v2.status, 'input_invalid');
   assert.equal(v2.errors[0]?.code, 'REQUEST_INVALID');
@@ -356,7 +360,7 @@ test('reports v1 and v2 request-schema violations before provider invocation', a
 
 test('ILlmProvider accepts a v2 request and returns response/v2', async () => {
   const service: ILlmProvider = { complete };
-  const result = await service.complete(v2Request(), { provider: new V2SequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]) as unknown as import('../src/types.js').LlmProviderV2 });
+  const result = await service.complete(v2Request(), { provider: new V2SequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]) });
   assert.equal(result.schema, 'https://schemas.handschuh.dev/llm/response/v2');
 });
 
@@ -431,7 +435,7 @@ test('v2 includes output-schema violations in correction retries', async () => {
     JSON.stringify({ content: '{\"ok\":true}', toolCalls: [] }),
   ]);
   const result = await completeV2(v2Request({ maxIterations: 2 }), {
-    provider: provider as unknown as import('../src/types.js').LlmProviderV2,
+    provider: provider,
   });
 
   assert.equal(result.status, 'success');
@@ -605,6 +609,7 @@ test('OpenRouterProvider sends base64 images as image_url content parts', async 
     const provider = new OpenRouterProvider();
     const result = await provider.complete({
       provider: 'openrouter',
+      protocol: 'v1',
       model: 'openai/gpt-5.6-luna',
       thinking: 'low',
       systemPrompt: 'Inspect the image.',
@@ -634,6 +639,7 @@ test('OpenRouterProvider maps v2 tools, tool results, and native tool calls', as
   try {
     const provider = new OpenRouterProvider();
     const request: ProviderCompletionRequestV2 = {
+      protocol: 'v2',
       provider: 'openrouter',
       model: 'openai/gpt-5.6-luna',
       thinking: 'low',
@@ -644,7 +650,7 @@ test('OpenRouterProvider maps v2 tools, tool results, and native tool calls', as
       tools: [{ name: 'read_record', description: 'Read a record.', inputSchema: JSON.stringify({ type: 'object', properties: { logicalId: { type: 'string' } } }) }],
       toolResults: [{ callId: 'call-prior', name: 'previous_tool', status: 'success', value: { ok: true } }],
     };
-    const result = await provider.completeV2(request);
+    const result = await provider.complete(request);
     assert.deepEqual(result.toolCalls, [[{ id: 'call-read-1', name: 'read_record', arguments: { logicalId: 'record-a' } }]]);
     assert.equal(result.content, null);
     assert.equal(result.decision, 'continue');
@@ -660,8 +666,8 @@ test('OpenRouterProvider maps finish_reason stop to a terminal decision', async 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '{"ok":true}', tool_calls: [] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
   try {
-    const result = await new OpenRouterProvider().completeV2({
-      provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Finish.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, tools: [], toolResults: [],
+    const result = await new OpenRouterProvider().complete({
+      protocol: 'v2', provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Finish.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, tools: [], toolResults: [],
     });
     assert.equal(result.decision, 'stop');
     assert.equal(result.content, '{"ok":true}');
@@ -675,8 +681,8 @@ test('OpenRouterProvider rejects missing or unsupported finish_reason', async ()
   const originalFetch = globalThis.fetch;
   for (const finishReason of [undefined, 'length']) {
     globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ ...(finishReason === undefined ? {} : { finish_reason: finishReason }), message: { content: '{"ok":true}', tool_calls: [] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
-    await assert.rejects(() => new OpenRouterProvider().completeV2({
-      provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Finish.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, tools: [], toolResults: [],
+    await assert.rejects(() => new OpenRouterProvider().complete({
+      protocol: 'v2', provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Finish.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, tools: [], toolResults: [],
     }), /missing or unsupported completion finish reason/u);
   }
   globalThis.fetch = originalFetch;
@@ -686,8 +692,8 @@ test('OpenRouterProvider rejects malformed native tool arguments', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ finish_reason: 'tool_calls', message: { content: null, tool_calls: [{ id: 'call-bad', function: { name: 'read_record', arguments: '{' } }] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
   try {
-    await assert.rejects(() => new OpenRouterProvider().completeV2({
-      provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Use tools.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, tools: [], toolResults: [],
+    await assert.rejects(() => new OpenRouterProvider().complete({
+      protocol: 'v2', provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Use tools.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, tools: [], toolResults: [],
     }), /invalid JSON tool arguments/u);
   } finally {
     globalThis.fetch = originalFetch;

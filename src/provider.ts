@@ -1,7 +1,7 @@
-import type { LlmProviderV2, ProviderCompletionRequest, ProviderCompletionRequestV2, ProviderCompletionResponse, ToolCall, ToolCalls, ToolDefinition } from './types.js';
+import type { LlmProvider, ProviderCompletionRequest, ProviderCompletionRequestV2, ProviderCompletionResponse, ToolCall, ToolCalls, ToolDefinition } from './types.js';
 import { boundedMessage, LlmFailure } from './errors.js';
 
-function credential(request: ProviderCompletionRequest): string | undefined {
+function credential(request: ProviderCompletionRequest | ProviderCompletionRequestV2): string | undefined {
   return request.credentials?.apiKey ?? request.credentials?.accessToken ?? process.env.OPENROUTER_API_KEY;
 }
 
@@ -17,7 +17,7 @@ function contentFromMessage(message: unknown): string {
   throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider returned no usable completion content.');
 }
 
-function userContent(request: ProviderCompletionRequest): string | Array<Record<string, unknown>> {
+function userContent(request: ProviderCompletionRequest | ProviderCompletionRequestV2): string | Array<Record<string, unknown>> {
   const images = request.files.filter((file) => file.encoding === 'base64' && file.type.startsWith('image/'));
   if (images.length === 0) return request.llmPrompt;
   return [
@@ -84,8 +84,17 @@ function completionDecision(finishReason: unknown, toolCalls: ToolCalls): 'conti
   throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider returned a missing or unsupported completion finish reason.');
 }
 
-export class OpenRouterProvider implements LlmProviderV2 {
-  async complete(request: ProviderCompletionRequest): Promise<string> {
+export class OpenRouterProvider implements LlmProvider {
+  async complete(request: ProviderCompletionRequestV2): Promise<ProviderCompletionResponse>;
+
+  async complete(request: ProviderCompletionRequest): Promise<string>;
+
+  async complete(request: ProviderCompletionRequest | ProviderCompletionRequestV2): Promise<string | ProviderCompletionResponse> {
+    if (request.protocol === 'v2') return this.completeV2Internal(request);
+    return this.completeV1Internal(request);
+  }
+
+  private async completeV1Internal(request: ProviderCompletionRequest): Promise<string> {
     const apiKey = credential(request);
     if (!apiKey) throw new LlmFailure('CONFIGURATION_INVALID', 'configuration', 'No in-memory provider credential or OPENROUTER_API_KEY is configured.');
     let response: Response;
@@ -112,7 +121,7 @@ export class OpenRouterProvider implements LlmProviderV2 {
     }
   }
 
-  async completeV2(request: ProviderCompletionRequestV2): Promise<ProviderCompletionResponse> {
+  private async completeV2Internal(request: ProviderCompletionRequestV2): Promise<ProviderCompletionResponse> {
     const apiKey = credential(request);
     if (!apiKey) throw new LlmFailure('CONFIGURATION_INVALID', 'configuration', 'No in-memory provider credential or OPENROUTER_API_KEY is configured.');
     const messages: Array<Record<string, unknown>> = [

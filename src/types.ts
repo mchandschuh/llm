@@ -130,7 +130,7 @@ export interface NormalizedRequestV2 {
   readonly configurationRoot: string;
 }
 
-export interface ProviderCompletionRequest {
+export interface ProviderCompletionRequestBase {
   readonly provider: string;
   readonly model: string;
   readonly thinking: Thinking;
@@ -140,7 +140,12 @@ export interface ProviderCompletionRequest {
   readonly credentials?: Credentials;
 }
 
-export interface ProviderCompletionRequestV2 extends ProviderCompletionRequest {
+export interface ProviderCompletionRequest extends ProviderCompletionRequestBase {
+  readonly protocol: 'v1';
+}
+
+export interface ProviderCompletionRequestV2 extends ProviderCompletionRequestBase {
+  readonly protocol: 'v2';
   readonly tools: readonly ToolDefinition[];
   readonly toolResults: readonly ToolResult[];
 }
@@ -154,11 +159,8 @@ export interface ProviderCompletionResponse {
 }
 
 export interface LlmProvider {
+  complete(request: ProviderCompletionRequestV2): Promise<ProviderCompletionResponse>;
   complete(request: ProviderCompletionRequest): Promise<string>;
-}
-
-export interface LlmProviderV2 extends LlmProvider {
-  completeV2(request: ProviderCompletionRequestV2): Promise<ProviderCompletionResponse>;
 }
 
 export interface ToolInvocationContext {
