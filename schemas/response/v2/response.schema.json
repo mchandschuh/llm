@@ -516,6 +516,7 @@
             "output-validation",
             "tool-validation",
             "tool-invocation",
+            "cancellation",
             "retry"
           ],
           "description": "Processing phase.",

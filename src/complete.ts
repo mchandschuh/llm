@@ -83,8 +83,9 @@ async function invokeParallelToolBatch(request: NormalizedRequestV2, options: Co
   if (!options.toolInvoker) throw new Failure('CONFIGURATION_INVALID', 'configuration', 'autoInvokeTools requires an injected ToolInvoker.');
   const signal = options.signal ?? new AbortController().signal;
   emitDebug(options.debug, 'llm.tool.batch.start', { round, batchIndex, callIds: batch.map((call) => call.id) });
-  return Promise.all(batch.map(async (call) => {
+  const results = await Promise.all(batch.map(async (call) => {
     emitDebug(options.debug, 'llm.tool.call', { round, batchIndex, callId: call.id, toolName: call.name, arguments: call.arguments });
+    if (signal.aborted) return undefined;
     try {
       const result = await options.toolInvoker!.invoke(call, { callId: call.id, toolName: call.name, round, batchIndex, signal });
       const toolResult = resultForCall(call, result);
@@ -96,14 +97,22 @@ async function invokeParallelToolBatch(request: NormalizedRequestV2, options: Co
       emitDebug(options.debug, 'llm.tool.result', toolResult);
       return toolResult;
     }
-  })).then((results) => {
-    emitDebug(options.debug, 'llm.tool.batch.end', { round, batchIndex, callIds: batch.map((call) => call.id), resultStatuses: results.map((result) => result.status) });
-    return results;
-  });
+  }));
+  const settledResults = results.filter((result): result is ToolResult => result !== undefined);
+  emitDebug(options.debug, 'llm.tool.batch.end', { round, batchIndex, callIds: settledResults.map((result) => result.callId), resultStatuses: settledResults.map((result) => result.status) });
+  return settledResults;
 }
 
 function cancelledResponse(completedToolResults: readonly ToolResult[], failedAttempts: number, iterations: number, toolRounds: number, toolCalls: number): LlmResponseV2 {
-  return v2Response('cancelled', null, failedAttempts, iterations, toolRounds, toolCalls, completedToolResults, [toolFailure('CANCELLED', 'The completion was cancelled.', 'retry')]);
+  return v2Response('cancelled', null, failedAttempts, iterations, toolRounds, toolCalls, completedToolResults, [toolFailure('CANCELLED', 'The completion was cancelled.', 'cancellation')]);
+}
+
+function observeCancellation(options: CompletionOptionsV2, phase: string, iterations: number, toolRounds: number, toolCalls: number): void {
+  emitDebug(options.debug, 'llm.cancel.observed', { phase, iterations, toolRounds, toolCalls });
+}
+
+function completeCancellation(options: CompletionOptionsV2, phase: string, iterations: number, toolRounds: number, toolCalls: number): void {
+  emitDebug(options.debug, 'llm.cancelled', { phase, iterations, toolRounds, toolCalls });
 }
 
 async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: CompletionOptionsV2 = {}): Promise<LlmResponseV2> {
@@ -130,7 +139,12 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
   const completedToolResults: ToolResult[] = [];
   const outputSchema = normalized.outputSchema ? parseSchema(normalized.outputSchema) : undefined;
   while (iterations < normalized.maxIterations) {
-    if (options.signal?.aborted) return cancelledResponse(completedToolResults, failedAttempts, iterations, toolRounds, totalToolCalls);
+    if (options.signal?.aborted) {
+      observeCancellation(options, 'before-provider-request', iterations, toolRounds, totalToolCalls);
+      const result = cancelledResponse(completedToolResults, failedAttempts, iterations, toolRounds, totalToolCalls);
+      completeCancellation(options, 'before-provider-request', iterations, toolRounds, totalToolCalls);
+      return result;
+    }
     let providerResult: ProviderCompletionResponse;
     try {
       const providerRequest = { protocol: 'v2' as const, provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials, signal: options.signal, tools: normalized.tools, toolResults };
@@ -139,6 +153,12 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
       providerResult = await provider.complete(providerRequest);
       emitDebug(options.debug, 'llm.provider.response', providerResult);
       iterations += 1;
+      if (options.signal?.aborted) {
+        observeCancellation(options, 'after-provider-response', iterations, toolRounds, totalToolCalls);
+        const result = cancelledResponse(completedToolResults, failedAttempts, iterations, toolRounds, totalToolCalls);
+        completeCancellation(options, 'after-provider-response', iterations, toolRounds, totalToolCalls);
+        return result;
+      }
     } catch (error) {
       if (options.signal?.aborted || (error instanceof Error && error.name === 'AbortError')) return cancelledResponse(completedToolResults, failedAttempts, iterations, toolRounds, totalToolCalls);
       const failure = error instanceof Failure ? error : new Failure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider request failed before a usable response was returned.');
@@ -166,10 +186,21 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
       if (!normalized.autoInvokeTools) return v2Response('tool_calls_pending', toolAwareOutput({ output: null, tool_calls: calls }), failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, []);
       toolResults = [];
       for (let batchIndex = 0; batchIndex < calls.length; batchIndex += 1) {
-        if (options.signal?.aborted) return cancelledResponse(completedToolResults, failedAttempts, iterations, toolRounds, totalToolCalls);
+        if (options.signal?.aborted) {
+          observeCancellation(options, 'before-tool-batch', iterations, toolRounds, totalToolCalls);
+          const result = cancelledResponse(completedToolResults, failedAttempts, iterations, toolRounds, totalToolCalls);
+          completeCancellation(options, 'before-tool-batch', iterations, toolRounds, totalToolCalls);
+          return result;
+        }
         toolResults.push(...await invokeParallelToolBatch(normalized, options, calls[batchIndex]!, toolRounds, batchIndex));
       }
       completedToolResults.push(...toolResults);
+      if (options.signal?.aborted) {
+        observeCancellation(options, 'after-tool-batch', iterations, toolRounds, totalToolCalls);
+        const result = cancelledResponse(completedToolResults, failedAttempts, iterations, toolRounds, totalToolCalls);
+        completeCancellation(options, 'after-tool-batch', iterations, toolRounds, totalToolCalls);
+        return result;
+      }
       toolRounds += calls.length;
       prompt = composeRequestPrompt(normalized as unknown as NormalizedRequest);
       continue;

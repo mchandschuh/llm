@@ -237,6 +237,7 @@ export type ErrorPhase =
   | 'output-validation'
   | 'tool-validation'
   | 'tool-invocation'
+  | 'cancellation'
   | 'retry';
 
 export interface LlmError {
