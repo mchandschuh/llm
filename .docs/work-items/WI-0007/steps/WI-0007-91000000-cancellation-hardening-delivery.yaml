@@ -1,0 +1,106 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0007
+taskUid: WI-0007-91000000
+orderKey: "91000000"
+parentTaskUid: WI-0007-00000000
+taskType: delivery
+processingStatus: processing_completed
+title: Record local v2 cancellation hardening delivery
+objective: Record local delivery of the validated cancellation hardening without publication, deployment, or operational claims.
+references:
+  required:
+    - .docs/work-items/WI-0007/work-item.json
+    - .docs/work-items/WI-0007/README.md
+    - .docs/work-items/WI-0007/steps/WI-0007-10000000-cancellation-hardening-implementation.yaml
+    - .docs/work-items/WI-0007/steps/WI-0007-80000000-cancellation-hardening-validation.yaml
+    - .docs/work-items/WI-0007/steps/WI-0007-90000000-cancellation-hardening-review.yaml
+    - package.json
+  informational:
+    - .docs/work-items/WI-0005/README.md
+    - .docs/work-items/WI-0006/README.md
+    - schemas/request/v1/request.schema.json
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - schemas/response/v2/response.schema.json
+dependsOn: [WI-0007-90000000]
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths: [.docs/work-items/WI-0007/]
+  commitSubject: "WI-0007: 05: chore(llm): record cancellation hardening delivery"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: final-build
+      executable: npm
+      arguments: [run, build]
+      expectedExitCode: 0
+    - id: final-tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/result
+  intent:
+    summary: Deliver the locally validated v2 cancellation hardening through the ordered implementation, validation, review, and delivery evidence chain.
+    deliveryTypes: [package, release]
+    inputs:
+      - id: INPUT-VALIDATION
+        kind: validation
+        ref: WI-0007|80000000#result/R-001
+        purpose: Provide independent race, lifecycle, contract, regression, and scope validation.
+        required: true
+      - id: INPUT-REVIEW
+        kind: approval
+        ref: WI-0007|90000000#result/R-001
+        purpose: Provide the accepted independent review result.
+        required: true
+      - id: INPUT-REPOSITORY
+        kind: repositoryState
+        ref: "#repository-state/HEAD"
+        purpose: Identify the revision being delivered.
+        required: true
+    artifacts:
+      - id: ART-RECORD
+        kind: releaseRecord
+        path: .docs/work-items/WI-0007/
+        purpose: Complete WI-0007 work-item, classification, step, and delivery records.
+        required: true
+    procedures:
+      - id: PROC-FINAL-VERIFY
+        sequence: 1
+        name: final-build-and-test
+        description: Rebuild and rerun provider-free tests from the final delivery revision.
+        steps:
+          - Verify implementation, validation, and review records.
+          - Run npm run build.
+          - Run npm test.
+          - Confirm WI-0006 and unrelated request-schema changes remain outside the delivery commit.
+        command: npm run build && npm test
+        expected:
+          result: The final local package builds and all provider-free tests pass.
+        required: true
+    nonGoals:
+      - Do not publish or deploy.
+      - Do not make authenticated provider calls or execute real external tools.
+      - Do not claim rollback, forced tool termination, persistence, resume, LangGraph, or WI-0006 behavior.
+  result:
+    status: blocked
+    summary: Delivery is pending implementation, validation, and review.
+    artifacts:
+      - id: ART-PENDING
+        kind: releaseRecord
+        path: .docs/work-items/WI-0007/
+        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executions:
+      - id: EXEC-000
+        procedureRef: "#procedure/PROC-FINAL-VERIFY"
+        result:
+          status: blocked
+          summary: Delivery has not started because implementation, validation, and review are incomplete.
+        command: npm run build && npm test
+    limitations:
+      - This result is a planned-task placeholder and is not delivery evidence.

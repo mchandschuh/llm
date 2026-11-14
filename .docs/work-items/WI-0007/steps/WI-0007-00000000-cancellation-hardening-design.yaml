@@ -1,0 +1,262 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0007
+taskUid: WI-0007-00000000
+orderKey: "00000000"
+parentTaskUid: null
+taskType: design
+processingStatus: processing_completed
+title: Define v2 cancellation race and lifecycle-event hardening
+objective: Define the post-provider-response and pre-tool-invocation cancellation boundaries, explicit cancellation events, dedicated error phase, and regression obligations.
+references:
+  required:
+    - .docs/work-items/WI-0007/work-item.json
+    - .docs/work-items/WI-0007/classification-result.json
+    - .docs/work-items/WI-0005/README.md
+    - .docs/work-items/WI-0005/steps/WI-0005-90000000-observability-cancellation-review.yaml
+    - src/complete.ts
+    - src/debug.ts
+    - src/types.ts
+    - schemas/response/v2/response.schema.json
+    - tests/llm.test.ts
+    - SKILL.md
+  informational:
+    - .docs/work-items/WI-0006/README.md
+    - package.json
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths: [.docs/work-items/WI-0007/steps/]
+  commitSubject: "WI-0007: 01: design(llm): define cancellation hardening"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: envelope-schema
+      executable: schema-validate
+      arguments: [--root, /home/michael/.cline/skills/sdlc/schemas]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
+  intent:
+    summary: Define additive v2 cancellation race hardening and explicit lifecycle events on the existing DebugSink/AbortSignal boundaries.
+    objectives:
+      - Define the cancellation check after llm.provider.response and before terminal output processing.
+      - Define the pre-invocation boundary for parallel tool calls after llm.tool.call cancellation.
+      - Define llm.cancel.observed and llm.cancelled event ordering, payload bounds, and phase metadata.
+      - Define a dedicated cancellation error phase and focused regression/test/scope obligations.
+    inScope:
+      - src/complete.ts cancellation checkpoints and parallel tool invocation boundary.
+      - src/debug.ts event delivery through existing DebugSink sanitization.
+      - src/types.ts and response/v2 schema cancellation phase/status contract.
+      - deterministic tests and SKILL.md documentation.
+    outOfScope:
+      - New observer APIs, request callbacks, v1 changes, LangGraph, persistence, resume, rollback, or forced tool termination.
+      - WI-0006 samples and unrelated request-schema worktree changes.
+    policy: {id: component-design, version: "1"}
+    profile: implementable
+    scope: component
+    facets: [structure, behavior, contract, policy]
+    references:
+      - id: REF-001
+        type: artifact
+        locator: sdlc://repo/local%2Fllm/WI-0007#work-item.json%23work-item/WI-0007
+        description: Authoritative WI-0007 requirements and non-goals.
+      - id: REF-002
+        type: document
+        locator: src/complete.ts
+        description: Current v2 loop, tool batch, and cancellation implementation.
+      - id: REF-003
+        type: document
+        locator: src/debug.ts
+        description: Existing sanitized failure-isolated DebugSink boundary.
+      - id: REF-004
+        type: document
+        locator: src/types.ts
+        description: Existing ErrorPhase, v2 response, and runtime option types.
+      - id: REF-005
+        type: document
+        locator: schemas/response/v2/response.schema.json
+        description: Existing closed v2 response contract.
+      - id: REF-006
+        type: document
+        locator: tests/llm.test.ts
+        description: Existing 53-test regression and WI-0005 cancellation coverage.
+      - id: REF-007
+        type: artifact
+        locator: sdlc://repo/local%2Fllm/WI-0005#work-item.json%23work-item/WI-0005
+        description: Predecessor scope and cooperative cancellation boundary.
+    provenance:
+      referenceRefs: [REF-001, REF-002, REF-003, REF-004, REF-005, REF-006, REF-007]
+      basis: The hardening design is derived from current implementation inspection and the WI-0005 review findings.
+      confidence: 95
+    considerations:
+      - id: C-001
+        kind: constraint
+        statement: A signal aborted by the provider-response debug event must be observed before terminal response processing.
+        evaluation: Accepted; this closes the success-after-cancellation race without changing provider response semantics.
+        referenceRefs: [REF-001, REF-002, REF-006]
+        status: accepted
+        impact: 98
+        confidence: 98
+      - id: C-002
+        kind: constraint
+        statement: A parallel tool call must not cross its invocation boundary after cancellation is observed.
+        evaluation: Accepted; already-started tools may settle cooperatively, while later unstarted calls must not execute.
+        referenceRefs: [REF-001, REF-002, REF-006]
+        status: accepted
+        impact: 98
+        confidence: 96
+      - id: C-003
+        kind: decision
+        statement: Cancellation lifecycle events use the existing DebugSink and occur before the terminal llm.response event.
+        evaluation: Accepted; no second observer API is introduced.
+        referenceRefs: [REF-001, REF-003, REF-007]
+        status: accepted
+        impact: 94
+        confidence: 96
+      - id: C-004
+        kind: decision
+        statement: CANCELLED diagnostics use a dedicated cancellation error phase rather than retry.
+        evaluation: Accepted; cancellation is a distinct terminal control outcome.
+        referenceRefs: [REF-001, REF-004, REF-005]
+        status: accepted
+        impact: 90
+        confidence: 94
+    activities:
+      - id: ACT-001
+        type: analysis
+        summary: Inspect current cancellation checkpoints, tool Promise.all scheduling, DebugSink events, response schema, tests, and WI-0005 evidence.
+        status: completed
+        referenceRefs: [REF-002, REF-003, REF-004, REF-005, REF-006, REF-007]
+        provenance:
+          referenceRefs: [REF-001, REF-002, REF-006, REF-007]
+          basis: Repository and predecessor review records were inspected before defining the follow-up.
+          confidence: 97
+  result:
+    summary: A bounded hardening design for cancellation races, explicit cancellation lifecycle events, and a dedicated cancellation diagnostic phase.
+    model:
+      name: wi-0007-cancellation-hardening
+      kind: process
+      description: v2 completion cancellation control and monitor event lifecycle.
+    elements:
+      - id: E-001
+        type: boundary
+        name: post-provider-response-check
+        description: AbortSignal is checked after llm.provider.response emission and before terminal output handling.
+        provenance: {referenceRefs: [REF-001, REF-002, REF-006], basis: Closes the monitor-triggered success race., confidence: 98}
+      - id: E-002
+        type: boundary
+        name: pre-tool-invocation-check
+        description: Each parallel tool callback checks cancellation after its lifecycle event and before invoking the tool.
+        provenance: {referenceRefs: [REF-001, REF-002, REF-006], basis: Prevents later unstarted tools from crossing the side-effect boundary., confidence: 96}
+      - id: E-003
+        type: contract
+        name: cancellation-events
+        description: llm.cancel.observed and llm.cancelled are bounded DebugSink lifecycle events emitted before final llm.response.
+        provenance: {referenceRefs: [REF-001, REF-003, REF-007], basis: Gives monitors explicit observation and completion transitions., confidence: 95}
+      - id: E-004
+        type: contract
+        name: cancellation-phase
+        description: CANCELLED diagnostics use ErrorPhase cancellation and response/v2 schema accepts the phase.
+        provenance: {referenceRefs: [REF-001, REF-004, REF-005], basis: Separates cancellation from retry and provider failure routing., confidence: 94}
+    relations:
+      - id: REL-001
+        type: constrains
+        source: {type: element, id: E-001}
+        target: {type: element, id: E-003}
+        description: Provider-response cancellation emits observed/completed lifecycle events before the terminal response.
+        provenance: {referenceRefs: [REF-001, REF-002, REF-003], basis: Event ordering is part of the monitor contract., confidence: 95}
+      - id: REL-002
+        type: constrains
+        source: {type: element, id: E-002}
+        target: {type: element, id: E-003}
+        description: Tool-phase cancellation emits lifecycle completion without starting later unstarted calls.
+        provenance: {referenceRefs: [REF-001, REF-002, REF-006], basis: Parallel tool scheduling must honor the control boundary., confidence: 95}
+      - id: REL-003
+        type: refines
+        source: {type: element, id: E-004}
+        target: {type: element, id: E-003}
+        description: Cancellation events and terminal response share a distinct cancellation phase.
+        provenance: {referenceRefs: [REF-001, REF-004, REF-005], basis: Consistent phase metadata enables monitor routing., confidence: 93}
+    views:
+      - id: V-001
+        type: flow
+        name: cancellation-hardening-flow
+        description: Provider/tool event emits, monitor aborts, runtime observes, active work settles, cancellation completes, and final response emits.
+        elementRefs: [E-001, E-002, E-003, E-004]
+        relationRefs: [REL-001, REL-002, REL-003]
+        provenance: {referenceRefs: [REF-001, REF-002, REF-003, REF-004, REF-006], basis: The flow represents both identified race fixes and the explicit event contract., confidence: 95}
+    artifacts: []
+    outcomes:
+      - id: O-001
+        type: designDecision
+        statement: Cancellation is checked after provider-response emission and before terminal output processing.
+        status: accepted
+        impact: 98
+        confidence: 98
+        referenceRefs: [REF-001, REF-002, REF-006]
+      - id: O-002
+        type: implementationHandoff
+        statement: Parallel tool invocation has a pre-invocation cancellation gate for each call.
+        status: accepted
+        impact: 98
+        confidence: 96
+        referenceRefs: [REF-001, REF-002, REF-006]
+      - id: O-003
+        type: implementationHandoff
+        statement: Explicit cancellation lifecycle events and a dedicated cancellation error phase are added additively to v2.
+        status: accepted
+        impact: 94
+        confidence: 94
+        referenceRefs: [REF-001, REF-003, REF-004, REF-005]
+    outputs:
+      - id: OUT-001
+        category: implementation-handoff
+        status: complete
+        sourceRefs: [REF-001, REF-002, REF-004]
+        description: Race-hardening and cancellation-phase implementation handoff.
+      - id: OUT-002
+        category: interface-contract
+        status: complete
+        sourceRefs: [REF-001, REF-003, REF-005]
+        description: Explicit cancellation event and response/error-phase contract.
+      - id: OUT-003
+        category: test-handoff
+        status: complete
+        sourceRefs: [REF-001, REF-006]
+        description: Regression tests for provider-response and parallel-tool cancellation races.
+    verificationObligations:
+      - id: VER-001
+        kind: unit-test
+        status: planned
+        sourceRefs: [REF-001, REF-002, REF-006]
+        targetRefs: [E-001, E-003]
+        method:
+          type: unit-test
+          steps: [Abort from llm.provider.response., Assert cancelled rather than success., Assert cancellation events precede llm.response.]
+        requiredFor: [implementable]
+        description: Verify post-provider-response cancellation.
+      - id: VER-002
+        kind: unit-test
+        status: planned
+        sourceRefs: [REF-001, REF-002, REF-006]
+        targetRefs: [E-002, E-003]
+        method:
+          type: unit-test
+          steps: [Abort from the first llm.tool.call event in a parallel batch., Assert later unstarted calls are not invoked., Assert settled results and cancellation events are bounded.]
+        requiredFor: [implementable]
+        description: Verify pre-tool-invocation cancellation.
+      - id: VER-003
+        kind: contract-test
+        status: planned
+        sourceRefs: [REF-001, REF-004, REF-005, REF-007]
+        targetRefs: [E-003, E-004]
+        method:
+          type: contract-test
+          steps: [Validate response/v2 examples and cancellation phase., Run typecheck, tests, build, and scope audit.]
+        requiredFor: [implementable]
+        description: Verify additive v2 lifecycle/error contract and regressions.
+    unresolvedQuestions: []

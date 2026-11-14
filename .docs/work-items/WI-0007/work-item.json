@@ -1,0 +1,120 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0007",
+  "status": "planned",
+  "title": "Harden v2 cancellation races and lifecycle events",
+  "type": "bugfix",
+  "objective": "Correct additive llm/request/v2 cancellation race behavior and make cancellation lifecycle transitions observable without redesigning the WI-0005 DebugSink and AbortSignal boundaries.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {"branch": "master"},
+    "branch": {
+      "name": "wi-0007-v2-cancellation-hardening",
+      "created": false,
+      "rationale": "The work item is processed as a serial set of scoped commits on the current repository branch; the branch name records the follow-up correctness boundary without requiring a topic branch."
+    }
+  },
+  "baseline": "06834ddd9bf5966a3057ad4aaf809cd1bf1e9836",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare a new .docs/work-items/* in the llm repository to harden v2 cancellation races and lifecycle events: cancel after llm.provider.response before terminal success, prevent later parallel tools after cancellation during llm.tool.call, emit explicit llm.cancel.observed and llm.cancelled events, and use a dedicated cancellation error phase. Keep the scope additive to v2 and preserve WI-0006 and unrelated changes. Commit the documentation.",
+    "sha256": "f793faf1d77f396dd2816e20a3cfe1f86cc409bd8fb92cdda7d8ee7ed5f91129"
+  },
+  "scope": [
+    {
+      "name": "v2-cancellation-race-hardening",
+      "description": "Ensure cancellation observed after provider responses or during tool-call event emission prevents later terminal/model/tool work while preserving settled results.",
+      "reason": "WI-0005 established cancellation plumbing but current control points allow monitor-triggered races to fall through to success or start later parallel calls."
+    },
+    {
+      "name": "v2-cancellation-lifecycle-contract",
+      "description": "Add explicit bounded llm.cancel.observed and llm.cancelled DebugSink events and represent CANCELLED diagnostics with a dedicated cancellation phase.",
+      "reason": "Monitors need to distinguish cancellation observation and completion from ordinary provider, retry, or tool events."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "v1-contract-mutation",
+      "description": "Do not change llm/request/v1, llm/response/v1, or their behavior.",
+      "reason": "The follow-up is additive to v2 and must preserve existing v1 compatibility.",
+      "forbiddenFileWrites": ["schemas/request/v1/", "schemas/response/v1/"],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "observer-redesign",
+      "description": "Do not add a second observer API, callback field, stream abstraction, or request-embedded monitor object.",
+      "reason": "WI-0005 already selected DebugSink as the event transport; this work only completes its cancellation lifecycle semantics.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "runtime-expansion",
+      "description": "Do not add LangGraph, persistence, checkpointing, resume, interrupt/resume, provider expansion, rollback, or forced termination of arbitrary tools.",
+      "reason": "The fix is local to the existing v2 completion loop, provider boundary, error contract, and deterministic tests.",
+      "forbiddenFileWrites": ["package.json"],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "unrelated-work-items",
+      "description": "Do not modify WI-0006 executable sample records or absorb unrelated request-schema changes.",
+      "reason": "WI-0006 is a separate planned work item and existing request-schema changes are outside this follow-up.",
+      "forbiddenFileWrites": [".docs/work-items/WI-0006/", "schemas/request/v1/request.schema.json", "schemas/request/v2/request.schema.json"],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "operational-expansion",
+      "description": "Do not claim authenticated provider behavior, real external tool effects, production readiness, or downstream integration.",
+      "reason": "Evidence remains provider-free, deterministic, and cooperative.",
+      "forbiddenFileWrites": [".env", ".env.*", "credentials/", "secrets/"],
+      "forbiddenFileReads": [".env", ".env.*", "credentials/", "secrets/"]
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0007_REQ_001",
+        "name": "post-provider-response-cancellation",
+        "description": "Cancellation observed after llm.provider.response is emitted is handled before terminal output processing and returns cancelled rather than success.",
+        "reason": "A monitor can abort from the provider-response event and must not allow the already-returned response to bypass cancellation policy.",
+        "acceptanceCriteria": [{
+          "id": "WI-0007_REQ_001_AC_001",
+          "description": "A deterministic test aborts from the llm.provider.response DebugSink event and asserts status cancelled, a CANCELLED diagnostic, no terminal success, and the expected final event sequence."
+        }]
+      },
+      {
+        "id": "WI-0007_REQ_002",
+        "name": "parallel-tool-cancellation-boundary",
+        "description": "Cancellation observed during llm.tool.call prevents later unstarted calls in the same parallel batch from invoking while allowing already-started calls to settle cooperatively.",
+        "reason": "Promise.all batch mapping currently creates all invocation callbacks synchronously, so event-triggered cancellation needs an explicit pre-invocation boundary.",
+        "acceptanceCriteria": [{
+          "id": "WI-0007_REQ_002_AC_001",
+          "description": "A deterministic parallel-batch test aborts from the first llm.tool.call event and proves later unstarted tools are not invoked, the result is cancelled, and settled results are preserved or classified consistently."
+        }]
+      },
+      {
+        "id": "WI-0007_REQ_003",
+        "name": "explicit-cancellation-events",
+        "description": "The runtime emits bounded llm.cancel.observed and llm.cancelled events through DebugSink with stable ordering and phase/counter metadata.",
+        "reason": "Monitors need to distinguish cancellation observation from final cancellation completion without inferring either from a terminal response alone.",
+        "acceptanceCriteria": [{
+          "id": "WI-0007_REQ_003_AC_001",
+          "description": "Tests verify provider-phase and tool-phase cancellation event sequences, bounded sanitized metadata, and one final llm.cancelled event before llm.response."
+        }]
+      },
+      {
+        "id": "WI-0007_REQ_004",
+        "name": "cancellation-phase-and-regression-contract",
+        "description": "CANCELLED diagnostics use a dedicated cancellation error phase and all existing v1/v2, event, cancellation, schema, build, and scope checks remain green.",
+        "reason": "Cancellation is neither provider retry nor ordinary tool invocation failure and should be routable as its own bounded condition.",
+        "acceptanceCriteria": [{
+          "id": "WI-0007_REQ_004_AC_001",
+          "description": "The TypeScript error phase, response/v2 schema, response construction, documentation, and deterministic tests agree on cancellation; package gates pass; WI-0006 and unrelated request-schema paths remain untouched."
+        }]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0007/steps/"
+}

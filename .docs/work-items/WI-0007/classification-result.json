@@ -1,0 +1,29 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/classification-result/v1",
+  "status": "classified",
+  "workItemRef": "sdlc://repo/local%2Fllm/WI-0007#work-item.json%23work-item/WI-0007",
+  "workItemSha256": "sha256:c289809d51ffd4fb9a9c663f163f5719951476ee3e0ccdedb92b10acafd13b9e",
+  "classification": {
+    "workKind": "bugfix",
+    "scopeClass": "composite",
+    "architectureImpact": "none",
+    "integrationImpact": "none",
+    "migrationImpact": "none",
+    "deploymentImpact": "none",
+    "risk": "unknown",
+    "uncertainty": "high",
+    "acceptanceCriteriaTestable": true,
+    "reasons": [
+      {"statement": "The work item declares a bugfix classification.", "sourceRefs": ["#/type"]},
+      {"statement": "The work item declares four requirements.", "sourceRefs": ["#/requirements/items"]},
+      {"statement": "The work item declares multiple scope entries for race hardening and lifecycle-contract consistency.", "sourceRefs": ["#/scope"]},
+      {"statement": "Every declared acceptance criterion has a non-empty observable description.", "sourceRefs": ["#/requirements/items/0/acceptanceCriteria"]},
+      {"statement": "The request text contains a scope-expanding impact signal.", "sourceRefs": ["#/objective", "#/scope", "#/nonGoals", "#/requirements/items"]}
+    ]
+  },
+  "workflow": {"profile": "unselected", "topology": "unselected"},
+  "research": {
+    "disposition": "recommended",
+    "reasons": [{"statement": "The follow-up crosses event ordering, AbortSignal race boundaries, response schemas, and parallel tool invocation semantics, so repository-local contract inspection is recommended before implementation.", "sourceRefs": ["#/objective", "#/scope", "#/requirements/items"]}]
+  }
+}

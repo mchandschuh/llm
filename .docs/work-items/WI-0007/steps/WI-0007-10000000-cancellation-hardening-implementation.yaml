@@ -1,0 +1,138 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0007
+taskUid: WI-0007-10000000
+orderKey: "10000000"
+parentTaskUid: WI-0007-00000000
+taskType: implementation
+processingStatus: processing_completed
+title: Implement v2 cancellation hardening and explicit events
+objective: Implement the scoped cancellation race fixes, explicit lifecycle events, dedicated error phase, deterministic tests, and documentation defined by the design step.
+references:
+  required:
+    - .docs/work-items/WI-0007/work-item.json
+    - .docs/work-items/WI-0007/steps/WI-0007-00000000-cancellation-hardening-design.yaml
+    - .docs/work-items/WI-0005/README.md
+    - src/complete.ts
+    - src/debug.ts
+    - src/types.ts
+    - schemas/response/v2/response.schema.json
+    - tests/llm.test.ts
+    - SKILL.md
+  informational:
+    - .docs/work-items/WI-0006/README.md
+    - schemas/request/v1/request.schema.json
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - package.json
+dependsOn: [WI-0007-00000000]
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/complete.ts
+    - src/types.ts
+    - src/debug.ts
+    - schemas/response/v2/response.schema.json
+    - tests/llm.test.ts
+    - SKILL.md
+    - .docs/work-items/WI-0007/steps/
+  commitSubject: "WI-0007: 02: fix(llm): harden v2 cancellation races"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments: [run, typecheck]
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments: [run, build]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement v2 cancellation race fixes and explicit lifecycle events while preserving WI-0005, WI-0006, v1, and unrelated worktree boundaries.
+    changeTypes: [production-code, test-code, schema, documentation]
+    changeIntent: bugfix
+    inputs:
+      - id: INPUT-REQ-001
+        kind: requirement
+        ref: WI-0007|00000000#requirement/WI-0007_REQ_001
+        purpose: Define post-provider-response cancellation behavior.
+        required: true
+      - id: INPUT-REQ-002
+        kind: requirement
+        ref: WI-0007|00000000#requirement/WI-0007_REQ_002
+        purpose: Define parallel tool pre-invocation cancellation.
+        required: true
+      - id: INPUT-REQ-003
+        kind: requirement
+        ref: WI-0007|00000000#requirement/WI-0007_REQ_003
+        purpose: Define explicit cancellation lifecycle events.
+        required: true
+      - id: INPUT-REQ-004
+        kind: requirement
+        ref: WI-0007|00000000#requirement/WI-0007_REQ_004
+        purpose: Define dedicated phase, regression, and scope boundaries.
+        required: true
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0007|00000000#result/OUT-001
+        purpose: Provide the cancellation-hardening design handoff.
+        required: true
+    objectives:
+      - id: OBJ-001
+        statement: Close provider-response and parallel-tool cancellation races.
+        inputRefs: [INPUT-REQ-001, INPUT-REQ-002, INPUT-DESIGN]
+        testCaseRefs: ["#test-case/TC-001", "#test-case/TC-002"]
+      - id: OBJ-002
+        statement: Emit explicit bounded cancellation observation and completion events through DebugSink.
+        inputRefs: [INPUT-REQ-003, INPUT-DESIGN]
+        testCaseRefs: ["#test-case/TC-003", "#test-case/TC-004"]
+      - id: OBJ-003
+        statement: Align cancellation error phase and preserve all existing package/sample/work-item boundaries.
+        inputRefs: [INPUT-REQ-004, INPUT-DESIGN]
+        testCaseRefs: ["#test-case/TC-005", "#test-case/TC-006"]
+    ownedPaths:
+      - src/complete.ts
+      - src/types.ts
+      - src/debug.ts
+      - schemas/response/v2/response.schema.json
+      - tests/llm.test.ts
+      - SKILL.md
+      - .docs/work-items/WI-0007/steps/
+    nonGoals:
+      - Do not modify v1 contracts.
+      - Do not add an observer API, LangGraph, persistence, resume, rollback, or forced tool termination.
+      - Do not modify WI-0006 or stage request-schema changes.
+      - Do not make authenticated provider calls or execute real external tools.
+    steps:
+      - Add a cancellation check immediately after llm.provider.response emission and before terminal output handling.
+      - Add an explicit pre-invocation signal gate for each parallel tool callback and define unsettled-call behavior.
+      - Emit llm.cancel.observed and llm.cancelled with bounded sanitized metadata in stable order.
+      - Add a dedicated cancellation error phase across types, response schema, implementation, tests, and docs.
+      - Run focused race regressions and existing package gates.
+  result:
+    status: blocked
+    implementation:
+      summary: Implementation is pending execution of this follow-up task.
+      changes:
+        - id: CHANGE-PENDING
+          type: documentation
+          summary: No implementation changes have been executed; this placeholder records the pending result boundary.
+          objectiveRefs: [OBJ-001]
+          paths: [.docs/work-items/WI-0007/steps/WI-0007-10000000-cancellation-hardening-implementation.yaml]
+      testImplementations: []
+    verification:
+      status: not-run
+      objectiveRefs: []
+      tests: []
+    limitations:
+      - This result is a planned-task placeholder and is not implementation evidence.

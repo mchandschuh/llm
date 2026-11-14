@@ -1,0 +1,165 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0007
+taskUid: WI-0007-80000000
+orderKey: "80000000"
+parentTaskUid: WI-0007-00000000
+taskType: validation
+processingStatus: processing_completed
+title: Validate v2 cancellation hardening
+objective: Independently validate cancellation race fixes, explicit event ordering, dedicated phase/schema behavior, regressions, and repository scope.
+references:
+  required:
+    - .docs/work-items/WI-0007/work-item.json
+    - .docs/work-items/WI-0007/steps/WI-0007-00000000-cancellation-hardening-design.yaml
+    - .docs/work-items/WI-0007/steps/WI-0007-10000000-cancellation-hardening-implementation.yaml
+    - .docs/work-items/WI-0005/steps/WI-0005-80000000-observability-cancellation-validation.yaml
+    - src/complete.ts
+    - src/debug.ts
+    - src/types.ts
+    - schemas/response/v2/response.schema.json
+    - tests/llm.test.ts
+    - SKILL.md
+  informational:
+    - .docs/work-items/WI-0006/README.md
+    - schemas/request/v1/request.schema.json
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - package.json
+dependsOn: [WI-0007-10000000]
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths: [.docs/work-items/WI-0007/steps/]
+  commitSubject: "WI-0007: 03: test(llm): validate cancellation hardening"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments: [run, typecheck]
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments: [run, build]
+      expectedExitCode: 0
+    - id: scope
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Validate provider-response cancellation, parallel-tool cancellation, explicit cancellation events, cancellation phase/schema, regressions, and scope.
+    inputs:
+      - id: INPUT-IMPLEMENTATION
+        kind: implementation
+        ref: WI-0007|10000000#result/R-001
+        purpose: Identify the implementation result and changed-path boundary.
+        required: true
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0007|00000000#result/OUT-001
+        purpose: Identify cancellation race and event invariants.
+        required: true
+    targets:
+      - id: TARGET-PACKAGE
+        kind: repositoryState
+        ref: "#target/TARGET-PACKAGE"
+        purpose: Validate the exact package revision.
+        required: true
+      - id: TARGET-RESPONSE-SCHEMA
+        kind: artifact
+        ref: "#artifact/response-v2-schema"
+        purpose: Validate the dedicated cancellation phase and status contract.
+        required: true
+      - id: TARGET-DOCUMENTATION
+        kind: artifact
+        ref: "#artifact/package-documentation"
+        purpose: Inspect the cancellation event and cooperative-boundary documentation.
+        required: true
+    objectiveRefs: [WI-0007|10000000#objective/OBJ-001, WI-0007|10000000#objective/OBJ-002, WI-0007|10000000#objective/OBJ-003]
+    testCaseRefs: ["#test-case/TC-001", "#test-case/TC-002", "#test-case/TC-003", "#test-case/TC-004", "#test-case/TC-005", "#test-case/TC-006"]
+    procedures:
+      - id: VAL-PACKAGE
+        sequence: 1
+        name: package-gates
+        description: Run typecheck, all deterministic tests, and build.
+        reason: Runtime, schema, event, cancellation, and regression behavior must compile and pass together.
+        targetRefs: ["#target/TARGET-PACKAGE"]
+        objectiveRefs: [WI-0007|10000000#objective/OBJ-001, WI-0007|10000000#objective/OBJ-002, WI-0007|10000000#objective/OBJ-003]
+        testCaseRefs: ["#test-case/TC-001", "#test-case/TC-002", "#test-case/TC-003", "#test-case/TC-004", "#test-case/TC-005"]
+        method:
+          executionMode: executable
+          target: llm package
+          steps: [Run npm run typecheck., Run npm test., Run npm run build.]
+          command: npm run typecheck && npm test && npm run build
+          paths: [src/complete.ts, src/types.ts, src/debug.ts, schemas/response/v2/response.schema.json, tests/llm.test.ts]
+        expected: {outcome: passed, exitCode: 0}
+        evidenceTier: cli-audit
+        required: true
+      - id: VAL-CONTRACT
+        sequence: 2
+        name: cancellation-contract-and-events
+        description: Validate response/v2 cancellation phase/status, explicit event ordering, sanitization, and documentation.
+        reason: Monitor-facing cancellation semantics must be closed and consistent.
+        targetRefs: ["#target/TARGET-RESPONSE-SCHEMA", "#target/TARGET-DOCUMENTATION"]
+        objectiveRefs: [WI-0007|10000000#objective/OBJ-002, WI-0007|10000000#objective/OBJ-003]
+        testCaseRefs: ["#test-case/TC-003", "#test-case/TC-004", "#test-case/TC-005"]
+        method:
+          executionMode: executable
+          target: response/v2 schema, DebugSink events, source, and documentation
+          steps: [Run schema example tests., Assert cancel event ordering and bounded metadata., Inspect documentation for cooperative cancellation limits.]
+          command: npm test && git diff --check
+          paths: [schemas/response/v2/response.schema.json, src/debug.ts, src/complete.ts, SKILL.md]
+        expected: {outcome: passed, exitCode: 0}
+        evidenceTier: cli-audit
+        required: true
+      - id: VAL-SCOPE
+        sequence: 3
+        name: repository-scope-audit
+        description: Confirm WI-0006 and unrelated request-schema paths remain untouched and no LangGraph/deployment scope is introduced.
+        reason: The hardening follow-up must remain isolated from other planned work.
+        targetRefs: ["#target/TARGET-PACKAGE"]
+        objectiveRefs: [WI-0007|10000000#objective/OBJ-003]
+        testCaseRefs: ["#test-case/TC-006"]
+        method:
+          executionMode: executable
+          target: git worktree and package manifest
+          steps: [Inspect git status and staged paths., Inspect package.json for dependency changes., Confirm WI-0006 and request-schema paths are not staged.]
+          command: git diff --check && git status --short && git diff --cached --name-only
+          paths: [package.json, .docs/work-items/WI-0006/, schemas/request/v1/request.schema.json, schemas/request/v2/request.schema.json]
+        expected: {outcome: passed, exitCode: 0}
+        evidenceTier: inspection
+        required: true
+    nonGoals:
+      - Do not make authenticated provider calls.
+      - Do not execute real external tools or claim rollback.
+      - Do not claim production, persistence, resume, or LangGraph behavior.
+  result:
+    status: blocked
+    summary: Validation is pending the implementation task and has not executed.
+    executions:
+      - id: EXEC-000
+        procedureRef: "#procedure/VAL-PACKAGE"
+        status: blocked
+        observed:
+          outcome: inconclusive
+          summary: Validation has not started because the implementation dependency is incomplete.
+        evidenceTier: static
+        evidence:
+          - kind: record
+            source: task-state
+            claim: The validation task is planned and its implementation dependency is incomplete.
+    findings: []
+    evidenceTier: static
+    limitations:
+      - This result is a planned-task placeholder and is not validation evidence.
+    nonClaims:
+      - This result does not claim that the cancellation hardening is implemented or passes.

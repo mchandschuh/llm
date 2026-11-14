@@ -1,0 +1,124 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0007
+taskUid: WI-0007-90000000
+orderKey: "90000000"
+parentTaskUid: WI-0007-00000000
+taskType: review
+processingStatus: processing_completed
+title: Review v2 cancellation hardening
+objective: Review the exact cancellation race fixes, lifecycle events, error phase, validation evidence, compatibility, and declared scope.
+references:
+  required:
+    - .docs/work-items/WI-0007/work-item.json
+    - .docs/work-items/WI-0007/steps/WI-0007-00000000-cancellation-hardening-design.yaml
+    - .docs/work-items/WI-0007/steps/WI-0007-10000000-cancellation-hardening-implementation.yaml
+    - .docs/work-items/WI-0007/steps/WI-0007-80000000-cancellation-hardening-validation.yaml
+    - .docs/work-items/WI-0005/README.md
+    - .docs/work-items/WI-0006/README.md
+    - src/complete.ts
+    - src/types.ts
+    - schemas/response/v2/response.schema.json
+    - tests/llm.test.ts
+    - SKILL.md
+  informational:
+    - package.json
+    - schemas/request/v1/request.schema.json
+    - schemas/request/v2/request.schema.json
+dependsOn: [WI-0007-80000000]
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths: [.docs/work-items/WI-0007/steps/]
+  commitSubject: "WI-0007: 04: review(llm): assess cancellation hardening"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review cancellation race correctness, explicit event ordering, dedicated phase consistency, regression evidence, and non-goal boundaries.
+    reviewKind: code
+    target:
+      taskType: implementation
+      taskRef: WI-0007|10000000
+      result:
+        ref: WI-0007|10000000#result/R-001
+        sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    gateId: v2-cancellation-hardening
+    policyRef:
+      ref: README.md
+      sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    criteria:
+      - id: CRIT-001
+        statement: Post-provider-response cancellation cannot fall through to terminal success, and cancellation during tool-call events cannot start later unstarted parallel calls.
+        purpose: Confirm the two identified runtime races are closed.
+        required: true
+        evidenceRefs: [WI-0007|80000000#result/R-001]
+      - id: CRIT-002
+        statement: llm.cancel.observed and llm.cancelled events are bounded, sanitized, ordered before llm.response, and remain on DebugSink.
+        purpose: Confirm the monitor-facing lifecycle contract is explicit and compatible.
+        required: true
+        evidenceRefs: [WI-0007|00000000#result/OUT-002, WI-0007|80000000#result/R-001]
+      - id: CRIT-003
+        statement: CANCELLED uses a dedicated error phase consistently across types, response schema, implementation, tests, and documentation.
+        purpose: Prevent cancellation from being routed as retry or ordinary provider failure.
+        required: true
+        evidenceRefs: [WI-0007|00000000#result/OUT-003, WI-0007|80000000#result/R-001]
+      - id: CRIT-004
+        statement: The follow-up remains additive to v2 and does not modify v1, WI-0006, LangGraph/deployment scope, or unrelated request-schema work.
+        purpose: Preserve work-item isolation and compatibility.
+        required: true
+        evidenceRefs: [WI-0007|80000000#result/R-001]
+    evidenceRequirements:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0007|80000000#result/R-001
+        purpose: Independent race, lifecycle, contract, regression, and scope validation.
+        required: true
+        minimumTier: cli-audit
+      - id: EVID-002
+        kind: artifact
+        ref: SKILL.md
+        purpose: Inspect public cancellation lifecycle and cooperative-boundary documentation.
+        required: true
+        minimumTier: inspection
+    nonGoals:
+      - id: NON-001
+        statement: Do not authorize real provider calls or real tool execution.
+      - id: NON-002
+        statement: Do not treat cooperative cancellation as rollback or forced termination.
+      - id: NON-003
+        statement: Do not approve LangGraph, persistence, resume, or WI-0006 scope.
+    context: []
+  result:
+    status: blocked
+    decision: null
+    summary: Review is pending implementation and validation results.
+    actor:
+      id: WI-0007-reviewer
+      role: reviewer
+      authorityRef: README.md
+    criteriaEvaluations: []
+    findings: []
+    evidence: []
+    limitations:
+      - This result is a planned-task placeholder and is not review evidence.
+    nonClaims:
+      - This result does not accept or reject the implementation.
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: EXEC-000
+      status: blocked
+      startedAt: "1970-01-01T00:00:00Z"
+      finishedAt: "1970-01-01T00:00:00Z"
