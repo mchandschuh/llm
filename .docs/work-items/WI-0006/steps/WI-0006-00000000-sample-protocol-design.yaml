@@ -1,0 +1,263 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0006
+taskUid: WI-0006-00000000
+orderKey: "00000000"
+parentTaskUid: null
+taskType: design
+processingStatus: processing_completed
+title: Define executable feature sample protocol
+objective: Define the deterministic sample output envelope, feature coverage matrix, discovery rules, integration assertions, and provider-free safety boundary.
+references:
+  required:
+    - .docs/work-items/WI-0006/work-item.json
+    - .docs/work-items/WI-0006/classification-result.json
+    - README.md
+    - SKILL.md
+    - package.json
+    - src/index.ts
+    - src/cli.ts
+    - src/types.ts
+    - src/complete.ts
+    - src/provider.ts
+    - src/debug.ts
+    - tests/llm.test.ts
+  informational:
+    - schemas/request/v1/request.schema.json
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - schemas/response/v2/response.schema.json
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0006/steps/
+  commitSubject: "WI-0006: 01: design(llm): define executable sample protocol"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: envelope-schema
+      executable: schema-validate
+      arguments: [--root, /home/michael/.cline/skills/sdlc/schemas]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
+  intent:
+    summary: Define a deterministic executable sample protocol and discovery-based integration harness for the repository feature surface.
+    objectives:
+      - Define one JSON stdout result envelope and failure/diagnostic rules for every sample.
+      - Allocate samples across CLI, v1/v2 library, tools/results, provider mapping, observability, cancellation, and unified-provider features.
+      - Define tests/samples.test.ts discovery, child-process execution, and stable result assertions.
+      - Preserve provider-free, no-side-effect, v1-compatible, and no-LangGraph boundaries.
+    inScope:
+      - samples/*.mjs output and execution contract.
+      - Dynamic sample discovery and child-process integration assertions.
+      - Provider-free fixtures, mocked fetch, in-memory tools, temporary bounded files, and CLI help/version paths.
+      - Documentation expectations for executable examples.
+    outOfScope:
+      - Live providers, credentials, real external tools, persistence, LangGraph, deployment, and unrelated request-schema edits.
+    policy: {id: component-design, version: "1"}
+    profile: implementable
+    scope: component
+    facets: [structure, behavior, contract, policy]
+    references:
+      - id: REF-001
+        type: artifact
+        locator: sdlc://repo/local%2Fllm/WI-0006#work-item.json%23work-item/WI-0006
+        description: Authoritative WI-0006 sample and integration requirements.
+      - id: REF-002
+        type: document
+        locator: src/index.ts
+        description: Public package exports to demonstrate.
+      - id: REF-003
+        type: document
+        locator: src/cli.ts
+        description: Provider-free CLI help/version behavior.
+      - id: REF-004
+        type: document
+        locator: src/complete.ts
+        description: v1/v2 completion, tool-loop, and cancellation behavior.
+      - id: REF-005
+        type: document
+        locator: src/provider.ts
+        description: Provider mapping boundary for mocked transport samples.
+      - id: REF-006
+        type: document
+        locator: src/debug.ts
+        description: DebugSink event and redaction boundary.
+      - id: REF-007
+        type: document
+        locator: tests/llm.test.ts
+        description: Existing deterministic feature evidence and test conventions.
+      - id: REF-008
+        type: document
+        locator: SKILL.md
+        description: Public usage and non-claim guidance.
+    provenance:
+      referenceRefs: [REF-001, REF-002, REF-003, REF-004, REF-005, REF-006, REF-007, REF-008]
+      basis: Repository feature inspection identified a broad public CLI/library surface with no executable sample directory or discovery harness.
+      confidence: 98
+    considerations:
+      - id: C-001
+        kind: constraint
+        statement: Samples must emit exactly one bounded JSON result to stdout and keep diagnostics off stdout.
+        evaluation: The integration harness will reject nonzero exits, empty output, invalid JSON, and extra stdout lines.
+        referenceRefs: [REF-001, REF-007]
+        status: accepted
+        impact: 100
+        confidence: 99
+      - id: C-002
+        kind: boundary
+        statement: Samples must not require network credentials or create real external side effects.
+        evaluation: Use injected providers, mocked fetch, in-memory tools, temporary fixtures, and CLI help/version only.
+        referenceRefs: [REF-001, REF-003, REF-004, REF-005]
+        status: accepted
+        impact: 100
+        confidence: 99
+      - id: C-003
+        kind: constraint
+        statement: The integration test must discover samples dynamically rather than duplicate a manual list.
+        evaluation: Read samples/*.mjs at runtime, sort the files, and execute every discovered sample.
+        referenceRefs: [REF-001, REF-007]
+        status: accepted
+        impact: 95
+        confidence: 98
+    activities:
+      - id: ACT-001
+        type: analysis
+        summary: Inspected CLI, public exports, completion/provider interfaces, v1/v2 behavior, debug/cancellation paths, schemas, and tests.
+        status: completed
+        referenceRefs: [REF-001, REF-002, REF-003, REF-004, REF-005, REF-006, REF-007, REF-008]
+        provenance:
+          referenceRefs: [REF-001, REF-007]
+          basis: The feature matrix is derived from existing public exports and deterministic tests.
+          confidence: 98
+  result:
+    summary: Define a provider-free sample protocol with one JSON stdout envelope per executable sample and a discovery-based integration harness.
+    model:
+      name: executable-feature-samples
+      kind: process
+      description: Sample scripts and integration discovery flow for documenting and exercising package features.
+      notation: contract-model
+      version: "1"
+    elements:
+      - id: E-001
+        type: sample-script
+        name: executable-sample
+        description: Directly executable samples/*.mjs script producing one stable JSON result envelope.
+        provenance: {referenceRefs: [REF-001, REF-007], basis: The work item requires executable samples, confidence: 99}
+      - id: E-002
+        type: result-envelope
+        name: sample-result
+        description: Stable stdout object containing sample identifier, ok flag, feature area, and assertions.
+        provenance: {referenceRefs: [REF-001, REF-007], basis: Discovery validation needs a common output protocol, confidence: 99}
+      - id: E-003
+        type: integration-test
+        name: sample-discovery-test
+        description: Child-process integration test discovering and validating every sample file.
+        provenance: {referenceRefs: [REF-001, REF-007], basis: The test must prevent unvalidated samples, confidence: 99}
+      - id: E-004
+        type: safety-boundary
+        name: provider-free-fixtures
+        description: Injected providers, mocked transport, in-memory tools, temporary fixtures, and CLI help/version paths.
+        provenance: {referenceRefs: [REF-001, REF-003, REF-004, REF-005], basis: Samples must be deterministic and credential-free, confidence: 99}
+    relations:
+      - id: REL-001
+        type: emits
+        source: {type: element, id: E-001}
+        target: {type: element, id: E-002}
+        description: Every executable sample emits one result envelope.
+        provenance: {referenceRefs: [REF-001, REF-007], basis: The common protocol enables integration validation, confidence: 99}
+      - id: REL-002
+        type: discovers
+        source: {type: element, id: E-003}
+        target: {type: element, id: E-001}
+        description: The integration test discovers all samples dynamically.
+        provenance: {referenceRefs: [REF-001, REF-007], basis: New samples must be automatically covered, confidence: 99}
+      - id: REL-003
+        type: constrains
+        source: {type: element, id: E-004}
+        target: {type: element, id: E-001}
+        description: Samples use only provider-free bounded fixtures and no real side effects.
+        provenance: {referenceRefs: [REF-001, REF-003, REF-004, REF-005], basis: The sample safety boundary is explicit, confidence: 99}
+    views:
+      - id: V-001
+        type: sample-execution-flow
+        name: sample-discovery-flow
+        description: Discovery finds scripts, child processes execute them, and result envelopes are validated.
+        elementRefs: [E-001, E-002, E-003, E-004]
+        relationRefs: [REL-001, REL-002, REL-003]
+        provenance: {referenceRefs: [REF-001, REF-007], basis: The view captures the complete sample acceptance path, confidence: 98}
+    artifacts: []
+    outcomes:
+      - id: O-001
+        type: designDecision
+        statement: Use one machine-readable JSON stdout envelope for every sample and reserve stderr for diagnostics.
+        status: accepted
+        impact: 100
+        confidence: 99
+        referenceRefs: [REF-001, REF-007]
+      - id: O-002
+        type: testHandoff
+        statement: Add one dynamic tests/samples.test.ts integration test that executes every samples/*.mjs file after build.
+        status: accepted
+        impact: 100
+        confidence: 99
+        referenceRefs: [REF-001, REF-007]
+      - id: O-003
+        type: implementationHandoff
+        statement: Implement the nine-sample feature matrix using provider-free deterministic fixtures and public APIs.
+        status: accepted
+        impact: 95
+        confidence: 98
+        referenceRefs: [REF-001, REF-002, REF-003, REF-004, REF-005, REF-006]
+    outputs:
+      - id: OUT-001
+        category: interface-contract
+        status: complete
+        sourceRefs: [REF-001, REF-007]
+        elementRefs: [E-001, E-002]
+        description: Executable sample result envelope and invocation contract.
+      - id: OUT-002
+        category: test-handoff
+        status: complete
+        sourceRefs: [REF-001, REF-007]
+        elementRefs: [E-003]
+        relationRefs: [REL-002]
+        description: Discovery-based integration test handoff.
+      - id: OUT-003
+        category: security-and-trust
+        status: complete
+        sourceRefs: [REF-001, REF-003, REF-004, REF-005]
+        elementRefs: [E-004]
+        relationRefs: [REL-003]
+        description: Provider-free and no-side-effect execution boundary.
+    verificationObligations:
+      - id: VER-001
+        kind: contract-test
+        status: planned
+        sourceRefs: [REF-001, REF-007]
+        targetRefs: [E-001, E-002, E-003]
+        method: {type: contract-test, steps: [Discover every samples/*.mjs file., Execute every sample in a child process., Validate one JSON stdout envelope and stable fields.]}
+        requiredFor: [implementable]
+        description: Verify the common sample protocol and complete discovery coverage.
+      - id: VER-002
+        kind: unit-test
+        status: planned
+        sourceRefs: [REF-001, REF-002, REF-003, REF-004, REF-005, REF-006]
+        targetRefs: [E-004]
+        method: {type: unit-test, steps: [Run samples without credentials or network access., Assert feature-specific results and bounded fixtures.]}
+        requiredFor: [implementable]
+        description: Verify representative package features through executable examples.
+      - id: VER-003
+        kind: inspection
+        status: planned
+        sourceRefs: [REF-001, REF-008]
+        targetRefs: [E-004]
+        method: {type: inspection, steps: [Inspect sample imports and commands for forbidden dependencies and side effects., Run diff and conflict checks.]}
+        requiredFor: [implementable]
+        description: Verify scope, safety, and documentation boundaries.
+    unresolvedQuestions: []
