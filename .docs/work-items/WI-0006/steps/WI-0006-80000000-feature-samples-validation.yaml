@@ -45,7 +45,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
@@ -131,21 +131,66 @@ task:
       - Do not make authenticated provider calls or execute real external tools.
       - Do not claim production, deployment, LangGraph, persistence, or downstream integration behavior.
   result:
-    status: blocked
-    summary: Validation is pending implementation and has not executed.
+    status: passed
+    summary: All nine discovered samples, the samples integration harness, package gates, response examples, and scope/safety checks passed.
     executions:
+      - id: EXEC-SAMPLES
+        procedureRef: "#procedure/VAL-SAMPLES"
+        status: passed
+        observed:
+          outcome: passed
+          exitCode: 0
+          summary: tests/samples.test.ts discovered and executed all nine samples in child processes; every sample returned one valid JSON envelope with ok=true.
+          assertions: [Nine samples discovered., Nine child processes exited zero., Nine JSON envelopes validated., No sample wrote stderr.]
+        evidenceTier: cli-audit
+        evidence:
+          - kind: test
+            source: sample integration harness
+            claim: The complete samples/*.mjs set executed and validated successfully.
+            command: node --test --import tsx tests/samples.test.ts
+            path: tests/samples.test.ts
+      - id: EXEC-PACKAGE
+        procedureRef: "#procedure/VAL-PACKAGE"
+        status: passed
+        observed:
+          outcome: passed
+          exitCode: 0
+          summary: Typecheck, full test suite, and build passed with 54 tests.
+          assertions: [npm run typecheck passed., npm test passed with 54 tests., npm run build passed.]
+        evidenceTier: cli-audit
+        evidence:
+          - kind: command
+            source: package validation
+            claim: Existing package behavior and sample integration passed together.
+            command: npm run typecheck && npm test && npm run build
+            path: /home/michael/src/github/llm
+      - id: EXEC-SCOPE
+        procedureRef: "#procedure/VAL-SCOPE"
+        status: passed
+        observed:
+          outcome: passed
+          exitCode: 0
+          summary: Scope and safety inspection passed; samples contain no credentials, network setup, LangGraph dependency, real tool execution, or unrelated request-schema edits.
+          assertions: [git diff --check passed., No conflict markers found., package.json unchanged., Pre-existing request-schema changes remain outside sample commits.]
+        evidenceTier: inspection
+        evidence:
+          - kind: git
+            source: repository scope audit
+            claim: Sample implementation and harness paths are limited to the declared scope.
+            command: git diff --check && git status --short
+            path: .git/
       - id: EXEC-PENDING
         procedureRef: "#procedure/VAL-SAMPLES"
-        status: blocked
+        status: passed
         observed:
-          outcome: blocked
-          summary: Validation has not started because the sample implementation dependency is incomplete.
+          outcome: passed
+          summary: Superseded by the completed sample integration execution above.
         evidenceTier: static
         evidence:
           - kind: record
             source: task-state
-            claim: The validation task is prepared but blocked on implementation.
+            claim: The original pending placeholder is superseded by EXEC-SAMPLES.
     findings: []
     evidenceTier: static
-    limitations: [No validation evidence exists until the implementation task completes.]
-    nonClaims: [This result does not claim that the sample set or integration harness is implemented.]
+    limitations: [Evidence is provider-free executable documentation and local package validation only; no live provider or real external side effect was performed.]
+    nonClaims: [This validation does not claim production readiness, deployment, or downstream integration.]
