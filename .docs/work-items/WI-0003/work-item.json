@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0003",
-  "status": "planned",
+  "status": "complete",
   "title": "Use provider finish reasons for bounded tool-loop termination",
   "type": "feature",
   "objective": "Make automatic v2 tool orchestration continue or stop from an explicit provider-normalized decision derived from provider-specific finish_reason metadata instead of inferring termination from an empty tool-call collection.",
