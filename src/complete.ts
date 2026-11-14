@@ -82,15 +82,28 @@ function resultForCall(call: ToolCall, result: unknown): ToolResult {
 async function invokeParallelToolBatch(request: NormalizedRequestV2, options: CompletionOptionsV2, batch: readonly ToolCall[], round: number, batchIndex: number): Promise<ToolResult[]> {
   if (!options.toolInvoker) throw new Failure('CONFIGURATION_INVALID', 'configuration', 'autoInvokeTools requires an injected ToolInvoker.');
   const signal = options.signal ?? new AbortController().signal;
+  emitDebug(options.debug, 'llm.tool.batch.start', { round, batchIndex, callIds: batch.map((call) => call.id) });
   return Promise.all(batch.map(async (call) => {
+    emitDebug(options.debug, 'llm.tool.call', { round, batchIndex, callId: call.id, toolName: call.name, arguments: call.arguments });
     try {
       const result = await options.toolInvoker!.invoke(call, { callId: call.id, toolName: call.name, round, batchIndex, signal });
-      return resultForCall(call, result);
+      const toolResult = resultForCall(call, result);
+      emitDebug(options.debug, 'llm.tool.result', toolResult);
+      return toolResult;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'The tool invocation failed.';
-      return { callId: call.id, name: call.name, status: 'error', error: { code: 'TOOL_INVOCATION_FAILED', message: boundedMessage(message) } };
+      const toolResult = { callId: call.id, name: call.name, status: 'error' as const, error: { code: 'TOOL_INVOCATION_FAILED', message: boundedMessage(message) } };
+      emitDebug(options.debug, 'llm.tool.result', toolResult);
+      return toolResult;
     }
-  }));
+  })).then((results) => {
+    emitDebug(options.debug, 'llm.tool.batch.end', { round, batchIndex, callIds: batch.map((call) => call.id), resultStatuses: results.map((result) => result.status) });
+    return results;
+  });
+}
+
+function cancelledResponse(completedToolResults: readonly ToolResult[], failedAttempts: number, iterations: number, toolRounds: number, toolCalls: number): LlmResponseV2 {
+  return v2Response('cancelled', null, failedAttempts, iterations, toolRounds, toolCalls, completedToolResults, [toolFailure('CANCELLED', 'The completion was cancelled.', 'retry')]);
 }
 
 async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: CompletionOptionsV2 = {}): Promise<LlmResponseV2> {
@@ -117,15 +130,17 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
   const completedToolResults: ToolResult[] = [];
   const outputSchema = normalized.outputSchema ? parseSchema(normalized.outputSchema) : undefined;
   while (iterations < normalized.maxIterations) {
+    if (options.signal?.aborted) return cancelledResponse(completedToolResults, failedAttempts, iterations, toolRounds, totalToolCalls);
     let providerResult: ProviderCompletionResponse;
     try {
-      const providerRequest = { protocol: 'v2' as const, provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials, tools: normalized.tools, toolResults };
+      const providerRequest = { protocol: 'v2' as const, provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials, signal: options.signal, tools: normalized.tools, toolResults };
       emitDebug(options.debug, 'llm.request', request);
       emitDebug(options.debug, 'llm.provider.request', providerRequest);
       providerResult = await provider.complete(providerRequest);
       emitDebug(options.debug, 'llm.provider.response', providerResult);
       iterations += 1;
     } catch (error) {
+      if (options.signal?.aborted || (error instanceof Error && error.name === 'AbortError')) return cancelledResponse(completedToolResults, failedAttempts, iterations, toolRounds, totalToolCalls);
       const failure = error instanceof Failure ? error : new Failure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider request failed before a usable response was returned.');
       failedAttempts += 1;
       if (failedAttempts >= normalized.maxFailedAttempts) return v2Response('attempts_exhausted', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(new Failure('ATTEMPTS_EXHAUSTED', 'retry', 'The provider failure-attempt limit was exhausted.'))]);
@@ -150,7 +165,10 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
       totalToolCalls += count;
       if (!normalized.autoInvokeTools) return v2Response('tool_calls_pending', toolAwareOutput({ output: null, tool_calls: calls }), failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, []);
       toolResults = [];
-      for (let batchIndex = 0; batchIndex < calls.length; batchIndex += 1) toolResults.push(...await invokeParallelToolBatch(normalized, options, calls[batchIndex]!, toolRounds, batchIndex));
+      for (let batchIndex = 0; batchIndex < calls.length; batchIndex += 1) {
+        if (options.signal?.aborted) return cancelledResponse(completedToolResults, failedAttempts, iterations, toolRounds, totalToolCalls);
+        toolResults.push(...await invokeParallelToolBatch(normalized, options, calls[batchIndex]!, toolRounds, batchIndex));
+      }
       completedToolResults.push(...toolResults);
       toolRounds += calls.length;
       prompt = composeRequestPrompt(normalized as unknown as NormalizedRequest);

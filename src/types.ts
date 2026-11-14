@@ -138,6 +138,7 @@ export interface ProviderCompletionRequestBase {
   readonly llmPrompt: string;
   readonly files: readonly (ReferenceFile & { readonly encoding: FileEncoding; readonly content: string; readonly resolvedPath: string })[];
   readonly credentials?: Credentials;
+  readonly signal?: AbortSignal;
 }
 
 export interface ProviderCompletionRequest extends ProviderCompletionRequestBase {
@@ -224,7 +225,8 @@ export type ErrorCode =
   | 'TOOL_CALL_INVALID'
   | 'TOOL_SCHEMA_INVALID'
   | 'TOOL_SCHEMA_VALIDATION_FAILED'
-  | 'TOOL_RESULT_INVALID';
+  | 'TOOL_RESULT_INVALID'
+  | 'CANCELLED';
 
 export type ErrorPhase =
   | 'request'
@@ -254,6 +256,7 @@ export interface LlmResponse {
 
 export type ResponseStatusV2 =
   | 'success'
+  | 'cancelled'
   | 'tool_calls_pending'
   | 'tool_rounds_exhausted'
   | 'tool_invocation_error'

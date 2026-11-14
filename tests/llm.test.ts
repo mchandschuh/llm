@@ -303,6 +303,60 @@ test('v2 forwards the abort signal to each tool invocation', async () => {
   assert.equal(received, controller.signal);
 });
 
+test('v2 emits correlated tool lifecycle events through DebugSink', async () => {
+  const events: Array<{ event: string; data?: Record<string, unknown> }> = [];
+  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [[{ id: 'call-event-a', name: 'read_record', arguments: { logicalId: 'a' } }, { id: 'call-event-b', name: 'read_record', arguments: { logicalId: 'b' } }]] }), JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), {
+    provider,
+    debug: (event) => events.push(event as { event: string; data?: Record<string, unknown> }),
+    toolInvoker: { invoke: async (call) => ({ secret: 'redact-me', callId: call.id }) },
+  });
+  assert.equal(result.status, 'success');
+  assert.deepEqual(events.map((event) => event.event).filter((event) => event.startsWith('llm.tool.')), [
+    'llm.tool.batch.start', 'llm.tool.call', 'llm.tool.call', 'llm.tool.result', 'llm.tool.result', 'llm.tool.batch.end',
+  ]);
+  assert.match(JSON.stringify(events), /call-event-a/u);
+  assert.match(JSON.stringify(events), /call-event-b/u);
+  assert.doesNotMatch(JSON.stringify(events), /redact-me/u);
+});
+
+test('v2 returns cancelled before starting provider work', async () => {
+  const controller = new AbortController();
+  controller.abort();
+  let calls = 0;
+  const provider = new V2SequenceProvider([JSON.stringify({ content: 'never', toolCalls: [] })]);
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), {
+    provider,
+    signal: controller.signal,
+    toolInvoker: { invoke: async () => { calls += 1; return {}; } },
+  });
+  assert.equal(result.status, 'cancelled');
+  assert.equal(result.errors[0]?.code, 'CANCELLED');
+  assert.equal(provider.calls.length, 0);
+  assert.equal(calls, 0);
+});
+
+test('v2 cancellation preserves completed results and does not start later model work', async () => {
+  const controller = new AbortController();
+  let providerCalls = 0;
+  const provider: LlmProvider = {
+    async complete(request) {
+      providerCalls += 1;
+      if (request.protocol === 'v1') return 'unused';
+      if (providerCalls === 1) return { decision: 'continue', content: null, toolCalls: [[{ id: 'call-cancel', name: 'read_record', arguments: { logicalId: 'a' } }]] };
+      return { decision: 'stop', content: 'unexpected', toolCalls: [] };
+    },
+  };
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), {
+    provider,
+    signal: controller.signal,
+    toolInvoker: { invoke: async () => { controller.abort(); return { ok: true }; } },
+  });
+  assert.equal(result.status, 'cancelled');
+  assert.equal(providerCalls, 1);
+  assert.deepEqual(result.toolResults, [{ callId: 'call-cancel', name: 'read_record', status: 'success', value: { ok: true } }]);
+});
+
 test('treats long literal task and system prompt values as literals', async () => {
   const provider = new SequenceProvider(['ok']);
   const longLiteral = 'word '.repeat(100);

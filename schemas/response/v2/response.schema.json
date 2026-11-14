@@ -28,6 +28,7 @@
       "type": "string",
       "enum": [
         "success",
+        "cancelled",
         "tool_calls_pending",
         "tool_rounds_exhausted",
         "tool_invocation_error",

@@ -239,6 +239,18 @@ The decision controls the intermediate provider/tool loop; terminal callers
 still receive the versioned `llm/response/v2` envelope and its `toolResults`
 history.
 
+Automatic v2 tool execution emits `llm.tool.batch.start`, `llm.tool.call`,
+`llm.tool.result`, and `llm.tool.batch.end` through the same bounded `DebugSink`
+used by request/provider/response diagnostics. Tool event payloads are
+sanitized and sink failures are isolated from completion behavior.
+
+Cancellation is cooperative: pass an `AbortSignal` through runtime completion
+options. The signal is propagated to provider fetches and
+`ToolInvocationContext`; cancellation stops later model/tool work, preserves
+completed tool results, and returns v2 status `cancelled` with a bounded
+`CANCELLED` diagnostic. It is not rollback or forced termination of an
+uncooperative tool.
+
 ## Response contract and retry behavior
 
 The response contract is

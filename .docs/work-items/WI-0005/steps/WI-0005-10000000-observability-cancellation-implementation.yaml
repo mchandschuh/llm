@@ -54,7 +54,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -122,19 +122,67 @@ task:
       - Add the bounded v2 cancelled status/error contract while preserving completed tool results.
       - Add deterministic tests, response examples, and package documentation.
   result:
-    status: blocked
+    status: implemented
     implementation:
-      summary: Implementation has not started; this planned task is awaiting acceptance and execution.
+      summary: Implemented v2 DebugSink tool lifecycle events, cooperative cancellation, cancelled response behavior, provider signal propagation, deterministic tests, response schema status, and documentation.
       changes:
-        - id: CHANGE-PENDING
+        - id: CHANGE-001
+          type: production-code
+          summary: Added bounded tool lifecycle event emission, cancellation checks, signal propagation, and cancelled v2 responses preserving completed tool results.
+          objectiveRefs: [OBJ-001, OBJ-002]
+          paths: [src/complete.ts, src/provider.ts, src/types.ts, src/debug.ts]
+        - id: CHANGE-002
+          type: schema
+          summary: Added cancelled to response/v2 status examples and contract.
+          objectiveRefs: [OBJ-002, OBJ-003]
+          paths: [schemas/response/v2/response.schema.json]
+        - id: CHANGE-003
+          type: test-code
+          summary: Added deterministic lifecycle-event and cancellation coverage, including pre-abort, provider/tool cancellation, and preserved results.
+          objectiveRefs: [OBJ-001, OBJ-002, OBJ-003]
+          paths: [tests/llm.test.ts]
+        - id: CHANGE-004
           type: documentation
-          summary: No implementation changes have been executed; this placeholder records the pending result boundary.
-          objectiveRefs: [OBJ-001]
-          paths: [.docs/work-items/WI-0005/steps/WI-0005-10000000-observability-cancellation-implementation.yaml]
-      testImplementations: []
+          summary: Documented v2 tool lifecycle events and cooperative cancellation semantics through the existing DebugSink and AbortSignal boundaries.
+          objectiveRefs: [OBJ-003]
+          paths: [SKILL.md]
+      testImplementations:
+        - testCaseRef: "#test-case/TC-001"
+          path: tests/llm.test.ts
+          selector: v2 emits correlated tool lifecycle events through DebugSink
+        - testCaseRef: "#test-case/TC-002"
+          path: tests/llm.test.ts
+          selector: debug sink emits bounded redacted request and response events
+        - testCaseRef: "#test-case/TC-003"
+          path: tests/llm.test.ts
+          selector: v2 returns cancelled before starting provider work
+        - testCaseRef: "#test-case/TC-004"
+          path: tests/llm.test.ts
+          selector: v2 cancellation preserves completed results and does not start later model work
+        - testCaseRef: "#test-case/TC-005"
+          path: tests/llm.test.ts
+          selector: v2 forwards the abort signal to each tool invocation
+        - testCaseRef: "#test-case/TC-006"
+          path: tests/llm.test.ts
+          selector: published request and response schema examples validate
+        - testCaseRef: "#test-case/TC-007"
+          path: SKILL.md
+          selector: cooperative cancellation and tool lifecycle documentation
     verification:
-      status: not-run
+      status: passed
       objectiveRefs: [OBJ-001, OBJ-002, OBJ-003]
-      tests: []
+      tests:
+        - id: EXEC-001
+          type: unit
+          testCaseRefs: ["#test-case/TC-001", "#test-case/TC-002", "#test-case/TC-003", "#test-case/TC-004", "#test-case/TC-005", "#test-case/TC-006"]
+          command: npm test
+          status: passed
+          result: 53 deterministic tests passed, including tool lifecycle events, cancellation, v1 regressions, response examples, and existing tool-loop behavior.
+        - id: EXEC-002
+          type: static
+          testCaseRefs: ["#test-case/TC-006", "#test-case/TC-007"]
+          command: npm run typecheck && npm run build
+          status: passed
+          result: TypeScript typecheck and native ESM build passed.
     limitations:
-      - This task result is blocked pending the planned implementation; it contains no production or test evidence.
+      - Evidence is provider-free and cooperative; no authenticated provider call or real external tool side effect was performed.

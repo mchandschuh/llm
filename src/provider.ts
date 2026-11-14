@@ -102,6 +102,7 @@ export class OpenRouterProvider implements LlmProvider {
       response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
+        signal: request.signal,
         body: JSON.stringify({
           model: request.model,
           messages: [{ role: 'system', content: request.systemPrompt }, { role: 'user', content: userContent(request) }],
@@ -140,6 +141,7 @@ export class OpenRouterProvider implements LlmProvider {
       response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
+        signal: request.signal,
         body: JSON.stringify(body),
       });
     } catch {
