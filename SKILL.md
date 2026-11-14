@@ -223,6 +223,22 @@ Only the `openrouter` adapter is built in. A non-OpenRouter provider name
 requires an injected `LlmProvider`; otherwise the completion returns
 `configuration_error` without making a provider request.
 
+For v2 tool-capable completions, OpenRouter's Chat Completions response includes
+the provider-specific `choices[0].finish_reason`. The adapter normalizes this
+intermediate provider response to `ProviderCompletionResponse.decision`:
+
+- `finish_reason: "tool_calls"` becomes `decision: "continue"` and requires at
+  least one normalized tool-call batch;
+- `finish_reason: "stop"` becomes `decision: "stop"` and must not include tool
+  calls.
+
+Missing or unsupported finish reasons, continuation without tool calls, and a
+stop decision with tool calls are provider protocol errors. Automatic v2
+orchestration does not infer termination from an empty tool-call collection.
+The decision controls the intermediate provider/tool loop; terminal callers
+still receive the versioned `llm/response/v2` envelope and its `toolResults`
+history.
+
 ## Response contract and retry behavior
 
 The response contract is

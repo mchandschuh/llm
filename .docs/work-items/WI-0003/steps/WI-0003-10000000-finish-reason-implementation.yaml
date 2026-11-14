@@ -1,0 +1,212 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0003
+taskUid: WI-0003-10000000
+orderKey: "10000000"
+parentTaskUid: WI-0003-00000000
+taskType: implementation
+processingStatus: processing_completed
+title: Implement provider finish-reason termination
+objective: Implement explicit provider decision normalization, bounded automatic loop control, deterministic tests, and public documentation.
+references:
+  required:
+    - .docs/work-items/WI-0003/work-item.json
+    - .docs/work-items/WI-0003/steps/WI-0003-00000000-finish-reason-design.yaml
+    - src/types.ts
+    - src/provider.ts
+    - src/complete.ts
+    - src/index.ts
+    - tests/llm.test.ts
+    - SKILL.md
+  informational:
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v2/response.schema.json
+dependsOn:
+  - WI-0003-00000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/types.ts
+    - src/provider.ts
+    - src/complete.ts
+    - src/index.ts
+    - tests/llm.test.ts
+    - SKILL.md
+    - .docs/work-items/WI-0003/steps/
+  commitSubject: "WI-0003: 02: feat(llm): use finish reason for tool loop termination"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: test
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments:
+        - run
+        - build
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement provider-specific finish_reason normalization and explicit bounded v2 tool-loop termination.
+    changeTypes:
+      - production-code
+      - test-code
+      - documentation
+    changeIntent: feature
+    inputs:
+      - id: INPUT-DECISION
+        kind: requirement
+        ref: WI-0003|00000000#requirement/WI-0003_REQ_001
+        purpose: "Require decision: continue | stop in ProviderCompletionResponse."
+        required: true
+      - id: INPUT-MAPPING
+        kind: requirement
+        ref: WI-0003|00000000#requirement/WI-0003_REQ_002
+        purpose: Map OpenRouter finish_reason values and reject unsupported metadata.
+        required: true
+      - id: INPUT-LOOP
+        kind: requirement
+        ref: WI-0003|00000000#requirement/WI-0003_REQ_003
+        purpose: Control automatic orchestration from explicit decisions and fail closed on contradictions.
+        required: true
+      - id: INPUT-DOCS
+        kind: requirement
+        ref: WI-0003|00000000#requirement/WI-0003_REQ_004
+        purpose: Document the provider-specific termination boundary.
+        required: true
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0003|00000000#result/R-001
+        purpose: Use the completed finish-reason design.
+        required: true
+    objectives:
+      - id: OBJ-001
+        statement: Add and export the provider-neutral completion decision and normalize OpenRouter finish_reason values.
+        inputRefs:
+          - INPUT-DECISION
+          - INPUT-MAPPING
+          - INPUT-DESIGN
+        testCaseRefs:
+          - "#test-case/TC-001"
+          - "#test-case/TC-002"
+          - "#test-case/TC-003"
+      - id: OBJ-002
+        statement: Make completeV2 automatic orchestration use explicit decision/call invariants and fail closed on invalid provider responses.
+        inputRefs:
+          - INPUT-LOOP
+          - INPUT-DESIGN
+        testCaseRefs:
+          - "#test-case/TC-004"
+          - "#test-case/TC-005"
+          - "#test-case/TC-006"
+      - id: OBJ-003
+        statement: Document finish_reason mapping and preserve existing terminal response/v2 and v1 behavior.
+        inputRefs:
+          - INPUT-DOCS
+          - INPUT-DESIGN
+        testCaseRefs:
+          - "#test-case/TC-007"
+    ownedPaths:
+      - src/types.ts
+      - src/provider.ts
+      - src/complete.ts
+      - src/index.ts
+      - tests/llm.test.ts
+      - SKILL.md
+      - .docs/work-items/WI-0003/steps/
+    nonGoals:
+      - Do not modify schemas/request/v1/ or schemas/response/v1/.
+      - Do not change terminal response/v2 schema fields.
+      - Do not add streaming, another provider, a model JSON envelope, or a terminal control tool.
+      - Do not make live provider calls or execute real tools.
+    steps:
+      - Add ProviderCompletionDecision and require decision on ProviderCompletionResponse.
+      - Parse choices[0].finish_reason in OpenRouterProvider and map tool_calls/stop.
+      - Use decision as the completeV2 loop control and reject invalid combinations.
+      - Extend deterministic provider and mocked-fetch tests for explicit stop, continuation, and protocol failures.
+      - Document the intermediate provider decision and terminal response distinction in SKILL.md.
+  result:
+    status: implemented
+    implementation:
+      summary: Implemented explicit provider finish-reason decisions for OpenRouter v2 tool calling, fail-closed automatic orchestration, deterministic regression coverage, and public documentation.
+      changes:
+        - id: CHANGE-001
+          type: production-code
+          summary: Added ProviderCompletionDecision, normalized OpenRouter finish_reason, and explicit completeV2 decision/call invariants.
+          objectiveRefs:
+            - OBJ-001
+            - OBJ-002
+          paths:
+            - src/types.ts
+            - src/provider.ts
+            - src/complete.ts
+            - src/index.ts
+        - id: CHANGE-002
+          type: test-code
+          summary: Added explicit stop/continue, invalid-combination, missing-finish-reason, and provider mapping tests.
+          objectiveRefs:
+            - OBJ-001
+            - OBJ-002
+            - OBJ-003
+          paths:
+            - tests/llm.test.ts
+        - id: CHANGE-003
+          type: documentation
+          summary: Documented OpenRouter finish_reason mapping, fail-closed termination, and the intermediate versus terminal response boundary.
+          objectiveRefs:
+            - OBJ-003
+          paths:
+            - SKILL.md
+      testImplementations:
+        - testCaseRef: "#test-case/TC-001"
+          path: tests/llm.test.ts
+          selector: OpenRouterProvider maps v2 tools, tool results, and native tool calls
+        - testCaseRef: "#test-case/TC-002"
+          path: tests/llm.test.ts
+          selector: OpenRouterProvider maps finish_reason stop to a terminal decision
+        - testCaseRef: "#test-case/TC-003"
+          path: tests/llm.test.ts
+          selector: OpenRouterProvider rejects missing or unsupported finish_reason
+        - testCaseRef: "#test-case/TC-004"
+          path: tests/llm.test.ts
+          selector: v2 automatic invocation stops only on an explicit provider decision
+        - testCaseRef: "#test-case/TC-005"
+          path: tests/llm.test.ts
+          selector: v2 rejects invalid provider decision and tool-call combinations
+        - testCaseRef: "#test-case/TC-006"
+          path: tests/llm.test.ts
+          selector: v2 automatic invocation runs calls in parallel within each batch and batches sequentially
+        - testCaseRef: "#test-case/TC-007"
+          path: SKILL.md
+          selector: finish_reason tool-loop documentation
+    verification:
+      status: not-run
+      objectiveRefs:
+        - OBJ-001
+        - OBJ-002
+        - OBJ-003
+      tests: []
+    limitations:
+      - Independent validation, review, and delivery evidence are recorded by later WI-0003 steps.
+      - No authenticated provider request or real tool side effect was performed.

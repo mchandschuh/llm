@@ -145,9 +145,12 @@ export interface ProviderCompletionRequestV2 extends ProviderCompletionRequest {
   readonly toolResults: readonly ToolResult[];
 }
 
+export type ProviderCompletionDecision = 'continue' | 'stop';
+
 export interface ProviderCompletionResponse {
   readonly content: string | null;
   readonly toolCalls: ToolCalls;
+  readonly decision: ProviderCompletionDecision;
 }
 
 export interface LlmProvider {

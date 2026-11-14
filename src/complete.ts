@@ -133,7 +133,15 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
       continue;
     }
     const calls: ToolCalls = providerResult.toolCalls;
-    if (calls.length > 0) {
+    if (providerResult.decision !== 'continue' && providerResult.decision !== 'stop') {
+      const failure = new Failure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider returned a missing or unsupported completion decision.');
+      return v2Response('provider_error', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(failure)]);
+    }
+    if (providerResult.decision === 'continue') {
+      if (calls.length === 0) {
+        const failure = new Failure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider selected continuation without returning tool calls.');
+        return v2Response('provider_error', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(failure)]);
+      }
       try { validateToolCalls(normalized, calls, toolRounds); } catch (error) {
         const failure = error instanceof Failure ? error : new Failure('TOOL_CALL_INVALID', 'tool-validation', 'The provider tool-call response was not validated.');
         return v2Response(failure.message.includes('round limit') ? 'unvalidated' : 'output_invalid', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(failure)]);
@@ -148,6 +156,10 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
       toolRounds += calls.length;
       prompt = composeRequestPrompt(normalized as unknown as NormalizedRequest);
       continue;
+    }
+    if (calls.length > 0) {
+      const failure = new Failure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider selected final completion while returning tool calls.');
+      return v2Response('provider_error', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(failure)]);
     }
     try {
       const text = providerResult.content ?? '';

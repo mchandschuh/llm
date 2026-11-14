@@ -123,9 +123,10 @@ class V2SequenceProvider implements LlmProvider {
   async complete(request: ProviderCompletionRequest): Promise<string> { this.calls.push(request); return this.sequence[this.calls.length - 1] ?? this.sequence.at(-1) ?? ''; }
   async completeV2(request: ProviderCompletionRequestV2): Promise<import('../src/types.js').ProviderCompletionResponse> {
     this.calls.push(request);
-    const value = JSON.parse(this.sequence[this.calls.length - 1] ?? this.sequence.at(-1) ?? '{}') as { content?: string | null; toolCalls?: unknown[] | unknown[][] };
+    const value = JSON.parse(this.sequence[this.calls.length - 1] ?? this.sequence.at(-1) ?? '{}') as { content?: string | null; toolCalls?: unknown[] | unknown[][]; decision?: 'continue' | 'stop' };
     const rawCalls = value.toolCalls ?? [];
-    return { content: value.content ?? null, toolCalls: Array.isArray(rawCalls[0]) ? rawCalls as import('../src/types.js').ToolCalls : (rawCalls.length > 0 ? [rawCalls as import('../src/types.js').ToolCall[]] : []) };
+    const toolCalls = Array.isArray(rawCalls[0]) ? rawCalls as import('../src/types.js').ToolCalls : (rawCalls.length > 0 ? [rawCalls as import('../src/types.js').ToolCall[]] : []);
+    return { content: value.content ?? null, toolCalls, decision: value.decision ?? (toolCalls.length > 0 ? 'continue' : 'stop') };
   }
 }
 
@@ -261,6 +262,32 @@ test('v2 converts tool failures into bounded error results and continues', async
     error: { code: 'TOOL_INVOCATION_FAILED', message: '[redacted]' },
   }]);
   assert.doesNotMatch(JSON.stringify(provider.calls[1]?.toolResults), /secret=hidden/u);
+});
+
+test('v2 automatic invocation stops only on an explicit provider decision', async () => {
+  const provider = new V2SequenceProvider([
+    JSON.stringify({ decision: 'continue', toolCalls: [{ id: 'call-stop', name: 'read_record', arguments: { logicalId: 'a' } }] }),
+    JSON.stringify({ decision: 'stop', content: '{"ok":true}', toolCalls: [] }),
+  ]);
+  const result = await completeV2(v2Request({ autoInvokeTools: true }), {
+    provider: provider as unknown as import('../src/types.js').LlmProviderV2,
+    toolInvoker: { invoke: async () => ({ ok: true }) },
+  });
+  assert.equal(result.status, 'success');
+  assert.equal(provider.calls.length, 2);
+  assert.deepEqual(result.toolResults, [{ callId: 'call-stop', name: 'read_record', status: 'success', value: { ok: true } }]);
+});
+
+test('v2 rejects invalid provider decision and tool-call combinations', async () => {
+  const stopWithCalls = new V2SequenceProvider([JSON.stringify({ decision: 'stop', toolCalls: [{ id: 'call-invalid-stop', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
+  const stopResult = await completeV2(v2Request({ autoInvokeTools: true }), { provider: stopWithCalls as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => ({}) } });
+  assert.equal(stopResult.status, 'provider_error');
+  assert.equal(stopResult.errors[0]?.code, 'PROVIDER_REQUEST_FAILED');
+
+  const continueWithoutCalls = new V2SequenceProvider([JSON.stringify({ decision: 'continue', content: 'not enough' })]);
+  const continueResult = await completeV2(v2Request({ autoInvokeTools: true }), { provider: continueWithoutCalls as unknown as import('../src/types.js').LlmProviderV2, toolInvoker: { invoke: async () => ({}) } });
+  assert.equal(continueResult.status, 'provider_error');
+  assert.equal(continueResult.errors[0]?.code, 'PROVIDER_REQUEST_FAILED');
 });
 
 test('v2 forwards the abort signal to each tool invocation', async () => {
@@ -602,7 +629,7 @@ test('OpenRouterProvider maps v2 tools, tool results, and native tool calls', as
   let body: { tools?: unknown[]; messages?: Array<Record<string, unknown>> } | undefined;
   globalThis.fetch = async (_input, init) => {
     body = JSON.parse(String(init?.body)) as { tools?: unknown[]; messages?: Array<Record<string, unknown>> };
-    return new Response(JSON.stringify({ choices: [{ message: { content: null, tool_calls: [{ id: 'call-read-1', function: { name: 'read_record', arguments: '{"logicalId":"record-a"}' } }] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+    return new Response(JSON.stringify({ choices: [{ finish_reason: 'tool_calls', message: { content: null, tool_calls: [{ id: 'call-read-1', function: { name: 'read_record', arguments: '{"logicalId":"record-a"}' } }] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
   };
   try {
     const provider = new OpenRouterProvider();
@@ -620,6 +647,7 @@ test('OpenRouterProvider maps v2 tools, tool results, and native tool calls', as
     const result = await provider.completeV2(request);
     assert.deepEqual(result.toolCalls, [[{ id: 'call-read-1', name: 'read_record', arguments: { logicalId: 'record-a' } }]]);
     assert.equal(result.content, null);
+    assert.equal(result.decision, 'continue');
     assert.equal((body?.tools?.[0] as { type?: string }).type, 'function');
     assert.equal((body?.messages?.[2] as { role?: string; tool_call_id?: string }).role, 'tool');
     assert.equal((body?.messages?.[2] as { tool_call_id?: string }).tool_call_id, 'call-prior');
@@ -628,9 +656,35 @@ test('OpenRouterProvider maps v2 tools, tool results, and native tool calls', as
   }
 });
 
+test('OpenRouterProvider maps finish_reason stop to a terminal decision', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '{"ok":true}', tool_calls: [] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+  try {
+    const result = await new OpenRouterProvider().completeV2({
+      provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Finish.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, tools: [], toolResults: [],
+    });
+    assert.equal(result.decision, 'stop');
+    assert.equal(result.content, '{"ok":true}');
+    assert.deepEqual(result.toolCalls, []);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('OpenRouterProvider rejects missing or unsupported finish_reason', async () => {
+  const originalFetch = globalThis.fetch;
+  for (const finishReason of [undefined, 'length']) {
+    globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ ...(finishReason === undefined ? {} : { finish_reason: finishReason }), message: { content: '{"ok":true}', tool_calls: [] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+    await assert.rejects(() => new OpenRouterProvider().completeV2({
+      provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Finish.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, tools: [], toolResults: [],
+    }), /missing or unsupported completion finish reason/u);
+  }
+  globalThis.fetch = originalFetch;
+});
+
 test('OpenRouterProvider rejects malformed native tool arguments', async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: null, tool_calls: [{ id: 'call-bad', function: { name: 'read_record', arguments: '{' } }] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+  globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ finish_reason: 'tool_calls', message: { content: null, tool_calls: [{ id: 'call-bad', function: { name: 'read_record', arguments: '{' } }] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
   try {
     await assert.rejects(() => new OpenRouterProvider().completeV2({
       provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Use tools.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, tools: [], toolResults: [],

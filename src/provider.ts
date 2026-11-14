@@ -1,4 +1,4 @@
-import type { LlmProviderV2, ProviderCompletionRequest, ProviderCompletionRequestV2, ProviderCompletionResponse, ToolCall, ToolDefinition } from './types.js';
+import type { LlmProviderV2, ProviderCompletionRequest, ProviderCompletionRequestV2, ProviderCompletionResponse, ToolCall, ToolCalls, ToolDefinition } from './types.js';
 import { boundedMessage, LlmFailure } from './errors.js';
 
 function credential(request: ProviderCompletionRequest): string | undefined {
@@ -72,6 +72,18 @@ function contentOrNull(message: unknown): string | null {
   return contentFromMessage(content);
 }
 
+function completionDecision(finishReason: unknown, toolCalls: ToolCalls): 'continue' | 'stop' {
+  if (finishReason === 'tool_calls') {
+    if (toolCalls.length === 0) throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider selected tool-call continuation without returning tool calls.');
+    return 'continue';
+  }
+  if (finishReason === 'stop') {
+    if (toolCalls.length > 0) throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider selected final completion while returning tool calls.');
+    return 'stop';
+  }
+  throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider returned a missing or unsupported completion finish reason.');
+}
+
 export class OpenRouterProvider implements LlmProviderV2 {
   async complete(request: ProviderCompletionRequest): Promise<string> {
     const apiKey = credential(request);
@@ -126,12 +138,12 @@ export class OpenRouterProvider implements LlmProviderV2 {
     }
     if (!response.ok) throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', `The provider request failed with HTTP ${response.status}.`);
     try {
-      const bodyValue = await response.json() as { choices?: Array<{ message?: unknown }> };
+      const bodyValue = await response.json() as { choices?: Array<{ finish_reason?: unknown; message?: unknown }> };
       const message = bodyValue.choices?.[0]?.message;
       const toolCalls = normalizedToolCalls(message);
       const content = contentOrNull(message);
-      if (content === null && toolCalls.length === 0) throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider returned neither content nor tool calls.');
-      return { content, toolCalls: toolCalls.length > 0 ? [toolCalls] : [] };
+      const calls = toolCalls.length > 0 ? [toolCalls] : [];
+      return { content, toolCalls: calls, decision: completionDecision(bodyValue.choices?.[0]?.finish_reason, calls) };
     } catch (error) {
       if (error instanceof LlmFailure) throw error;
       throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', boundedMessage('The provider returned an invalid response envelope.'));
