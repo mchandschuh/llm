@@ -377,6 +377,20 @@ test('v2 cancellation observed after provider response prevents terminal success
   assert.equal(events.includes('llm.cancelled'), true);
 });
 
+test('v2 provider abort errors emit the cancellation lifecycle', async () => {
+  const events: string[] = [];
+  const provider: LlmProvider = {
+    async complete(request) {
+      if (request.protocol === 'v1') return 'unused';
+      throw Object.assign(new Error('aborted'), { name: 'AbortError' });
+    },
+  };
+  const result = await completeV2(v2Request(), { provider, debug: (event) => events.push(event.event) });
+  assert.equal(result.status, 'cancelled');
+  assert.equal(result.errors[0]?.phase, 'cancellation');
+  assert.deepEqual(events.slice(-4), ['llm.provider.request', 'llm.cancel.observed', 'llm.cancelled', 'llm.response']);
+});
+
 test('v2 cancellation during parallel tool events prevents unstarted tool invocation', async () => {
   const controller = new AbortController();
   const events: string[] = [];

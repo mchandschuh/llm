@@ -160,7 +160,12 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
         return result;
       }
     } catch (error) {
-      if (options.signal?.aborted || (error instanceof Error && error.name === 'AbortError')) return cancelledResponse(completedToolResults, failedAttempts, iterations, toolRounds, totalToolCalls);
+      if (options.signal?.aborted || (error instanceof Error && error.name === 'AbortError')) {
+        observeCancellation(options, 'provider-abort', iterations, toolRounds, totalToolCalls);
+        const result = cancelledResponse(completedToolResults, failedAttempts, iterations, toolRounds, totalToolCalls);
+        completeCancellation(options, 'provider-abort', iterations, toolRounds, totalToolCalls);
+        return result;
+      }
       const failure = error instanceof Failure ? error : new Failure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider request failed before a usable response was returned.');
       failedAttempts += 1;
       if (failedAttempts >= normalized.maxFailedAttempts) return v2Response('attempts_exhausted', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(new Failure('ATTEMPTS_EXHAUSTED', 'retry', 'The provider failure-attempt limit was exhausted.'))]);
