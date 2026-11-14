@@ -1,0 +1,442 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0002
+taskUid: WI-0002-00000000
+orderKey: "00000000"
+parentTaskUid: null
+taskType: design
+processingStatus: processing_completed
+title: Define the response/v2 tool-result exposure design
+objective: Define the public response, ordering, validation, and compatibility boundary for exposing executed tool results.
+references:
+  required:
+    - .docs/work-items/WI-0002/work-item.json
+    - .docs/work-items/WI-0002/classification-result.json
+    - src/types.ts
+    - src/complete.ts
+    - src/schema.ts
+    - schemas/response/v2/response.schema.json
+    - schemas/tool-result/v1/tool-result.schema.json
+    - tests/llm.test.ts
+  informational:
+    - README.md
+    - SKILL.md
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0002/steps/
+  commitSubject: "WI-0002: 01: design(llm): define response tool result contract"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: envelope-schema
+      executable: schema-validate
+      arguments:
+        - --root
+        - /home/michael/.cline/skills/sdlc/schemas
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
+  intent:
+    summary: Define the public response/v2 contract for exposing bounded executed tool results.
+    objectives:
+      - Make executed tool results available through the public LlmResponseV2 type and response/v2 schema.
+      - Preserve deterministic result ordering across automatic tool rounds and distinguish executed results from pending calls.
+      - Preserve v1 compatibility, bounded response validation, and sanitized tool-error behavior.
+    inScope:
+      - LlmResponseV2 and the response/v2 JSON Schema.
+      - Existing ToolResult records produced by the bounded automatic orchestration path.
+      - Result accumulation, response construction, schema validation, and provider-free regression tests.
+    outOfScope:
+      - Changes to request/v1 or response/v1.
+      - New provider wire formats, new tool invocation policy, persistence, or real external tool execution.
+      - Authenticated provider, deployment, downstream integration, or production-readiness claims.
+    policy:
+      id: component-design
+      version: "1"
+    profile: implementable
+    scope: component
+    facets:
+      - structure
+      - behavior
+      - contract
+      - policy
+    references:
+      - id: REF-001
+        type: artifact
+        locator: sdlc://repo/local%2Fllm/WI-0002#work-item.json%23work-item/WI-0002
+        description: Authoritative WI-0002 response tool-result requirement boundary.
+      - id: REF-002
+        type: document
+        locator: src/types.ts
+        description: Existing public TypeScript response and ToolResult definitions.
+      - id: REF-003
+        type: document
+        locator: src/complete.ts
+        description: Existing bounded v2 completion and tool orchestration lifecycle.
+      - id: REF-004
+        type: document
+        locator: schemas/response/v2/response.schema.json
+        description: Existing closed response/v2 JSON Schema.
+      - id: REF-005
+        type: document
+        locator: schemas/tool-result/v1/tool-result.schema.json
+        description: Existing normalized ToolResult schema.
+      - id: REF-006
+        type: document
+        locator: tests/llm.test.ts
+        description: Existing deterministic v2 tool-calling evidence.
+    provenance:
+      referenceRefs:
+        - REF-001
+        - REF-002
+        - REF-003
+        - REF-004
+        - REF-005
+        - REF-006
+      basis: The design follows the prepared implementation change and the existing v2 tool-result transport boundary while keeping v1 closed contracts unchanged.
+      confidence: 98
+    considerations:
+      - id: C-001
+        kind: boundary
+        statement: The public response must expose completed results without exposing provider-specific wire messages.
+        evaluation: Reuse normalized ToolResult entries at the response envelope and retain provider mapping inside the adapter boundary.
+        referenceRefs:
+          - REF-001
+          - REF-002
+          - REF-003
+        status: accepted
+        impact: 98
+        confidence: 98
+      - id: C-002
+        kind: constraint
+        statement: A response path that executes no tools must not imply that pending calls were executed.
+        evaluation: Return an empty toolResults collection for pending, rejected, configuration, and no-tool paths.
+        referenceRefs:
+          - REF-001
+          - REF-003
+        status: accepted
+        impact: 95
+        confidence: 98
+      - id: C-003
+        kind: risk
+        statement: Tool result history could grow without bound or leak invocation secrets through errors.
+        evaluation: Bound the response collection and preserve existing boundedMessage sanitization for invocation failures.
+        referenceRefs:
+          - REF-001
+          - REF-003
+          - REF-005
+        status: accepted
+        impact: 100
+        confidence: 98
+    activities:
+      - id: ACT-001
+        type: analysis
+        summary: Inspected the existing response type, response schema, ToolResult schema, orchestration state, and v2 tests.
+        status: completed
+        referenceRefs:
+          - REF-001
+          - REF-002
+          - REF-003
+          - REF-004
+          - REF-005
+          - REF-006
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+            - REF-003
+            - REF-004
+            - REF-005
+            - REF-006
+          basis: Repository inspection established that tool results already exist internally and only need public response exposure.
+          confidence: 99
+  result:
+    summary: The response/v2 envelope will expose a bounded ordered history of normalized ToolResult entries from automatic execution while preserving pending semantics and v1 compatibility.
+    model:
+      name: response-v2-tool-result-boundary
+      kind: interface
+      description: Public response envelope, normalized tool-result collection, and bounded orchestration handoff.
+      notation: contract-model
+      version: "1"
+    elements:
+      - id: E-001
+        type: response-envelope
+        name: response-v2
+        description: Closed response/v2 envelope returned by completeV2.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-004
+          basis: The work item requires a public response field and the existing response schema is closed.
+          confidence: 99
+      - id: E-002
+        type: result-collection
+        name: tool-results
+        description: Required bounded ordered response collection containing normalized ToolResult entries.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-005
+          basis: The existing ToolResult contract is reused rather than introducing a provider-specific result type.
+          confidence: 99
+      - id: E-003
+        type: orchestration-state
+        name: completed-tool-results
+        description: Accumulated results from each automatically executed parallel batch in model-round order.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-003
+          basis: The completion lifecycle already has per-round toolResults and requires a public history across rounds.
+          confidence: 98
+      - id: E-004
+        type: pending-state
+        name: pending-tool-calls
+        description: Manual or rejected paths where tool calls are returned or refused without execution.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-003
+          basis: Pending calls and validation failures must not be represented as executed results.
+          confidence: 98
+    relations:
+      - id: REL-001
+        type: contains
+        source:
+          type: element
+          id: E-001
+        target:
+          type: element
+          id: E-002
+        description: The response/v2 envelope contains the public toolResults collection.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-004
+          basis: The response schema and TypeScript interface add the same required field.
+          confidence: 99
+      - id: REL-002
+        type: accumulates
+        source:
+          type: element
+          id: E-003
+        target:
+          type: element
+          id: E-002
+        description: Completed automatic results are appended in deterministic execution order before terminal response construction.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-003
+          basis: Results from each executed round are retained and exposed after completion.
+          confidence: 98
+      - id: REL-003
+        type: excludes
+        source:
+          type: element
+          id: E-004
+        target:
+          type: element
+          id: E-002
+        description: Pending or rejected calls do not populate the executed result history.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-003
+          basis: Empty results preserve the distinction between requested work and executed work.
+          confidence: 98
+    views:
+      - id: V-001
+        type: response-lifecycle
+        name: response-tool-result-flow
+        description: Flow from provider tool calls through automatic invocation to the public response history.
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+          - E-004
+        relationRefs:
+          - REL-001
+          - REL-002
+          - REL-003
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-003
+            - REF-004
+          basis: The view captures the contract and lifecycle decisions needed for implementation and verification.
+          confidence: 98
+    artifacts:
+      - id: A-001
+        type: schema
+        name: response-v2-tool-results
+        description: Updated response/v2 JSON Schema with the ToolResult definition and required toolResults field.
+        locator: schemas/response/v2/response.schema.json
+        format: json-schema
+        status: complete
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-004
+            - REF-005
+          basis: The prepared implementation includes a closed schema update reusing the existing result shape.
+          confidence: 99
+    outcomes:
+      - id: O-001
+        type: designDecision
+        statement: Add toolResults as a required top-level response/v2 field rather than hiding results inside tool_calls or output.
+        status: accepted
+        impact: 100
+        confidence: 99
+        referenceRefs:
+          - REF-001
+          - REF-004
+        elementRefs:
+          - E-001
+          - E-002
+        suggestedTaskType: implementation
+      - id: O-002
+        type: designDecision
+        statement: Accumulate automatic results across rounds in call and batch execution order, capped at 128 entries.
+        status: accepted
+        impact: 100
+        confidence: 98
+        referenceRefs:
+          - REF-001
+          - REF-003
+        elementRefs:
+          - E-002
+          - E-003
+        suggestedTaskType: implementation
+      - id: O-003
+        type: designDecision
+        statement: Return an empty toolResults collection for manual pending responses and all paths that execute no tools.
+        status: accepted
+        impact: 95
+        confidence: 98
+        referenceRefs:
+          - REF-001
+          - REF-003
+        elementRefs:
+          - E-002
+          - E-004
+        suggestedTaskType: implementation
+      - id: O-004
+        type: testHandoff
+        statement: Verify successful multi-round ordering, pending emptiness, sanitized failures, response examples, typecheck, tests, build, and v1 regression behavior.
+        status: accepted
+        impact: 100
+        confidence: 98
+        referenceRefs:
+          - REF-001
+          - REF-006
+        suggestedTaskType: validation
+    outputs:
+      - id: OUT-001
+        category: interface-contract
+        status: complete
+        sourceRefs:
+          - REF-001
+          - REF-002
+          - REF-004
+          - REF-005
+        elementRefs:
+          - E-001
+          - E-002
+        description: TypeScript and JSON Schema response/v2 contract exposing normalized tool results.
+      - id: OUT-002
+        category: state-and-invariants
+        status: complete
+        sourceRefs:
+          - REF-001
+          - REF-003
+        elementRefs:
+          - E-003
+          - E-004
+        relationRefs:
+          - REL-002
+          - REL-003
+        description: Ordered accumulation and empty-result semantics for non-executing paths.
+      - id: OUT-003
+        category: security-and-trust
+        status: complete
+        sourceRefs:
+          - REF-001
+          - REF-003
+          - REF-005
+        elementRefs:
+          - E-002
+        description: Bounded result history and sanitized tool errors remain part of the response boundary.
+      - id: OUT-004
+        category: implementation-handoff
+        status: complete
+        sourceRefs:
+          - REF-001
+          - REF-006
+        description: Implement the prepared source, schema, and deterministic test changes before independent validation and review.
+    verificationObligations:
+      - id: VER-001
+        kind: contract-test
+        status: planned
+        sourceRefs:
+          - REF-001
+          - REF-004
+          - REF-005
+        targetRefs:
+          - E-001
+        method:
+          type: contract-test
+          steps:
+            - Validate response/v2 examples and the new ToolResult definition against the closed JSON Schema.
+          command: npm test
+        requiredFor:
+          - implementable
+        description: Confirm the response type and schema agree on the required bounded result collection.
+      - id: VER-002
+        kind: unit-test
+        status: planned
+        sourceRefs:
+          - REF-001
+          - REF-003
+          - REF-006
+        targetRefs:
+          - E-003
+        method:
+          type: unit-test
+          steps:
+            - Exercise one-round and multi-round automatic invocation, manual pending mode, and sanitized invocation failure.
+          command: npm test
+        requiredFor:
+          - implementable
+        description: Confirm ordered accumulation and empty-result semantics without real tool side effects.
+      - id: VER-003
+        kind: build
+        status: planned
+        sourceRefs:
+          - REF-002
+          - REF-003
+          - REF-006
+        targetRefs:
+          - E-001
+        method:
+          type: build
+          steps:
+            - Run TypeScript typecheck and native ESM build.
+          command: npm run typecheck && npm run build
+        requiredFor:
+          - implementable
+        description: Confirm the public type change compiles and emits the expected declaration.
+    unresolvedQuestions: []
