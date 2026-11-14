@@ -1,0 +1,124 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0004",
+  "status": "planned",
+  "title": "Unify the raw LLM provider interface across request versions",
+  "type": "refactor",
+  "objective": "Replace the split LlmProvider/LlmProviderV2 raw adapter seam with one overloaded LlmProvider.complete interface that accepts version-discriminated provider requests and returns the correlated provider response while preserving the versioned public completion contracts.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0004-unified-llm-provider",
+      "created": false,
+      "rationale": "The work item is processed as a serial set of scoped commits on the current repository branch; the branch name records the intended refactor boundary without requiring a topic branch."
+    }
+  },
+  "baseline": "a5a423e3ee96b969794a57f39c950fd4c1ac8f2f",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare a new .docs/work-items to refactor to a unified interface, removing the v2 specific variants. Commit the new work item. Process the new work item, committing after each task.",
+    "sha256": "ccb31d21c615f5d300b3660760b82ec70349047ff549af6c3afc19517300abfc"
+  },
+  "scope": [
+    {
+      "name": "unified-raw-provider",
+      "description": "Unify raw provider transport behind one LlmProvider.complete overload set using version-discriminated provider request and response unions.",
+      "reason": "The current LlmProvider/LlmProviderV2 split forces callers and orchestration code to select a version-specific method and does not scale cleanly to future request/response versions."
+    },
+    {
+      "name": "provider-api-migration",
+      "description": "Update OpenRouterProvider, completeV2 orchestration, exports, deterministic fixtures, and generated declarations to consume the unified complete method.",
+      "reason": "All implementations and tests must use one provider method while preserving v1 raw text and v2 normalized tool responses."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "public-contract-version-removal",
+      "description": "Do not remove or merge llm/request/v1, llm/request/v2, llm/response/v1, or llm/response/v2 contracts.",
+      "reason": "Versioned public request and response envelopes remain compatibility boundaries.",
+      "forbiddenFileWrites": [
+        "schemas/request/v1/",
+        "schemas/request/v2/",
+        "schemas/response/v1/",
+        "schemas/response/v2/"
+      ],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "behavioral-expansion",
+      "description": "Do not change tool orchestration policy, finish_reason semantics, retry bounds, provider wire formats, or tool-result behavior.",
+      "reason": "WI-0004 is an interface refactor over the behavior delivered by WI-0003.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "unrelated-worktree-changes",
+      "description": "Do not stage or modify the pre-existing request-schema edits outside this work item.",
+      "reason": "Those changes predate WI-0004 and are unrelated to provider interface unification.",
+      "forbiddenFileWrites": [
+        "schemas/request/v1/request.schema.json",
+        "schemas/request/v2/request.schema.json"
+      ],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0004_REQ_001",
+        "name": "single-provider-method",
+        "description": "The exported raw provider contract exposes one complete method that accepts v1 and v2 provider requests and returns the correlated provider result.",
+        "reason": "Consumers should not select between complete and completeV2 methods for provider transport.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0004_REQ_001_AC_001",
+            "description": "The generated public declarations contain one LlmProvider.complete overload set for v1/v2 requests and no LlmProviderV2 interface or completeV2 provider method."
+          }
+        ]
+      },
+      {
+        "id": "WI-0004_REQ_002",
+        "name": "version-correlated-types",
+        "description": "Provider request and response unions preserve version correlation and remain extensible for future provider protocol versions.",
+        "reason": "A single union method must not collapse all callers to an uncorrelated string-or-object response.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0004_REQ_002_AC_001",
+            "description": "TypeScript overloads infer string for v1 provider requests and ProviderCompletionResponse for v2 provider requests, with an explicit discriminator available for future versions."
+          }
+        ]
+      },
+      {
+        "id": "WI-0004_REQ_003",
+        "name": "implementation-migration",
+        "description": "OpenRouterProvider and v2 orchestration use the unified complete method without changing v1 output, v2 tool behavior, finish_reason decisions, or response envelopes.",
+        "reason": "The refactor must be behavior-preserving while removing the v2-specific raw provider method.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0004_REQ_003_AC_001",
+            "description": "Deterministic v1/v2 provider tests, tool-loop tests, finish_reason tests, response-schema tests, and existing service-dispatch tests remain passing after the migration."
+          }
+        ]
+      },
+      {
+        "id": "WI-0004_REQ_004",
+        "name": "variant-removal-documentation",
+        "description": "The public exports and documentation describe the unified provider interface and do not advertise the removed v2-specific raw provider variants.",
+        "reason": "A successful refactor must be discoverable and must not leave callers on the obsolete split interface.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0004_REQ_004_AC_001",
+            "description": "Generated declarations, index exports, tests, and SKILL.md consistently reference the unified LlmProvider.complete boundary; completeV2 remains absent as a provider method."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0004/steps/"
+}
