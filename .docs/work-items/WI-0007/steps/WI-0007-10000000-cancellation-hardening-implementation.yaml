@@ -53,7 +53,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -120,19 +120,52 @@ task:
       - Add a dedicated cancellation error phase across types, response schema, implementation, tests, and docs.
       - Run focused race regressions and existing package gates.
   result:
-    status: blocked
+    status: implemented
     implementation:
-      summary: Implementation is pending execution of this follow-up task.
+      summary: Implemented v2 cancellation race hardening, explicit cancellation lifecycle events, the dedicated cancellation phase, deterministic regressions, and documentation.
       changes:
-        - id: CHANGE-PENDING
+        - id: CHANGE-001
+          type: production-code
+          summary: Added post-provider-response and per-tool pre-invocation cancellation gates, explicit llm.cancel.observed/llm.cancelled events, and cancellation-phase diagnostics.
+          objectiveRefs: [OBJ-001, OBJ-002, OBJ-003]
+          paths: [src/complete.ts, src/types.ts]
+        - id: CHANGE-002
+          type: schema
+          summary: Added cancellation to the response/v2 error phase contract.
+          objectiveRefs: [OBJ-003]
+          paths: [schemas/response/v2/response.schema.json]
+        - id: CHANGE-003
+          type: test-code
+          summary: Added deterministic provider-response and parallel-tool cancellation race regressions with lifecycle ordering assertions.
+          objectiveRefs: [OBJ-001, OBJ-002, OBJ-003]
+          paths: [tests/llm.test.ts]
+        - id: CHANGE-004
           type: documentation
-          summary: No implementation changes have been executed; this placeholder records the pending result boundary.
-          objectiveRefs: [OBJ-001]
-          paths: [.docs/work-items/WI-0007/steps/WI-0007-10000000-cancellation-hardening-implementation.yaml]
-      testImplementations: []
+          summary: Documented cancellation checkpoints, event semantics, dedicated phase, and cooperative limits.
+          objectiveRefs: [OBJ-002, OBJ-003]
+          paths: [SKILL.md]
+      testImplementations:
+        - testCaseRef: "#test-case/TC-001"
+          path: tests/llm.test.ts
+          selector: v2 cancellation observed after provider response prevents terminal success
+        - testCaseRef: "#test-case/TC-002"
+          path: tests/llm.test.ts
+          selector: v2 cancellation during parallel tool events prevents unstarted tool invocation
+        - testCaseRef: "#test-case/TC-003"
+          path: tests/llm.test.ts
+          selector: v2 cancellation lifecycle ordering assertions
+        - testCaseRef: "#test-case/TC-004"
+          path: tests/llm.test.ts
+          selector: existing v2 cancellation preservation and pre-start regressions
     verification:
-      status: not-run
-      objectiveRefs: []
-      tests: []
+      status: passed
+      objectiveRefs: [OBJ-001, OBJ-002, OBJ-003]
+      tests:
+        - id: EXEC-001
+          type: unit
+          testCaseRefs: ["#test-case/TC-001", "#test-case/TC-002", "#test-case/TC-003", "#test-case/TC-004"]
+          command: npm run typecheck && npx tsx --test tests/llm.test.ts
+          status: passed
+          result: Existing and new cancellation tests passed with 55 total tests.
     limitations:
-      - This result is a planned-task placeholder and is not implementation evidence.
+      - Evidence is provider-free and cooperative; it does not establish authenticated provider behavior, rollback, forced termination, production readiness, or downstream integration.

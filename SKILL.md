@@ -248,8 +248,22 @@ Cancellation is cooperative: pass an `AbortSignal` through runtime completion
 options. The signal is propagated to provider fetches and
 `ToolInvocationContext`; cancellation stops later model/tool work, preserves
 completed tool results, and returns v2 status `cancelled` with a bounded
-`CANCELLED` diagnostic. It is not rollback or forced termination of an
-uncooperative tool.
+`CANCELLED` diagnostic with error phase `cancellation`. If a monitor aborts from
+`llm.provider.response`, the runtime checks the signal before terminal output
+processing. If it aborts from `llm.tool.call`, each parallel callback checks the
+signal before crossing the injected tool boundary; already-started tools may
+settle, but later unstarted calls do not execute.
+
+Cancellation lifecycle transitions use the existing `DebugSink` and occur before
+the final `llm.response` event:
+
+- `llm.cancel.observed`: cancellation was detected, with bounded `phase`,
+  `iterations`, `toolRounds`, and `toolCalls` metadata.
+- `llm.cancelled`: the bounded cancelled response is complete and will be
+  returned to the caller.
+
+The event sink remains diagnostic and failure-isolated. Cancellation is not
+rollback or forced termination of an uncooperative tool.
 
 ## Response contract and retry behavior
 
