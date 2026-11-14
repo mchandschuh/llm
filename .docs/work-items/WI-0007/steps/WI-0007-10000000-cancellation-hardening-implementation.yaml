@@ -144,6 +144,11 @@ task:
           summary: Documented cancellation checkpoints, event semantics, dedicated phase, and cooperative limits.
           objectiveRefs: [OBJ-002, OBJ-003]
           paths: [SKILL.md]
+        - id: CHANGE-005
+          type: production-code
+          summary: Completed the provider-abort cancellation path with explicit lifecycle events.
+          objectiveRefs: [OBJ-002, OBJ-003]
+          paths: [src/complete.ts]
       testImplementations:
         - testCaseRef: "#test-case/TC-001"
           path: tests/llm.test.ts
@@ -157,6 +162,9 @@ task:
         - testCaseRef: "#test-case/TC-004"
           path: tests/llm.test.ts
           selector: existing v2 cancellation preservation and pre-start regressions
+        - testCaseRef: "#test-case/TC-005"
+          path: tests/llm.test.ts
+          selector: v2 provider abort errors emit the cancellation lifecycle
     verification:
       status: passed
       objectiveRefs: [OBJ-001, OBJ-002, OBJ-003]
