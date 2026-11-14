@@ -276,9 +276,46 @@
       "thinking": "high",
       "maxFailedAttempts": 3,
       "maxIterations": 3,
-      "task": "{\"workItemId\":\"WI-0002\",\"operation\":\"assess-readiness\",\"scope\":[\"provider-boundary\",\"retry-semantics\",\"structured-output\"]}",
+      "task": {
+        "workItemId": "WI-0002",
+        "operation": "assess-readiness",
+        "scope": [
+          "provider-boundary",
+          "retry-semantics",
+          "structured-output"
+        ]
+      },
       "systemPrompt": "You are an SDLC assessment agent. Return only JSON that conforms to outputSchema.",
-      "taskSchema": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"required\":[\"workItemId\",\"operation\",\"scope\"]}",
+      "taskSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Assessment input",
+        "description": "The structured input for one bounded SDLC assessment.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workItemId",
+          "operation",
+          "scope"
+        ],
+        "properties": {
+          "workItemId": {
+            "type": "string",
+            "description": "The assessed work-item identifier."
+          },
+          "operation": {
+            "type": "string",
+            "description": "The bounded assessment operation."
+          },
+          "scope": {
+            "type": "array",
+            "description": "The bounded assessment scopes.",
+            "items": {
+              "type": "string",
+              "description": "One assessment scope."
+            }
+          }
+        }
+      },
       "files": [
         {
           "name": "assessment-process",
@@ -287,12 +324,63 @@
           "purpose": "Define assessment evidence and provider-fallback boundaries."
         }
       ],
-      "outputSchema": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"required\":[\"decision\",\"confidence\",\"findings\"]}"
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Assessment output",
+        "description": "The structured result of one bounded SDLC assessment.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "decision",
+          "confidence",
+          "findings"
+        ],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "description": "The assessment decision."
+          },
+          "confidence": {
+            "type": "number",
+            "description": "The bounded confidence score."
+          },
+          "findings": {
+            "type": "array",
+            "description": "The bounded assessment findings.",
+            "items": {
+              "type": "string",
+              "description": "One assessment finding."
+            }
+          }
+        }
+      }
     },
     {
       "schema": "https://schemas.handschuh.dev/llm/request/v1",
       "task": "Assess the current work item for decomposition readiness.",
       "systemPrompt": "Return a concise plain-text assessment."
+    }
+  ],
+  "x-negativeExamples": [
+    {
+      "name": "unknown-request-property",
+      "data": {
+        "schema": "https://schemas.handschuh.dev/llm/request/v1",
+        "task": "Inspect records.",
+        "systemPrompt": "Return the result.",
+        "unexpected": true
+      },
+      "reason": "The closed request object rejects the unexpected property through additionalProperties: false."
+    },
+    {
+      "name": "inline-output-schema-must-be-object",
+      "data": {
+        "schema": "https://schemas.handschuh.dev/llm/request/v1",
+        "task": "Inspect records.",
+        "systemPrompt": "Return the result.",
+        "outputSchema": "{\"type\":\"object\"}"
+      },
+      "reason": "The inline outputSchema contract requires a JSON Schema object rather than JSON text."
     }
   ]
 }

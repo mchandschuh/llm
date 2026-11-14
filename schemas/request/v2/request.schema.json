@@ -334,5 +334,27 @@
       ],
       "autoInvokeTools": false
     }
+  ],
+  "x-negativeExamples": [
+    {
+      "name": "unknown-request-property",
+      "data": {
+        "schema": "https://schemas.handschuh.dev/llm/request/v2",
+        "task": "Inspect records.",
+        "systemPrompt": "Return the result.",
+        "unexpected": true
+      },
+      "reason": "The closed request object rejects the unexpected property through additionalProperties: false."
+    },
+    {
+      "name": "inline-output-schema-must-be-object",
+      "data": {
+        "schema": "https://schemas.handschuh.dev/llm/request/v2",
+        "task": "Inspect records.",
+        "systemPrompt": "Return the result.",
+        "outputSchema": "{\"type\":\"object\"}"
+      },
+      "reason": "The inline outputSchema contract requires a JSON Schema object rather than JSON text."
+    }
   ]
 }
