@@ -38,7 +38,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
@@ -50,11 +50,11 @@ task:
       taskRef: WI-0007|10000000
       result:
         ref: WI-0007|10000000#result/R-001
-        sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+        sha256: sha256:faa8f15f1ed21599abb2c2fed87d09a8f6e323be515619212d54693553f149d8
     gateId: v2-cancellation-hardening
     policyRef:
       ref: README.md
-      sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      sha256: sha256:462382c7a390ab379372bfa51500299c838e75c6a4eb31f0196a052ab1c41928
     criteria:
       - id: CRIT-001
         statement: Post-provider-response cancellation cannot fall through to terminal success, and cancellation during tool-call events cannot start later unstarted parallel calls.
@@ -98,27 +98,65 @@ task:
         statement: Do not approve LangGraph, persistence, resume, or WI-0006 scope.
     context: []
   result:
-    status: blocked
-    decision: null
-    summary: Review is pending implementation and validation results.
+    status: complete
+    decision: accepted
+    summary: The v2 cancellation hardening closes the provider-response and parallel-tool races, emits explicit bounded cancellation lifecycle events on DebugSink, uses a dedicated cancellation phase, preserves v1/WI-0006/unrelated boundaries, and is supported by 57 full-suite tests plus 56 focused cancellation tests.
     actor:
       id: WI-0007-reviewer
       role: reviewer
       authorityRef: README.md
-    criteriaEvaluations: []
+    criteriaEvaluations:
+      - criterionRef: "#criterion/CRIT-001"
+        status: satisfied
+        summary: Post-provider-response cancellation is checked before terminal output, and per-call gates prevent unstarted parallel tools from invoking after cancellation.
+        evidenceRefs: [WI-0007|80000000#result/R-001]
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-002"
+        status: satisfied
+        summary: llm.cancel.observed and llm.cancelled are emitted through DebugSink with bounded phase/counter metadata before llm.response.
+        evidenceRefs: [WI-0007|00000000#result/OUT-002, WI-0007|80000000#result/R-001]
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-003"
+        status: satisfied
+        summary: CANCELLED diagnostics use phase cancellation across TypeScript types, response/v2 schema, runtime response construction, tests, and SKILL.md.
+        evidenceRefs: [WI-0007|00000000#result/OUT-003, WI-0007|80000000#result/R-001]
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-004"
+        status: satisfied
+        summary: Changed paths are limited to WI-0007 runtime/schema/tests/documentation and records; v1, WI-0006, request schemas, dependencies, and excluded runtime scopes remain untouched.
+        evidenceRefs: [WI-0007|80000000#result/R-001]
+        findingRefs: []
     findings: []
-    evidence: []
+    evidence:
+      - id: EVID-001
+        kind: target-result
+        ref: WI-0007|10000000#result/R-001
+        claim: The implementation result records the race fixes, events, dedicated phase, tests, and documentation.
+        tier: inspection
+        source: target-result
+      - id: EVID-002
+        kind: validation
+        ref: WI-0007|80000000#result/R-001
+        claim: Independent package, focused cancellation, contract, schema, and scope validation passed.
+        tier: cli-audit
+        source: referenced-result
+      - id: EVID-003
+        kind: policy
+        ref: SKILL.md
+        claim: Public cancellation lifecycle and cooperative limits are documented.
+        tier: inspection
+        source: repository
     limitations:
-      - This result is a planned-task placeholder and is not review evidence.
+      - Evidence is local, provider-free, and cooperative; it does not establish authenticated providers, rollback, forced termination, production readiness, persistence, resume, or downstream integration.
     nonClaims:
-      - This result does not accept or reject the implementation.
+      - This review does not claim real external tool behavior or production deployment.
     reproducibility:
-      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      policyDigest: sha256:462382c7a390ab379372bfa51500299c838e75c6a4eb31f0196a052ab1c41928
       renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
       agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
       executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
     executionReceipt:
       executionId: EXEC-000
-      status: blocked
+      status: succeeded
       startedAt: "1970-01-01T00:00:00Z"
       finishedAt: "1970-01-01T00:00:00Z"
