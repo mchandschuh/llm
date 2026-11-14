@@ -1,0 +1,150 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0008",
+  "status": "planned",
+  "title": "Consolidate completion contracts around capability-driven tool options",
+  "type": "refactor",
+  "objective": "Replace the split request and completion variants with one composite request contract based on the existing request/v1 shape plus optional toolOptions, one unified response contract, one complete export, and one provider completion method; remove all legacy version-specific identifiers, files, exports, documentation, samples, and repository-record references from the current tree.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0008-capability-driven-completion-contract",
+      "created": false,
+      "rationale": "The repository workflow processes this scoped refactor as a serial set of commits on the current branch; the intended work boundary is recorded without requiring a topic branch."
+    }
+  },
+  "baseline": "9dfa166396a9b68e6a1b6b4e63585ec738618bc4",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare a new repository work item for a composite request with nested toolOptions and removal of legacy version-specific APIs, types, schemas, samples, documentation, and verification references. Commit the work item.",
+    "sha256": "af19f20ab5f71dd4a441207efd019af3f454fc2b6030a50debd7d18214e3a60a"
+  },
+  "scope": [
+    {
+      "name": "composite-request-contract",
+      "description": "Extend the existing request/v1 schema and TypeScript request model with optional toolOptions containing tools, autoInvoke, maxRounds, and maxCalls.",
+      "reason": "Tool capability should be expressed by one nested request object while ordinary requests remain valid when toolOptions is omitted."
+    },
+    {
+      "name": "unified-runtime-contract",
+      "description": "Collapse request normalization, completion dispatch, provider transport, response construction, and public types onto one capability-driven model.",
+      "reason": "The runtime must select tool behavior from toolOptions presence and must not expose version-specific completion or provider seams."
+    },
+    {
+      "name": "repository-artifact-migration",
+      "description": "Remove obsolete version-specific request/response schema files, generated declarations, sample filenames, imports, fixtures, public documentation, and current work-item references.",
+      "reason": "The requested repository state has no remaining legacy version-specific references in the current tree."
+    },
+    {
+      "name": "verification-and-audit",
+      "description": "Add positive contract tests and negative repository scans that prove the composite request, unified response, capability dispatch, and complete removal of legacy artifacts.",
+      "reason": "A rename-only change could leave stale exports, paths, generated declarations, samples, or durable records behind."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "behavioral-expansion",
+      "description": "Do not add new tool execution policy, provider behavior, retry semantics, cancellation semantics, finish-reason semantics, or external side effects.",
+      "reason": "This work changes contract shape and naming while preserving the behavior already covered by the repository tests.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "historical-git-rewrite",
+      "description": "Do not rewrite, reset, or amend existing Git commits; migrate current checked-out work-item records in new commits if the strict repository-tree requirement requires it.",
+      "reason": "The current tree must be consistent without destroying the audit history represented by immutable Git objects.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "operational-expansion",
+      "description": "Do not make authenticated provider calls, execute real external tools, publish packages, deploy, or claim production or downstream integration evidence.",
+      "reason": "Validation remains local, deterministic, provider-free, and bounded.",
+      "forbiddenFileWrites": [".env", ".env.*", "credentials/", "secrets/"],
+      "forbiddenFileReads": [".env", ".env.*", "credentials/", "secrets/"]
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0008_REQ_001",
+        "name": "nested-tool-options-request",
+        "description": "The request/v1 contract remains the sole request schema and accepts an optional closed toolOptions object containing tools, autoInvoke, maxRounds, and maxCalls with the established defaults and bounds.",
+        "reason": "One request object must represent both ordinary and tool-capable completion without retaining parallel request schemas or top-level tool controls.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0008_REQ_001_AC_001",
+            "description": "The request/v1 schema and TypeScript types accept an ordinary request without toolOptions and a tool-capable request with toolOptions, reject unknown properties and pre-consolidation top-level tool controls, and preserve the existing common request fields."
+          }
+        ]
+      },
+      {
+        "id": "WI-0008_REQ_002",
+        "name": "capability-driven-normalization",
+        "description": "Normalization and completion dispatch select tool-capable behavior from the presence and values of toolOptions rather than a schema-version branch or version-specific entry point.",
+        "reason": "The request object itself describes the supported capability and must be the only high-level dispatch input.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0008_REQ_002_AC_001",
+            "description": "Deterministic tests prove ordinary requests use the ordinary response path, requests with toolOptions use the tool-capable path, omitted toolOptions receives safe defaults, and invalid toolOptions fails before provider or tool invocation."
+          }
+        ]
+      },
+      {
+        "id": "WI-0008_REQ_003",
+        "name": "unified-public-and-provider-api",
+        "description": "The package exposes one complete function, one LlmProvider.complete method, and one OpenRouterProvider.complete implementation with capability-driven provider request dispatch.",
+        "reason": "Consumers must not choose between duplicate high-level functions or provider methods.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0008_REQ_003_AC_001",
+            "description": "Source exports, generated declarations, provider interfaces, OpenRouter implementation, tests, and samples contain one completion entry point and no legacy version-specific API names or protocol discriminators."
+          }
+        ]
+      },
+      {
+        "id": "WI-0008_REQ_004",
+        "name": "unified-response-contract",
+        "description": "The response contract preserves ordinary output and all established tool-loop state in one version-neutral response schema and TypeScript model.",
+        "reason": "Removing the request split must not discard pending tool calls, rounds, executed results, cancellation states, validation states, or bounded diagnostics.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0008_REQ_004_AC_001",
+            "description": "Schema examples, response construction, type declarations, and tests validate ordinary success/failure responses and tool-capable pending, success, unvalidated, invocation-error, cancellation, and exhausted states through one response contract."
+          }
+        ]
+      },
+      {
+        "id": "WI-0008_REQ_005",
+        "name": "repository-wide-removal",
+        "description": "All current-tree legacy version-specific identifiers, schema paths, filenames, imports, documentation terms, generated declarations, and work-item references are removed or rewritten while Git history remains immutable.",
+        "reason": "The desired completion state is repository-wide and includes durable records, samples, schemas, and generated artifacts rather than source files alone.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0008_REQ_005_AC_001",
+            "description": "A case-insensitive tracked-tree and working-tree scan finds no legacy version marker, version-suffixed public type/function/provider name, obsolete request or response schema path, old top-level tool field, or old sample filename; the scan excludes only .git internals and dependency caches, and every exclusion is recorded."
+          }
+        ]
+      },
+      {
+        "id": "WI-0008_REQ_006",
+        "name": "verification-gates-and-scope",
+        "description": "The implementation is supported by schema validation, typecheck, deterministic tests, sample discovery, build/declaration inspection, whitespace/conflict checks, and a changed-path audit.",
+        "reason": "The refactor crosses public contracts, runtime dispatch, generated output, executable samples, documentation, and durable repository records.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0008_REQ_006_AC_001",
+            "description": "The ordered validation record reports passing request/response schema examples, npm run typecheck, npm test, npm run build, sample integration execution, generated declaration inspection, repository-wide legacy-reference scan, git diff --check, conflict-marker scan, and explicit changed-path review."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0008/steps/"
+}

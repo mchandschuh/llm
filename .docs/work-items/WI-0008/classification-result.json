@@ -1,0 +1,69 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/classification-result/v1",
+  "status": "classified",
+  "workItemRef": "sdlc://repo/local%2Fllm/WI-0008#work-item.json%23work-item/WI-0008",
+  "workItemSha256": "sha256:5fe35690f5efdd0edb3b90d3811a422c89b8a1efc24933d7de3d00c8d8e3188b",
+  "classification": {
+    "workKind": "unknown",
+    "scopeClass": "composite",
+    "architectureImpact": "none",
+    "integrationImpact": "present",
+    "migrationImpact": "none",
+    "deploymentImpact": "none",
+    "risk": "unknown",
+    "uncertainty": "high",
+    "acceptanceCriteriaTestable": true,
+    "reasons": [
+      {
+        "statement": "The initial classifier only selects an atomic-feature workflow for explicitly typed feature work.",
+        "sourceRefs": [
+          "#/type"
+        ]
+      },
+      {
+        "statement": "The work item declares 6 requirements.",
+        "sourceRefs": [
+          "#/requirements/items"
+        ]
+      },
+      {
+        "statement": "The work item does not have exactly one scope entry.",
+        "sourceRefs": [
+          "#/scope"
+        ]
+      },
+      {
+        "statement": "Every declared acceptance criterion has a non-empty observable description.",
+        "sourceRefs": [
+          "#/requirements/items/0/acceptanceCriteria"
+        ]
+      },
+      {
+        "statement": "The request text contains a scope-expanding impact signal.",
+        "sourceRefs": [
+          "#/objective",
+          "#/scope",
+          "#/nonGoals",
+          "#/requirements/items"
+        ]
+      }
+    ]
+  },
+  "workflow": {
+    "profile": "unselected",
+    "topology": "unselected"
+  },
+  "research": {
+    "disposition": "recommended",
+    "reasons": [
+      {
+        "statement": "The initial classifier did not establish the atomic-feature profile, so research disposition is not reduced to not-required.",
+        "sourceRefs": [
+          "#/type",
+          "#/scope",
+          "#/requirements/items"
+        ]
+      }
+    ]
+  }
+}
