@@ -1,0 +1,456 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0003
+taskUid: WI-0003-00000000
+orderKey: "00000000"
+parentTaskUid: null
+taskType: design
+processingStatus: processing_completed
+title: Define provider finish-reason termination design
+objective: Define the normalized provider decision and fail-closed state machine for automatic v2 tool-loop termination.
+references:
+  required:
+    - .docs/work-items/WI-0003/work-item.json
+    - .docs/work-items/WI-0003/classification-result.json
+    - src/types.ts
+    - src/provider.ts
+    - src/complete.ts
+    - tests/llm.test.ts
+    - SKILL.md
+  informational:
+    - schemas/request/v2/request.schema.json
+    - schemas/response/v2/response.schema.json
+    - .docs/work-items/WI-0002/README.md
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0003/steps/
+  commitSubject: "WI-0003: 01: design(llm): define finish reason termination"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: envelope-schema
+      executable: schema-validate
+      arguments:
+        - --root
+        - /home/michael/.cline/skills/sdlc/schemas
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
+  intent:
+    summary: Define the provider-neutral termination decision and provider-specific finish_reason mapping for bounded v2 tool orchestration.
+    objectives:
+      - Add an explicit continue-or-stop decision to ProviderCompletionResponse.
+      - Map OpenRouter choices[0].finish_reason values at the provider adapter boundary.
+      - Make automatic orchestration fail closed for missing, unknown, empty-continue, and stop-with-tools responses.
+      - Document the intermediate provider decision without changing terminal response/v2 or v1 contracts.
+    inScope:
+      - ProviderCompletionResponse and LlmProviderV2 behavior.
+      - OpenRouter Chat Completions finish_reason parsing and normalization.
+      - completeV2 automatic loop control and deterministic mocked-provider tests.
+      - SKILL.md provider and tool-loop documentation.
+    outOfScope:
+      - request/v1, response/v1, and terminal response/v2 schema mutation.
+      - Streaming, other live providers, new model envelopes, and terminal control tools.
+      - Authenticated provider calls, production deployment, and real tool side effects.
+    policy:
+      id: component-design
+      version: "1"
+    profile: implementable
+    scope: component
+    facets:
+      - structure
+      - behavior
+      - contract
+      - policy
+    references:
+      - id: REF-001
+        type: artifact
+        locator: sdlc://repo/local%2Fllm/WI-0003#work-item.json%23work-item/WI-0003
+        description: Authoritative WI-0003 requirements and non-goals.
+      - id: REF-002
+        type: document
+        locator: src/types.ts
+        description: Current provider response and public type boundary.
+      - id: REF-003
+        type: document
+        locator: src/provider.ts
+        description: Current OpenRouter response parsing and tool-call normalization.
+      - id: REF-004
+        type: document
+        locator: src/complete.ts
+        description: Current automatic v2 orchestration loop.
+      - id: REF-005
+        type: document
+        locator: tests/llm.test.ts
+        description: Current deterministic v2 provider and orchestration tests.
+      - id: REF-006
+        type: document
+        locator: SKILL.md
+        description: Public provider and response contract documentation.
+    provenance:
+      referenceRefs:
+        - REF-001
+        - REF-002
+        - REF-003
+        - REF-004
+        - REF-005
+        - REF-006
+      basis: Repository inspection confirms that provider finish metadata is currently discarded and empty tool-call collections currently control termination.
+      confidence: 99
+    considerations:
+      - id: C-001
+        kind: boundary
+        statement: Provider-specific finish_reason must be translated at the provider adapter boundary.
+        evaluation: Add a provider-neutral decision to ProviderCompletionResponse and keep finish_reason out of orchestration code.
+        referenceRefs:
+          - REF-001
+          - REF-002
+          - REF-003
+        status: accepted
+        impact: 100
+        confidence: 99
+      - id: C-002
+        kind: constraint
+        statement: An empty tool-call collection is not sufficient evidence of termination in automatic mode.
+        evaluation: Require decision stop for terminal output and decision continue plus non-empty calls for tool execution.
+        referenceRefs:
+          - REF-001
+          - REF-004
+          - REF-005
+        status: accepted
+        impact: 100
+        confidence: 99
+      - id: C-003
+        kind: risk
+        statement: Missing or contradictory termination metadata could cause an unbounded or incorrect tool loop.
+        evaluation: Reject missing/unknown decisions and contradictory decision/call combinations before output or invocation handling.
+        referenceRefs:
+          - REF-001
+          - REF-003
+          - REF-004
+        status: accepted
+        impact: 100
+        confidence: 98
+    activities:
+      - id: ACT-001
+        type: analysis
+        summary: Inspected OpenRouter response parsing, current ProviderCompletionResponse, v2 loop control, tests, and public documentation.
+        status: completed
+        referenceRefs:
+          - REF-001
+          - REF-002
+          - REF-003
+          - REF-004
+          - REF-005
+          - REF-006
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+            - REF-003
+            - REF-004
+            - REF-005
+            - REF-006
+          basis: The current implementation derives termination from tool-call count and omits finish_reason from the normalized response.
+          confidence: 99
+  result:
+    summary: The provider adapter will normalize finish_reason into an explicit decision, and automatic orchestration will accept only valid decision/call combinations.
+    model:
+      name: finish-reason-termination-boundary
+      kind: interface
+      description: Provider response normalization and bounded automatic tool-loop state transition.
+      notation: contract-model
+      version: "1"
+    elements:
+      - id: E-001
+        type: provider-response
+        name: openrouter-response
+        description: OpenRouter Chat Completions choice containing message and finish_reason metadata.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-003
+          basis: OpenRouter exposes provider-specific completion termination in choices[0].finish_reason.
+          confidence: 98
+      - id: E-002
+        type: normalized-response
+        name: provider-completion-response
+        description: Provider-neutral response containing content, tool calls, and required continue-or-stop decision.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+            - REF-003
+          basis: The normalized response is the adapter/orchestrator contract and is publicly exported as a type.
+          confidence: 99
+      - id: E-003
+        type: orchestration-state
+        name: automatic-tool-loop
+        description: Bounded completeV2 loop that invokes validated calls only when the normalized decision is continue.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-004
+          basis: The existing loop already enforces call and round bounds but currently uses call presence as termination control.
+          confidence: 99
+      - id: E-004
+        type: protocol-error
+        name: invalid-termination-response
+        description: Fail-closed outcome for missing/unknown decisions or contradictory decision and tool-call combinations.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-003
+            - REF-004
+          basis: Invalid provider protocol responses must not be treated as terminal business output or executable tool work.
+          confidence: 99
+    relations:
+      - id: REL-001
+        type: normalizes
+        source:
+          type: element
+          id: E-001
+        target:
+          type: element
+          id: E-002
+        description: The OpenRouter adapter maps finish_reason tool_calls to continue and stop to stop.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-003
+          basis: Provider-specific metadata is translated before orchestration.
+          confidence: 99
+      - id: REL-002
+        type: controls
+        source:
+          type: element
+          id: E-002
+        target:
+          type: element
+          id: E-003
+        description: The normalized decision controls whether automatic orchestration invokes tools or returns terminal output.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-004
+          basis: The explicit decision replaces implicit empty-call termination.
+          confidence: 99
+      - id: REL-003
+        type: rejects
+        source:
+          type: element
+          id: E-003
+        target:
+          type: element
+          id: E-004
+        description: The loop rejects missing, unknown, empty-continue, and stop-with-tools responses before unsafe progression.
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-004
+            - REF-005
+          basis: Contradictory provider protocol state is fail-closed.
+          confidence: 98
+    views:
+      - id: V-001
+        type: termination-flow
+        name: finish-reason-tool-loop
+        description: Provider finish_reason normalization into explicit loop continuation or terminal response.
+        elementRefs:
+          - E-001
+          - E-002
+          - E-003
+          - E-004
+        relationRefs:
+          - REL-001
+          - REL-002
+          - REL-003
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-003
+            - REF-004
+          basis: The view captures the implementation state machine and invalid protocol boundary.
+          confidence: 99
+    artifacts:
+      - id: A-001
+        type: interfaceDefinition
+        name: provider-completion-decision
+        description: ProviderCompletionResponse decision field and finish_reason mapping contract.
+        locator: src/types.ts
+        format: typescript
+        status: complete
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-002
+            - REF-003
+          basis: The prepared change updates the normalized provider interface.
+          confidence: 99
+      - id: A-002
+        type: document
+        name: finish-reason-guidance
+        description: Public documentation for provider termination and automatic tool-loop semantics.
+        locator: SKILL.md
+        format: markdown
+        status: complete
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-006
+          basis: The work item requires discoverable documentation of the new decision boundary.
+          confidence: 98
+    outcomes:
+      - id: O-001
+        type: designDecision
+        statement: "Add required decision: continue | stop to ProviderCompletionResponse and keep it provider-neutral."
+        status: accepted
+        impact: 100
+        confidence: 99
+        referenceRefs:
+          - REF-001
+          - REF-002
+          - REF-003
+        elementRefs:
+          - E-002
+        suggestedTaskType: implementation
+      - id: O-002
+        type: designDecision
+        statement: "Map OpenRouter finish_reason tool_calls to continue and stop to stop; missing or unknown values are provider protocol errors."
+        status: accepted
+        impact: 100
+        confidence: 98
+        referenceRefs:
+          - REF-001
+          - REF-003
+        elementRefs:
+          - E-001
+          - E-002
+        suggestedTaskType: implementation
+      - id: O-003
+        type: designDecision
+        statement: "Automatic orchestration invokes only for continue with non-empty calls and returns output only for stop with no calls."
+        status: accepted
+        impact: 100
+        confidence: 99
+        referenceRefs:
+          - REF-001
+          - REF-004
+          - REF-005
+        elementRefs:
+          - E-003
+          - E-004
+        suggestedTaskType: implementation
+      - id: O-004
+        type: testHandoff
+        statement: Verify provider mapping, all invalid decision/call combinations, explicit stop after results, continued tool invocation, documentation, and regression behavior.
+        status: accepted
+        impact: 100
+        confidence: 98
+        referenceRefs:
+          - REF-001
+          - REF-005
+          - REF-006
+        suggestedTaskType: validation
+    outputs:
+      - id: OUT-001
+        category: interface-contract
+        status: complete
+        sourceRefs:
+          - REF-001
+          - REF-002
+          - REF-003
+        elementRefs:
+          - E-001
+          - E-002
+        relationRefs:
+          - REL-001
+        description: Explicit normalized provider completion decision with provider-specific finish_reason mapping.
+      - id: OUT-002
+        category: state-and-invariants
+        status: complete
+        sourceRefs:
+          - REF-001
+          - REF-004
+          - REF-005
+        elementRefs:
+          - E-003
+          - E-004
+        relationRefs:
+          - REL-002
+          - REL-003
+        description: Fail-closed decision/call state machine for automatic tool orchestration.
+      - id: OUT-003
+        category: implementation-handoff
+        status: complete
+        sourceRefs:
+          - REF-001
+          - REF-006
+        description: Update provider parsing, orchestration, deterministic tests, and public documentation.
+    verificationObligations:
+      - id: VER-001
+        kind: contract-test
+        status: planned
+        sourceRefs:
+          - REF-001
+          - REF-002
+          - REF-003
+        targetRefs:
+          - E-002
+        method:
+          type: contract-test
+          steps:
+            - Compile injected providers against ProviderCompletionResponse with explicit continue and stop decisions.
+            - Mock OpenRouter finish_reason values and inspect normalized responses.
+          command: npm test
+        requiredFor:
+          - implementable
+        description: Confirm the provider-neutral decision is required and correctly mapped.
+      - id: VER-002
+        kind: unit-test
+        status: planned
+        sourceRefs:
+          - REF-001
+          - REF-004
+          - REF-005
+        targetRefs:
+          - E-003
+          - E-004
+        method:
+          type: unit-test
+          steps:
+            - Exercise explicit stop, explicit continue, empty-continue, stop-with-tools, missing, and unknown decisions.
+          command: npm test
+        requiredFor:
+          - implementable
+        description: Confirm automatic orchestration no longer infers termination from tool-call length.
+      - id: VER-003
+        kind: inspection
+        status: planned
+        sourceRefs:
+          - REF-001
+          - REF-006
+        targetRefs:
+          - A-002
+        method:
+          type: inspection
+          steps:
+            - Inspect SKILL.md for finish_reason mapping and fail-closed loop documentation.
+          command: git diff --check
+        requiredFor:
+          - implementable
+        description: Confirm the provider-specific termination behavior is publicly documented.
+    unresolvedQuestions: []
