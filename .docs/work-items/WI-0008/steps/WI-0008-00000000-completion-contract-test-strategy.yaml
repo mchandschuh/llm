@@ -4,7 +4,7 @@ taskUid: WI-0008-00000000
 orderKey: "00000000"
 parentTaskUid: null
 taskType: test-strategy
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Define verification strategy for the unified completion contract
 objective: Define deterministic, provider-free evidence for the composite request, nested toolOptions, unified provider and response contracts, public exports, runtime behavior, and repository-wide legacy-artifact removal.
 references:
@@ -41,7 +41,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/result
