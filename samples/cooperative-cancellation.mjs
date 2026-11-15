@@ -1,4 +1,4 @@
-import { completeV2 } from '../dist/index.js';
+import { complete } from '../dist/index.js';
 
 const sample = 'cooperative-cancellation';
 
@@ -7,12 +7,11 @@ try {
   controller.abort();
   let providerCalls = 0;
   let toolCalls = 0;
-  const result = await completeV2({
-    schema: 'https://schemas.handschuh.dev/llm/request/v2',
+  const result = await complete({
+    schema: 'https://schemas.handschuh.dev/llm/request/v1',
     task: 'Cancel before work begins.',
     systemPrompt: 'This sample should not invoke the provider.',
-    tools: [{ name: 'read_record', description: 'Read a record.', inputSchema: JSON.stringify({ type: 'object' }) }],
-    autoInvokeTools: true,
+    toolOptions: { tools: [{ name: 'read_record', description: 'Read a record.', inputSchema: JSON.stringify({ type: 'object' }) }], autoInvoke: true },
   }, {
     signal: controller.signal,
     provider: {

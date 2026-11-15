@@ -1,7 +1,7 @@
-import type { LlmProvider, ProviderCompletionRequest, ProviderCompletionRequestV2, ProviderCompletionResponse, ToolCall, ToolCalls, ToolDefinition } from './types.js';
+import type { LlmProvider, ProviderCompletionRequest, ProviderCompletionResponse, ToolCall, ToolCalls, ToolDefinition } from './types.js';
 import { boundedMessage, LlmFailure } from './errors.js';
 
-function credential(request: ProviderCompletionRequest | ProviderCompletionRequestV2): string | undefined {
+function credential(request: ProviderCompletionRequest): string | undefined {
   return request.credentials?.apiKey ?? request.credentials?.accessToken ?? process.env.OPENROUTER_API_KEY;
 }
 
@@ -17,7 +17,7 @@ function contentFromMessage(message: unknown): string {
   throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider returned no usable completion content.');
 }
 
-function userContent(request: ProviderCompletionRequest | ProviderCompletionRequestV2): string | Array<Record<string, unknown>> {
+function userContent(request: ProviderCompletionRequest): string | Array<Record<string, unknown>> {
   const images = request.files.filter((file) => file.encoding === 'base64' && file.type.startsWith('image/'));
   if (images.length === 0) return request.llmPrompt;
   return [
@@ -39,8 +39,8 @@ function toolParameters(tool: ToolDefinition): Record<string, unknown> {
   return parsed as Record<string, unknown>;
 }
 
-function toolMessages(request: ProviderCompletionRequestV2): Array<Record<string, unknown>> {
-  return request.toolResults.map((result) => ({
+function toolMessages(request: ProviderCompletionRequest): Array<Record<string, unknown>> {
+  return (request.toolResults ?? []).map((result) => ({
     role: 'tool',
     tool_call_id: result.callId,
     content: JSON.stringify(result.status === 'success' ? result.value : { error: result.error }),
@@ -85,16 +85,13 @@ function completionDecision(finishReason: unknown, toolCalls: ToolCalls): 'conti
 }
 
 export class OpenRouterProvider implements LlmProvider {
-  async complete(request: ProviderCompletionRequestV2): Promise<ProviderCompletionResponse>;
-
-  async complete(request: ProviderCompletionRequest): Promise<string>;
-
-  async complete(request: ProviderCompletionRequest | ProviderCompletionRequestV2): Promise<string | ProviderCompletionResponse> {
-    if (request.protocol === 'v2') return this.completeV2Internal(request);
-    return this.completeV1Internal(request);
+  async complete(request: ProviderCompletionRequest): Promise<ProviderCompletionResponse> {
+    if (request.toolOptions) return this.completeWithTools(request);
+    const content = await this.completeText(request);
+    return { content, toolCalls: [], decision: 'stop' };
   }
 
-  private async completeV1Internal(request: ProviderCompletionRequest): Promise<string> {
+  private async completeText(request: ProviderCompletionRequest): Promise<string> {
     const apiKey = credential(request);
     if (!apiKey) throw new LlmFailure('CONFIGURATION_INVALID', 'configuration', 'No in-memory provider credential or OPENROUTER_API_KEY is configured.');
     let response: Response;
@@ -122,7 +119,7 @@ export class OpenRouterProvider implements LlmProvider {
     }
   }
 
-  private async completeV2Internal(request: ProviderCompletionRequestV2): Promise<ProviderCompletionResponse> {
+  private async completeWithTools(request: ProviderCompletionRequest): Promise<ProviderCompletionResponse> {
     const apiKey = credential(request);
     if (!apiKey) throw new LlmFailure('CONFIGURATION_INVALID', 'configuration', 'No in-memory provider credential or OPENROUTER_API_KEY is configured.');
     const messages: Array<Record<string, unknown>> = [
@@ -134,7 +131,7 @@ export class OpenRouterProvider implements LlmProvider {
       model: request.model,
       messages,
       reasoning: { effort: request.thinking },
-      ...(request.tools.length > 0 ? { tools: request.tools.map((tool) => ({ type: 'function', function: { name: tool.name, description: tool.description, parameters: toolParameters(tool) } })) } : {}),
+      ...(request.toolOptions!.tools.length > 0 ? { tools: request.toolOptions!.tools.map((tool) => ({ type: 'function', function: { name: tool.name, description: tool.description, parameters: toolParameters(tool) } })) } : {}),
     };
     let response: Response;
     try {

@@ -1,16 +1,15 @@
 import { composeCorrectionPrompt, composeRequestPrompt } from './prompt.js';
 import { OpenRouterProvider } from './provider.js';
-import { assertMatchesSchema, parseSchema, validateResponse, validateResponseV2 } from './schema.js';
+import { assertMatchesSchema, parseSchema, validateResponse } from './schema.js';
 import { boundedMessage, errorFromFailure, LlmFailure } from './errors.js';
 import { normalizeRequest } from './normalize.js';
-import type { CompletionOptions, CompletionOptionsV2, LlmError, LlmOutput, LlmRequest, LlmRequestV2, LlmResponse, LlmResponseV2, LlmProvider, NormalizedRequest, NormalizedRequestV2, ProviderCompletionResponse, ToolCall, ToolCalls, ToolResult } from './types.js';
-import { RESPONSE_SCHEMA, RESPONSE_SCHEMA_V2 } from './types.js';
-import { normalizeRequestV2 } from './normalize.js';
+import type { CompletionOptions, LlmError, LlmOutput, LlmRequest, LlmResponse, LlmProvider, NormalizedRequest, ProviderCompletionResponse, ToolCall, ToolCalls, ToolResult } from './types.js';
+import { RESPONSE_SCHEMA } from './types.js';
 import { LlmFailure as Failure } from './errors.js';
 import { emitDebug } from './debug.js';
 
 function response(status: LlmResponse['status'], output: LlmOutput | null, failedAttempts: number, iterations: number, errors: readonly LlmError[]): LlmResponse {
-  const result: LlmResponse = { schema: RESPONSE_SCHEMA, status, output, failedAttempts, iterations, errors: errors.slice(0, 10) };
+  const result: LlmResponse = { schema: RESPONSE_SCHEMA, status, output, failedAttempts, iterations, toolRounds: 0, toolCalls: 0, toolResults: [], errors: errors.slice(0, 10) };
   validateResponse(result);
   return result;
 }
@@ -39,14 +38,14 @@ function validationMessages(failure: LlmFailure): string[] {
   return [boundedMessage(failure.message)];
 }
 
-function v2Response(status: LlmResponseV2['status'], output: LlmResponseV2['output'], failedAttempts: number, iterations: number, toolRounds: number, toolCalls: number, toolResults: readonly ToolResult[], errors: readonly LlmError[]): LlmResponseV2 {
-  const result: LlmResponseV2 = { schema: RESPONSE_SCHEMA_V2, status, output, failedAttempts, iterations, toolRounds, toolCalls, toolResults: toolResults.slice(0, 128), errors: errors.slice(0, 10) };
-  validateResponseV2(result);
+function toolResponse(status: LlmResponse['status'], output: LlmResponse['output'], failedAttempts: number, iterations: number, toolRounds: number, toolCalls: number, toolResults: readonly ToolResult[], errors: readonly LlmError[]): LlmResponse {
+  const result: LlmResponse = { schema: RESPONSE_SCHEMA, status, output, failedAttempts, iterations, toolRounds, toolCalls, toolResults: toolResults.slice(0, 128), errors: errors.slice(0, 10) };
+  validateResponse(result);
   return result;
 }
 
-function toolAwareOutput(value: { readonly output: unknown; readonly tool_calls: ToolCalls }): LlmResponseV2['output'] {
-  return { $type: 'object', schema: { name: 'https://schemas.handschuh.dev/llm/output/v2' }, value };
+function toolAwareOutput(value: { readonly output: unknown; readonly tool_calls: ToolCalls }): LlmResponse['output'] {
+  return { $type: 'object', schema: { name: 'https://schemas.handschuh.dev/llm/output' }, value };
 }
 
 function toolFailure(code: string, message: string, phase: LlmError['phase'] = 'tool-validation'): LlmError {
@@ -57,9 +56,10 @@ function toolCallCount(calls: ToolCalls): number {
   return calls.reduce((total, batch) => total + batch.length, 0);
 }
 
-function validateToolCalls(request: NormalizedRequestV2, calls: ToolCalls, completedRounds: number): void {
-  if (completedRounds + calls.length > request.maxToolRounds) throw new Failure('TOOL_CALL_INVALID', 'tool-validation', 'The tool-round limit would be exceeded; the response is unvalidated and no tool calls may execute.');
-  const definitions = new Map(request.tools.map((tool) => [tool.name, tool]));
+function validateToolCalls(request: NormalizedRequest, calls: ToolCalls, completedRounds: number): void {
+  if (!request.toolOptions) throw new Failure('TOOL_CALL_INVALID', 'tool-validation', 'Tool calls require toolOptions.');
+  if (completedRounds + calls.length > request.toolOptions.maxRounds) throw new Failure('TOOL_CALL_INVALID', 'tool-validation', 'The tool-round limit would be exceeded; the response is unvalidated and no tool calls may execute.');
+  const definitions = new Map(request.toolOptions.tools.map((tool) => [tool.name, tool]));
   const ids = new Set<string>();
   for (const batch of calls) {
     if (batch.length === 0) throw new Failure('TOOL_CALL_INVALID', 'tool-validation', 'A parallel tool call batch must contain at least one call.');
@@ -79,8 +79,8 @@ function resultForCall(call: ToolCall, result: unknown): ToolResult {
   return { callId: call.id, name: call.name, status: 'success', value: result };
 }
 
-async function invokeParallelToolBatch(request: NormalizedRequestV2, options: CompletionOptionsV2, batch: readonly ToolCall[], round: number, batchIndex: number): Promise<ToolResult[]> {
-  if (!options.toolInvoker) throw new Failure('CONFIGURATION_INVALID', 'configuration', 'autoInvokeTools requires an injected ToolInvoker.');
+async function invokeParallelToolBatch(request: NormalizedRequest, options: CompletionOptions, batch: readonly ToolCall[], round: number, batchIndex: number): Promise<ToolResult[]> {
+  if (!options.toolInvoker) throw new Failure('CONFIGURATION_INVALID', 'configuration', 'autoInvoke requires an injected ToolInvoker.');
   const signal = options.signal ?? new AbortController().signal;
   emitDebug(options.debug, 'llm.tool.batch.start', { round, batchIndex, callIds: batch.map((call) => call.id) });
   const results = await Promise.all(batch.map(async (call) => {
@@ -103,22 +103,22 @@ async function invokeParallelToolBatch(request: NormalizedRequestV2, options: Co
   return settledResults;
 }
 
-function cancelledResponse(completedToolResults: readonly ToolResult[], failedAttempts: number, iterations: number, toolRounds: number, toolCalls: number): LlmResponseV2 {
-  return v2Response('cancelled', null, failedAttempts, iterations, toolRounds, toolCalls, completedToolResults, [toolFailure('CANCELLED', 'The completion was cancelled.', 'cancellation')]);
+function cancelledResponse(completedToolResults: readonly ToolResult[], failedAttempts: number, iterations: number, toolRounds: number, toolCalls: number): LlmResponse {
+  return toolResponse('cancelled', null, failedAttempts, iterations, toolRounds, toolCalls, completedToolResults, [toolFailure('CANCELLED', 'The completion was cancelled.', 'cancellation')]);
 }
 
-function observeCancellation(options: CompletionOptionsV2, phase: string, iterations: number, toolRounds: number, toolCalls: number): void {
+function observeCancellation(options: CompletionOptions, phase: string, iterations: number, toolRounds: number, toolCalls: number): void {
   emitDebug(options.debug, 'llm.cancel.observed', { phase, iterations, toolRounds, toolCalls });
 }
 
-function completeCancellation(options: CompletionOptionsV2, phase: string, iterations: number, toolRounds: number, toolCalls: number): void {
+function completeCancellation(options: CompletionOptions, phase: string, iterations: number, toolRounds: number, toolCalls: number): void {
   emitDebug(options.debug, 'llm.cancelled', { phase, iterations, toolRounds, toolCalls });
 }
 
-async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: CompletionOptionsV2 = {}): Promise<LlmResponseV2> {
-  let normalized: NormalizedRequestV2;
+async function completeToolInternalImpl(request: LlmRequest | unknown, options: CompletionOptions = {}): Promise<LlmResponse> {
+  let normalized: NormalizedRequest;
   try {
-    normalized = await normalizeRequestV2(request, options);
+    normalized = await normalizeRequest(request, options);
     if (normalized.taskSchema) {
       const schema = parseSchema(normalized.taskSchema);
       assertMatchesSchema(normalized.task, schema, 'TASK_SCHEMA_VALIDATION_FAILED', 'request');
@@ -126,10 +126,11 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
     if (normalized.outputSchema) parseSchema(normalized.outputSchema);
   } catch (error) {
     const failure = error instanceof Failure ? error : new Failure('REQUEST_INVALID', 'request', 'Request preparation failed.');
-    return v2Response(failureStatus(failure) as LlmResponseV2['status'], null, 0, 0, 0, 0, [], [errorFromFailure(failure)]);
+    return toolResponse(failureStatus(failure), null, 0, 0, 0, 0, [], [errorFromFailure(failure)]);
   }
   const provider = options.provider ?? new OpenRouterProvider();
-  if (normalized.autoInvokeTools && !options.toolInvoker) return v2Response('configuration_error', null, 0, 0, 0, 0, [], [toolFailure('CONFIGURATION_INVALID', 'autoInvokeTools requires an injected ToolInvoker.', 'configuration')]);
+  if (!normalized.toolOptions) return response('configuration_error', null, 0, 0, [toolFailure('CONFIGURATION_INVALID', 'toolOptions is required for tool completion.', 'configuration')]);
+  if (normalized.toolOptions.autoInvoke && !options.toolInvoker) return toolResponse('configuration_error', null, 0, 0, 0, 0, [], [toolFailure('CONFIGURATION_INVALID', 'autoInvoke requires an injected ToolInvoker.', 'configuration')]);
   let failedAttempts = 0;
   let iterations = 0;
   let toolRounds = 0;
@@ -147,7 +148,7 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
     }
     let providerResult: ProviderCompletionResponse;
     try {
-      const providerRequest = { protocol: 'v2' as const, provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials, signal: options.signal, tools: normalized.tools, toolResults };
+      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials, signal: options.signal, toolOptions: normalized.toolOptions, toolResults };
       emitDebug(options.debug, 'llm.request', request);
       emitDebug(options.debug, 'llm.provider.request', providerRequest);
       providerResult = await provider.complete(providerRequest);
@@ -168,27 +169,27 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
       }
       const failure = error instanceof Failure ? error : new Failure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider request failed before a usable response was returned.');
       failedAttempts += 1;
-      if (failedAttempts >= normalized.maxFailedAttempts) return v2Response('attempts_exhausted', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(new Failure('ATTEMPTS_EXHAUSTED', 'retry', 'The provider failure-attempt limit was exhausted.'))]);
+      if (failedAttempts >= normalized.maxFailedAttempts) return toolResponse('attempts_exhausted', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(new Failure('ATTEMPTS_EXHAUSTED', 'retry', 'The provider failure-attempt limit was exhausted.'))]);
       continue;
     }
     const calls: ToolCalls = providerResult.toolCalls;
     if (providerResult.decision !== 'continue' && providerResult.decision !== 'stop') {
       const failure = new Failure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider returned a missing or unsupported completion decision.');
-      return v2Response('provider_error', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(failure)]);
+      return toolResponse('provider_error', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(failure)]);
     }
     if (providerResult.decision === 'continue') {
       if (calls.length === 0) {
         const failure = new Failure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider selected continuation without returning tool calls.');
-        return v2Response('provider_error', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(failure)]);
+        return toolResponse('provider_error', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(failure)]);
       }
       try { validateToolCalls(normalized, calls, toolRounds); } catch (error) {
         const failure = error instanceof Failure ? error : new Failure('TOOL_CALL_INVALID', 'tool-validation', 'The provider tool-call response was not validated.');
-        return v2Response(failure.message.includes('round limit') ? 'unvalidated' : 'output_invalid', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(failure)]);
+        return toolResponse(failure.message.includes('round limit') ? 'unvalidated' : 'output_invalid', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(failure)]);
       }
       const count = toolCallCount(calls);
-      if (totalToolCalls + count > normalized.maxToolCalls) return v2Response('unvalidated', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [toolFailure('TOOL_CALL_INVALID', 'The tool-call count would exceed the configured limit.')]);
+      if (totalToolCalls + count > normalized.toolOptions.maxCalls) return toolResponse('unvalidated', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [toolFailure('TOOL_CALL_INVALID', 'The tool-call count would exceed the configured limit.')]);
       totalToolCalls += count;
-      if (!normalized.autoInvokeTools) return v2Response('tool_calls_pending', toolAwareOutput({ output: null, tool_calls: calls }), failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, []);
+      if (!normalized.toolOptions.autoInvoke) return toolResponse('tool_calls_pending', toolAwareOutput({ output: null, tool_calls: calls }), failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, []);
       toolResults = [];
       for (let batchIndex = 0; batchIndex < calls.length; batchIndex += 1) {
         if (options.signal?.aborted) {
@@ -212,25 +213,25 @@ async function completeV2InternalImpl(request: LlmRequestV2 | unknown, options: 
     }
     if (calls.length > 0) {
       const failure = new Failure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider selected final completion while returning tool calls.');
-      return v2Response('provider_error', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(failure)]);
+      return toolResponse('provider_error', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(failure)]);
     }
     try {
       const text = providerResult.content ?? '';
-      if (!outputSchema) return v2Response('success', { $type: 'string', schema: null, value: text }, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, []);
+      if (!outputSchema) return toolResponse('success', { $type: 'string', schema: null, value: text }, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, []);
       const parsed = JSON.parse(text) as unknown;
       assertMatchesSchema(parsed, outputSchema, 'OUTPUT_SCHEMA_VALIDATION_FAILED', 'output-validation');
-      return v2Response('success', toolAwareOutput({ output: parsed, tool_calls: [] }), failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, []);
+      return toolResponse('success', toolAwareOutput({ output: parsed, tool_calls: [] }), failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, []);
     } catch (error) {
       const failure = error instanceof Failure ? error : new Failure('OUTPUT_INVALID', 'output-validation', 'Provider output did not satisfy the configured output schema.');
-      if (iterations >= normalized.maxIterations) return v2Response('output_invalid', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(failure)]);
+      if (iterations >= normalized.maxIterations) return toolResponse('output_invalid', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(failure)]);
       prompt = composeCorrectionPrompt(normalized as unknown as NormalizedRequest, providerResult.content ?? '', validationMessages(failure));
     }
   }
-  return v2Response('output_invalid', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [toolFailure('OUTPUT_INVALID', 'Provider output did not satisfy the configured output schema.', 'output-validation')]);
+  return toolResponse('output_invalid', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [toolFailure('OUTPUT_INVALID', 'Provider output did not satisfy the configured output schema.', 'output-validation')]);
 }
 
-async function completeV2Internal(request: LlmRequestV2 | unknown, options: CompletionOptionsV2 = {}): Promise<LlmResponseV2> {
-  const result = await completeV2InternalImpl(request, options);
+async function completeToolInternal(request: LlmRequest | unknown, options: CompletionOptions = {}): Promise<LlmResponse> {
+  const result = await completeToolInternalImpl(request, options);
   emitDebug(options.debug, 'llm.response', result);
   return result;
 }
@@ -266,10 +267,10 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
   while (iterations < normalized.maxIterations) {
     let raw: string;
     try {
-      const providerRequest = { protocol: 'v1' as const, provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials };
+      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials };
       emitDebug(options.debug, 'llm.request', request);
       emitDebug(options.debug, 'llm.provider.request', providerRequest);
-      raw = await provider.complete(providerRequest);
+      raw = (await provider.complete(providerRequest)).content ?? '';
       emitDebug(options.debug, 'llm.provider.response', raw);
       iterations += 1;
     } catch (error) {
@@ -283,7 +284,7 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
       continue;
     }
     try {
-      const result = response('success', outputFromText(raw, outputSchema, normalized.outputSchema), failedAttempts, iterations, []);
+  const result = response('success', outputFromText(raw, outputSchema, normalized.outputSchema), failedAttempts, iterations, []);
       emitDebug(options.debug, 'llm.response', result);
       return result;
     } catch (error) {
@@ -300,13 +301,9 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
   return result;
 }
 
-export async function complete(request: LlmRequest | LlmRequestV2 | unknown, options: CompletionOptions | CompletionOptionsV2 = {}): Promise<LlmResponse | LlmResponseV2> {
-  if (request && typeof request === 'object' && (request as { schema?: unknown }).schema === 'https://schemas.handschuh.dev/llm/request/v2') {
-    return completeV2Internal(request, options as CompletionOptionsV2);
+export async function complete(request: LlmRequest | unknown, options: CompletionOptions = {}): Promise<LlmResponse> {
+  if (request && typeof request === 'object' && 'toolOptions' in request && (request as { toolOptions?: unknown }).toolOptions !== undefined) {
+    return completeToolInternal(request, options);
   }
-  return completeV1Internal(request, options as CompletionOptions);
-}
-
-export async function completeV2(request: LlmRequestV2 | unknown, options: CompletionOptionsV2 = {}): Promise<LlmResponseV2> {
-  return completeV2Internal(request, options);
+  return completeV1Internal(request, options);
 }

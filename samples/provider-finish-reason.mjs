@@ -7,7 +7,6 @@ try {
   globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: 'finished by model', tool_calls: [] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
   try {
     const result = await new OpenRouterProvider().complete({
-      protocol: 'v2',
       provider: 'openrouter',
       model: 'openai/gpt-5.6-luna',
       thinking: 'low',
@@ -15,7 +14,7 @@ try {
       llmPrompt: '<llmPrompt />',
       files: [],
       credentials: { apiKey: 'sample-key' },
-      tools: [],
+      toolOptions: { tools: [{ name: 'unused', description: 'Unused test tool.', inputSchema: '{"type":"object"}' }] },
       toolResults: [],
     });
     const ok = result.decision === 'stop' && result.content === 'finished by model' && result.toolCalls.length === 0;

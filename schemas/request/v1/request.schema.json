@@ -165,6 +165,36 @@
           "type": "object"
         }
       ]
+    },
+    "toolOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional tool-capable completion settings. Its presence selects tool-capable behavior.",
+      "properties": {
+        "tools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ToolDefinition"
+          },
+          "default": []
+        },
+        "autoInvoke": {
+          "type": "boolean",
+          "default": false
+        },
+        "maxRounds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 3
+        },
+        "maxCalls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 128,
+          "default": 128
+        }
+      }
     }
   },
   "$defs": {
@@ -224,7 +254,7 @@
           "description": "Repository-relative regular-file path resolved by the mediated source boundary; absolute paths, traversal, and environment-file names are rejected by the runtime.",
           "examples": [
             ".docs/sdlc/work-item-assessment-process.md",
-            "sdlc/schemas/work-item/v2/work-item.schema.json"
+            "sdlc/schemas/work-item/work-item.schema.json"
           ]
         },
         "type": {
@@ -264,6 +294,50 @@
           "path": ".docs/sdlc/work-item-assessment-process.md",
           "type": "text/markdown",
           "purpose": "Define assessment evidence and provider-fallback boundaries."
+        }
+      ]
+    },
+    "ToolDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "description",
+        "inputSchema"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$",
+          "examples": [
+            "read_record"
+          ],
+          "description": "Stable tool name."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "examples": [
+            "Read one record."
+          ],
+          "description": "Bounded tool purpose."
+        },
+        "inputSchema": {
+          "type": "string",
+          "minLength": 2,
+          "description": "JSON text containing the tool argument schema.",
+          "examples": [
+            "https://schemas.handschuh.dev/example/read-record-input/v1"
+          ]
+        }
+      },
+      "description": "A bounded tool declaration available to the model.",
+      "examples": [
+        {
+          "name": "read_record",
+          "description": "Read one record.",
+          "inputSchema": "{\"type\":\"object\",\"properties\":{\"logicalId\":{\"type\":\"string\"}}}"
         }
       ]
     }
@@ -359,6 +433,17 @@
       "schema": "https://schemas.handschuh.dev/llm/request/v1",
       "task": "Assess the current work item for decomposition readiness.",
       "systemPrompt": "Return a concise plain-text assessment."
+    },
+    {
+      "schema": "https://schemas.handschuh.dev/llm/request/v1",
+      "task": "Inspect records.",
+      "systemPrompt": "Use the declared tool when needed.",
+      "toolOptions": {
+        "tools": [],
+        "autoInvoke": false,
+        "maxRounds": 3,
+        "maxCalls": 128
+      }
     }
   ],
   "x-negativeExamples": [
@@ -381,6 +466,16 @@
         "outputSchema": "{\"type\":\"object\"}"
       },
       "reason": "The inline outputSchema contract requires a JSON Schema object rather than JSON text."
+    },
+    {
+      "name": "top-level-tool-options-are-rejected",
+      "data": {
+        "schema": "https://schemas.handschuh.dev/llm/request/v1",
+        "task": "Inspect records.",
+        "systemPrompt": "Return the result.",
+        "tools": []
+      },
+      "reason": "Tool settings must be nested under toolOptions."
     }
   ]
 }

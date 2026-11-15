@@ -1,4 +1,4 @@
-import { completeV2 } from '../dist/index.js';
+import { complete } from '../dist/index.js';
 
 const sample = 'debug-tool-events';
 
@@ -6,18 +6,17 @@ try {
   const events = [];
   const provider = {
     async complete(request) {
-      if (request.protocol === 'v1') return '';
-      return request.toolResults.length === 0
+      if (!request.toolOptions) return { content: '', toolCalls: [], decision: 'stop' };
+      return (request.toolResults ?? []).length === 0
         ? { decision: 'continue', content: null, toolCalls: [[{ id: 'call-debug', name: 'read_record', arguments: { id: 'record-a' } }]] }
         : { decision: 'stop', content: '{"ok":true}', toolCalls: [] };
     },
   };
-  const result = await completeV2({
-    schema: 'https://schemas.handschuh.dev/llm/request/v2',
+  const result = await complete({
+    schema: 'https://schemas.handschuh.dev/llm/request/v1',
     task: 'Observe one bounded tool lifecycle.',
     systemPrompt: 'Use the declared tool and return a final response.',
-    tools: [{ name: 'read_record', description: 'Read a record.', inputSchema: JSON.stringify({ type: 'object' }) }],
-    autoInvokeTools: true,
+    toolOptions: { tools: [{ name: 'read_record', description: 'Read a record.', inputSchema: JSON.stringify({ type: 'object' }) }], autoInvoke: true },
   }, {
     provider,
     debug: (event) => events.push(event),

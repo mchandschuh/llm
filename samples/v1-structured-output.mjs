@@ -17,7 +17,7 @@ try {
   }, {
     provider: {
       async complete() {
-        return JSON.stringify({ ok: true, label: 'structured' });
+        return { content: JSON.stringify({ ok: true, label: 'structured' }), toolCalls: [], decision: 'stop' };
       },
     },
   });

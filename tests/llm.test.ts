@@ -5,23 +5,23 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import addFormatsModule from 'ajv-formats';
-import { complete, completeV2 } from '../src/index.js';
+import { complete } from '../src/index.js';
 import { main as cliMain } from '../src/cli.js';
 import { composePrompt } from '../src/prompt.js';
-import { normalizeRequest, normalizeRequestV2 } from '../src/normalize.js';
+import { normalizeRequest } from '../src/normalize.js';
 import { OpenRouterProvider } from '../src/provider.js';
-import type { ILlmProvider, LlmProvider, ProviderCompletionRequest, ProviderCompletionRequestV2 } from '../src/types.js';
+import type { ILlmProvider, LlmProvider, ProviderCompletionRequest, ProviderCompletionResponse } from '../src/types.js';
 
 const addFormats = addFormatsModule as unknown as (ajv: Ajv2020) => Ajv2020;
 
 const schema = 'https://schemas.handschuh.dev/llm/request/v1';
-const schemaV2 = 'https://schemas.handschuh.dev/llm/request/v2';
+const toolSchema = 'https://schemas.handschuh.dev/llm/request/v1';
 const outputSchema = { $id: 'https://example.test/output', type: 'object', required: ['ok'], additionalProperties: false, properties: { ok: { type: 'boolean' } } };
 const pngBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
 
 test('published request and response schema examples validate', async () => {
   for (const kind of ['request', 'response'] as const) {
-    for (const version of ['v1', 'v2'] as const) {
+    for (const version of ['v1'] as const) {
       const relativePath = `schemas/${kind}/${version}/${kind}.schema.json`;
       const schema = JSON.parse(await readFile(join(process.cwd(), relativePath), 'utf8')) as {
         examples?: unknown[];
@@ -43,11 +43,11 @@ test('published request and response schema examples validate', async () => {
 class SequenceProvider implements LlmProvider {
   calls: ProviderCompletionRequest[] = [];
   constructor(private readonly sequence: readonly (string | Error)[]) {}
-  async complete(request: ProviderCompletionRequest): Promise<string> {
+  async complete(request: ProviderCompletionRequest): Promise<ProviderCompletionResponse> {
     this.calls.push(request);
     const next = this.sequence[this.calls.length - 1];
     if (next instanceof Error) throw next;
-    return next ?? '{"ok":true}';
+    return { content: next ?? '{"ok":true}', toolCalls: [], decision: 'stop' };
   }
 }
 
@@ -64,22 +64,21 @@ test('normalizes closed request defaults', async () => {
   assert.equal(normalized.maxIterations, 3);
 });
 
-test('normalizes v2 tool declarations and bounded tool settings', async () => {
-  const normalized = await normalizeRequestV2({
-    schema: schemaV2,
+test('normalizes toolCapable tool declarations and bounded tool settings', async () => {
+  const normalized = await normalizeRequest({
+    schema: toolSchema,
     task: 'Inspect records.',
     systemPrompt: 'Use tools only when needed.',
-    tools: [{ name: 'read_record', description: 'Read one record.', inputSchema: JSON.stringify({ type: 'object' }) }],
-    autoInvokeTools: true,
+    toolOptions: { tools: [{ name: 'read_record', description: 'Read one record.', inputSchema: JSON.stringify({ type: 'object' }) }], autoInvoke: true },
   }, { configurationRoot: process.cwd() });
-  assert.equal(normalized.schema, schemaV2);
-  assert.equal(normalized.maxToolRounds, 3);
-  assert.equal(normalized.maxToolCalls, 128);
-  assert.equal(normalized.autoInvokeTools, true);
-  assert.equal(normalized.tools[0]?.name, 'read_record');
+  assert.equal(normalized.schema, toolSchema);
+  assert.equal(normalized.toolOptions?.maxRounds, 3);
+  assert.equal(normalized.toolOptions?.maxCalls, 128);
+  assert.equal(normalized.toolOptions?.autoInvoke, true);
+  assert.equal(normalized.toolOptions?.tools[0]?.name, 'read_record');
 });
 
-test('preserves structured v1 and v2 tasks and inline schemas at the request boundary', async () => {
+test('preserves structured v1 and toolCapable tasks and inline schemas at the request boundary', async () => {
   const v1Task = { operation: 'assess', target: 'WI-0004' };
   const v1TaskSchema = { type: 'object', required: ['operation', 'target'], additionalProperties: false, properties: { operation: { type: 'string' }, target: { type: 'string' } } };
   const v1OutputSchema = { type: 'object', required: ['ok'], additionalProperties: false, properties: { ok: { type: 'boolean' } } };
@@ -93,40 +92,35 @@ test('preserves structured v1 and v2 tasks and inline schemas at the request bou
   assert.deepEqual(v1Request.outputSchema, v1OutputSchema);
   assert.match(v1Provider.calls[0]!.llmPrompt, /"operation":"assess"/u);
 
-  const v2Provider = new V2SequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
-  const v2Events: Array<{ event: string; data?: unknown }> = [];
-  const v2Task = { operation: 'inspect', target: 'records' };
-  const v2 = await completeV2(v2Request({ task: v2Task, outputSchema: v1OutputSchema }), { provider: v2Provider, debug: (event) => v2Events.push(event) });
-  assert.equal(v2.status, 'success');
-  const v2RequestEvent = v2Events.find((event) => event.event === 'llm.request')?.data as Record<string, unknown>;
-  assert.deepEqual(v2RequestEvent.task, v2Task);
-  assert.equal(typeof v2RequestEvent.taskSchema, 'object');
-  assert.deepEqual(v2RequestEvent.outputSchema, v1OutputSchema);
+  const toolProvider = new ToolSequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
+  const toolEvents: Array<{ event: string; data?: unknown }> = [];
+  const toolTask = { operation: 'inspect', target: 'records' };
+  const toolResult = await complete(toolRequest({ task: toolTask, outputSchema: v1OutputSchema }), { provider: toolProvider, debug: (event) => toolEvents.push(event) });
+  assert.equal(toolResult.status, 'success');
+  const toolRequestEvent = toolEvents.find((event) => event.event === 'llm.request')?.data as Record<string, unknown>;
+  assert.deepEqual(toolRequestEvent.task, toolTask);
+  assert.equal(typeof toolRequestEvent.taskSchema, 'object');
+  assert.deepEqual(toolRequestEvent.outputSchema, v1OutputSchema);
 });
 
-test('rejects duplicate v2 tool names before provider use', async () => {
-  await assert.rejects(() => normalizeRequestV2({
-    schema: schemaV2,
+test('rejects duplicate toolCapable tool names before provider use', async () => {
+  await assert.rejects(() => normalizeRequest({
+    schema: toolSchema,
     task: 'Inspect records.',
     systemPrompt: 'Use tools only when needed.',
-    tools: [
+    toolOptions: { tools: [
       { name: 'read_record', description: 'Read one record.', inputSchema: JSON.stringify({ type: 'object' }) },
       { name: 'read_record', description: 'Read another record.', inputSchema: JSON.stringify({ type: 'object' }) },
-    ],
+    ] },
   }, { configurationRoot: process.cwd() }), /Tool names must be unique/u);
 });
 
-class V2SequenceProvider implements LlmProvider {
+class ToolSequenceProvider implements LlmProvider {
   private readonly sequence: readonly string[];
   readonly calls: ProviderCompletionRequest[] = [];
   constructor(sequence: readonly string[]) { this.sequence = sequence; }
-  async complete(request: ProviderCompletionRequestV2): Promise<import('../src/types.js').ProviderCompletionResponse>;
-
-  async complete(request: ProviderCompletionRequest): Promise<string>;
-
-  async complete(request: ProviderCompletionRequest | ProviderCompletionRequestV2): Promise<string | import('../src/types.js').ProviderCompletionResponse> {
+  async complete(request: ProviderCompletionRequest): Promise<ProviderCompletionResponse> {
     this.calls.push(request);
-    if (request.protocol === 'v1') return this.sequence[this.calls.length - 1] ?? this.sequence.at(-1) ?? '';
     const value = JSON.parse(this.sequence[this.calls.length - 1] ?? this.sequence.at(-1) ?? '{}') as { content?: string | null; toolCalls?: unknown[] | unknown[][]; decision?: 'continue' | 'stop' };
     const rawCalls = value.toolCalls ?? [];
     const toolCalls = Array.isArray(rawCalls[0]) ? rawCalls as import('../src/types.js').ToolCalls : (rawCalls.length > 0 ? [rawCalls as import('../src/types.js').ToolCall[]] : []);
@@ -134,42 +128,44 @@ class V2SequenceProvider implements LlmProvider {
   }
 }
 
-const v2Request = (overrides: Record<string, unknown> = {}) => ({
-  schema: schemaV2,
-  task: { operation: 'inspect', target: 'records' },
-  systemPrompt: 'Use tools only when needed.',
-  taskSchema: { type: 'object', required: ['operation', 'target'], additionalProperties: false, properties: { operation: { const: 'inspect' }, target: { type: 'string' } } },
-  tools: [{ name: 'read_record', description: 'Read one record.', inputSchema: JSON.stringify({ type: 'object', required: ['logicalId'], properties: { logicalId: { type: 'string' } } }) }],
+const toolRequest = (overrides: Record<string, unknown> = {}) => {
+  const base = {
+    schema: toolSchema,
+    task: { operation: 'inspect', target: 'records' },
+    systemPrompt: 'Use tools only when needed.',
+    taskSchema: { type: 'object', required: ['operation', 'target'], additionalProperties: false, properties: { operation: { const: 'inspect' }, target: { type: 'string' } } },
+    toolOptions: { tools: [{ name: 'read_record', description: 'Read one record.', inputSchema: JSON.stringify({ type: 'object', required: ['logicalId'], properties: { logicalId: { type: 'string' } } }) }] },
     outputSchema: { type: 'object', required: ['ok'], additionalProperties: false, properties: { ok: { type: 'boolean' } } },
-  ...overrides,
-});
+  };
+  return { ...base, ...overrides, toolOptions: { ...base.toolOptions, ...((overrides.toolOptions as Record<string, unknown> | undefined) ?? {}) } };
+};
 
-test('v2 manual mode returns pending parallel tool call batches without invoking tools', async () => {
-  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-1', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
+test('toolCapable manual mode returns pending parallel tool call batches without invoking tools', async () => {
+  const provider = new ToolSequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-1', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
   let invoked = 0;
-  const result = await completeV2(v2Request(), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  const result = await complete(toolRequest(), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
   assert.equal(result.status, 'tool_calls_pending');
   assert.equal(invoked, 0);
   assert.equal(result.toolCalls, 1);
 });
 
-test('v2 tool-round-limit violation is unvalidated and invokes zero calls', async () => {
-  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-1', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
+test('toolCapable tool-round-limit violation is unvalidated and invokes zero calls', async () => {
+  const provider = new ToolSequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-1', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
   let invoked = 0;
-  const result = await completeV2(v2Request({ autoInvokeTools: true, maxToolRounds: 0 }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true, maxRounds: 0 } }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
   assert.equal(result.status, 'unvalidated');
   assert.equal(invoked, 0);
   assert.equal(result.toolRounds, 0);
 });
 
-test('v2 automatic invocation runs calls in parallel within each batch and batches sequentially', async () => {
-  const provider = new V2SequenceProvider([
+test('toolCapable automatic invocation runs calls in parallel within each batch and batches sequentially', async () => {
+  const provider = new ToolSequenceProvider([
     JSON.stringify({ toolCalls: [{ id: 'call-a', name: 'read_record', arguments: { logicalId: 'a' } }, { id: 'call-b', name: 'read_record', arguments: { logicalId: 'b' } }] }),
     JSON.stringify({ content: '{"ok":true}', toolCalls: [] }),
   ]);
   const active: string[] = [];
   let maxActive = 0;
-  const result = await completeV2(v2Request({ autoInvokeTools: true, maxToolRounds: 3 }), {
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true, maxRounds: 3 } }), {
     provider: provider,
     toolInvoker: { invoke: async (call) => { active.push(call.id); maxActive = Math.max(maxActive, active.length); await new Promise((resolve) => setTimeout(resolve, call.id === 'call-a' ? 5 : 1)); active.splice(active.indexOf(call.id), 1); return { id: call.id }; } },
   });
@@ -182,13 +178,13 @@ test('v2 automatic invocation runs calls in parallel within each batch and batch
   ]);
 });
 
-test('v2 automatic invocation executes multiple parallel tool call batches sequentially', async () => {
-  const provider = new V2SequenceProvider([
+test('toolCapable automatic invocation executes multiple parallel tool call batches sequentially', async () => {
+  const provider = new ToolSequenceProvider([
     JSON.stringify({ toolCalls: [[{ id: 'call-a', name: 'read_record', arguments: { logicalId: 'a' } }, { id: 'call-b', name: 'read_record', arguments: { logicalId: 'b' } }], [{ id: 'call-c', name: 'read_record', arguments: { logicalId: 'c' } }]] }),
     JSON.stringify({ content: '{"ok":true}', toolCalls: [] }),
   ]);
   const events: string[] = [];
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), {
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true } }), {
     provider: provider,
     toolInvoker: { invoke: async (call) => { events.push(`start:${call.id}`); await new Promise((resolve) => setTimeout(resolve, call.id === 'call-a' ? 5 : 1)); events.push(`end:${call.id}`); return call.id; } },
   });
@@ -202,61 +198,61 @@ test('v2 automatic invocation executes multiple parallel tool call batches seque
   ]);
 });
 
-test('v2 rejects undeclared tool calls before invoking any tool', async () => {
-  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-unknown', name: 'delete_everything', arguments: {} }] })]);
+test('toolCapable rejects undeclared tool calls before invoking any tool', async () => {
+  const provider = new ToolSequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-unknown', name: 'delete_everything', arguments: {} }] })]);
   let invoked = 0;
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true } }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
   assert.equal(result.status, 'output_invalid');
   assert.equal(invoked, 0);
   assert.equal(result.errors[0]?.code, 'TOOL_CALL_INVALID');
 });
 
-test('v2 rejects duplicate call IDs before invoking any tool', async () => {
+test('toolCapable rejects duplicate call IDs before invoking any tool', async () => {
   const calls = [{ id: 'same-id', name: 'read_record', arguments: { logicalId: 'a' } }, { id: 'same-id', name: 'read_record', arguments: { logicalId: 'b' } }];
-  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: calls })]);
+  const provider = new ToolSequenceProvider([JSON.stringify({ toolCalls: calls })]);
   let invoked = 0;
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true } }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
   assert.equal(result.status, 'output_invalid');
   assert.equal(invoked, 0);
   assert.match(result.errors[0]?.message ?? '', /unique/u);
 });
 
-test('v2 rejects invalid arguments before invoking any tool', async () => {
-  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-invalid', name: 'read_record', arguments: { wrong: true } }] })]);
+test('toolCapable rejects invalid arguments before invoking any tool', async () => {
+  const provider = new ToolSequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-invalid', name: 'read_record', arguments: { wrong: true } }] })]);
   let invoked = 0;
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true } }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
   assert.equal(result.status, 'output_invalid');
   assert.equal(invoked, 0);
   assert.equal(result.errors[0]?.code, 'TOOL_SCHEMA_VALIDATION_FAILED');
 });
 
-test('v2 rejects empty parallel tool call batches before invoking any tool', async () => {
-  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [[]] })]);
+test('toolCapable rejects empty parallel tool call batches before invoking any tool', async () => {
+  const provider = new ToolSequenceProvider([JSON.stringify({ toolCalls: [[]] })]);
   let invoked = 0;
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true } }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
   assert.equal(result.status, 'output_invalid');
   assert.equal(invoked, 0);
 });
 
-test('v2 rejects maxToolCalls before invoking any tool', async () => {
-  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-a', name: 'read_record', arguments: { logicalId: 'a' } }, { id: 'call-b', name: 'read_record', arguments: { logicalId: 'b' } }] })]);
+test('toolCapable rejects maxCalls before invoking any tool', async () => {
+  const provider = new ToolSequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-a', name: 'read_record', arguments: { logicalId: 'a' } }, { id: 'call-b', name: 'read_record', arguments: { logicalId: 'b' } }] })]);
   let invoked = 0;
-  const result = await completeV2(v2Request({ autoInvokeTools: true, maxToolCalls: 1 }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true, maxCalls: 1 } }), { provider: provider, toolInvoker: { invoke: async () => { invoked += 1; return {}; } } });
   assert.equal(result.status, 'unvalidated');
   assert.equal(invoked, 0);
   assert.equal(result.toolCalls, 0);
 });
 
-test('v2 requires a ToolInvoker when autoInvokeTools is enabled', async () => {
-  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-1', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider });
+test('toolCapable requires a ToolInvoker when autoInvoke is enabled', async () => {
+  const provider = new ToolSequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-1', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true } }), { provider: provider });
   assert.equal(result.status, 'configuration_error');
   assert.equal(result.errors[0]?.code, 'CONFIGURATION_INVALID');
 });
 
-test('v2 converts tool failures into bounded error results and continues', async () => {
-  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-fail', name: 'read_record', arguments: { logicalId: 'a' } }] }), JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider, toolInvoker: { invoke: async () => { throw new Error('secret=hidden'); } } });
+test('toolCapable converts tool failures into bounded error results and continues', async () => {
+  const provider = new ToolSequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-fail', name: 'read_record', arguments: { logicalId: 'a' } }] }), JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true } }), { provider: provider, toolInvoker: { invoke: async () => { throw new Error('secret=hidden'); } } });
   assert.equal(result.status, 'success');
   assert.equal(provider.calls[1]?.toolResults[0]?.status, 'error');
   assert.deepEqual(result.toolResults, [{
@@ -268,12 +264,12 @@ test('v2 converts tool failures into bounded error results and continues', async
   assert.doesNotMatch(JSON.stringify(provider.calls[1]?.toolResults), /secret=hidden/u);
 });
 
-test('v2 automatic invocation stops only on an explicit provider decision', async () => {
-  const provider = new V2SequenceProvider([
+test('toolCapable automatic invocation stops only on an explicit provider decision', async () => {
+  const provider = new ToolSequenceProvider([
     JSON.stringify({ decision: 'continue', toolCalls: [{ id: 'call-stop', name: 'read_record', arguments: { logicalId: 'a' } }] }),
     JSON.stringify({ decision: 'stop', content: '{"ok":true}', toolCalls: [] }),
   ]);
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), {
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true } }), {
     provider: provider,
     toolInvoker: { invoke: async () => ({ ok: true }) },
   });
@@ -282,31 +278,31 @@ test('v2 automatic invocation stops only on an explicit provider decision', asyn
   assert.deepEqual(result.toolResults, [{ callId: 'call-stop', name: 'read_record', status: 'success', value: { ok: true } }]);
 });
 
-test('v2 rejects invalid provider decision and tool-call combinations', async () => {
-  const stopWithCalls = new V2SequenceProvider([JSON.stringify({ decision: 'stop', toolCalls: [{ id: 'call-invalid-stop', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
-  const stopResult = await completeV2(v2Request({ autoInvokeTools: true }), { provider: stopWithCalls, toolInvoker: { invoke: async () => ({}) } });
+test('toolCapable rejects invalid provider decision and tool-call combinations', async () => {
+  const stopWithCalls = new ToolSequenceProvider([JSON.stringify({ decision: 'stop', toolCalls: [{ id: 'call-invalid-stop', name: 'read_record', arguments: { logicalId: 'a' } }] })]);
+  const stopResult = await complete(toolRequest({ toolOptions: { autoInvoke: true } }), { provider: stopWithCalls, toolInvoker: { invoke: async () => ({}) } });
   assert.equal(stopResult.status, 'provider_error');
   assert.equal(stopResult.errors[0]?.code, 'PROVIDER_REQUEST_FAILED');
 
-  const continueWithoutCalls = new V2SequenceProvider([JSON.stringify({ decision: 'continue', content: 'not enough' })]);
-  const continueResult = await completeV2(v2Request({ autoInvokeTools: true }), { provider: continueWithoutCalls, toolInvoker: { invoke: async () => ({}) } });
+  const continueWithoutCalls = new ToolSequenceProvider([JSON.stringify({ decision: 'continue', content: 'not enough' })]);
+  const continueResult = await complete(toolRequest({ toolOptions: { autoInvoke: true } }), { provider: continueWithoutCalls, toolInvoker: { invoke: async () => ({}) } });
   assert.equal(continueResult.status, 'provider_error');
   assert.equal(continueResult.errors[0]?.code, 'PROVIDER_REQUEST_FAILED');
 });
 
-test('v2 forwards the abort signal to each tool invocation', async () => {
-  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-abort', name: 'read_record', arguments: { logicalId: 'a' } }] }), JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
+test('toolCapable forwards the abort signal to each tool invocation', async () => {
+  const provider = new ToolSequenceProvider([JSON.stringify({ toolCalls: [{ id: 'call-abort', name: 'read_record', arguments: { logicalId: 'a' } }] }), JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
   const controller = new AbortController();
   let received: AbortSignal | undefined;
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), { provider: provider, signal: controller.signal, toolInvoker: { invoke: async (_call, context) => { received = context.signal; return {}; } } });
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true } }), { provider: provider, signal: controller.signal, toolInvoker: { invoke: async (_call, context) => { received = context.signal; return {}; } } });
   assert.equal(result.status, 'success');
   assert.equal(received, controller.signal);
 });
 
-test('v2 emits correlated tool lifecycle events through DebugSink', async () => {
+test('toolCapable emits correlated tool lifecycle events through DebugSink', async () => {
   const events: Array<{ event: string; data?: Record<string, unknown> }> = [];
-  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [[{ id: 'call-event-a', name: 'read_record', arguments: { logicalId: 'a' } }, { id: 'call-event-b', name: 'read_record', arguments: { logicalId: 'b' } }]] }), JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), {
+  const provider = new ToolSequenceProvider([JSON.stringify({ toolCalls: [[{ id: 'call-event-a', name: 'read_record', arguments: { logicalId: 'a' } }, { id: 'call-event-b', name: 'read_record', arguments: { logicalId: 'b' } }]] }), JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true } }), {
     provider,
     debug: (event) => events.push(event as { event: string; data?: Record<string, unknown> }),
     toolInvoker: { invoke: async (call) => ({ secret: 'redact-me', callId: call.id }) },
@@ -320,12 +316,12 @@ test('v2 emits correlated tool lifecycle events through DebugSink', async () => 
   assert.doesNotMatch(JSON.stringify(events), /redact-me/u);
 });
 
-test('v2 returns cancelled before starting provider work', async () => {
+test('toolCapable returns cancelled before starting provider work', async () => {
   const controller = new AbortController();
   controller.abort();
   let calls = 0;
-  const provider = new V2SequenceProvider([JSON.stringify({ content: 'never', toolCalls: [] })]);
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), {
+  const provider = new ToolSequenceProvider([JSON.stringify({ content: 'never', toolCalls: [] })]);
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true } }), {
     provider,
     signal: controller.signal,
     toolInvoker: { invoke: async () => { calls += 1; return {}; } },
@@ -336,7 +332,7 @@ test('v2 returns cancelled before starting provider work', async () => {
   assert.equal(calls, 0);
 });
 
-test('v2 cancellation preserves completed results and does not start later model work', async () => {
+test('toolCapable cancellation preserves completed results and does not start later model work', async () => {
   const controller = new AbortController();
   let providerCalls = 0;
   const provider: LlmProvider = {
@@ -347,7 +343,7 @@ test('v2 cancellation preserves completed results and does not start later model
       return { decision: 'stop', content: 'unexpected', toolCalls: [] };
     },
   };
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), {
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true } }), {
     provider,
     signal: controller.signal,
     toolInvoker: { invoke: async () => { controller.abort(); return { ok: true }; } },
@@ -357,11 +353,11 @@ test('v2 cancellation preserves completed results and does not start later model
   assert.deepEqual(result.toolResults, [{ callId: 'call-cancel', name: 'read_record', status: 'success', value: { ok: true } }]);
 });
 
-test('v2 cancellation observed after provider response prevents terminal success', async () => {
+test('toolCapable cancellation observed after provider response prevents terminal success', async () => {
   const controller = new AbortController();
   const events: string[] = [];
-  const provider = new V2SequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
-  const result = await completeV2(v2Request(), {
+  const provider = new ToolSequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]);
+  const result = await complete(toolRequest(), {
     provider,
     signal: controller.signal,
     debug: (event) => {
@@ -377,7 +373,7 @@ test('v2 cancellation observed after provider response prevents terminal success
   assert.equal(events.includes('llm.cancelled'), true);
 });
 
-test('v2 provider abort errors emit the cancellation lifecycle', async () => {
+test('toolCapable provider abort errors emit the cancellation lifecycle', async () => {
   const events: string[] = [];
   const provider: LlmProvider = {
     async complete(request) {
@@ -385,21 +381,21 @@ test('v2 provider abort errors emit the cancellation lifecycle', async () => {
       throw Object.assign(new Error('aborted'), { name: 'AbortError' });
     },
   };
-  const result = await completeV2(v2Request(), { provider, debug: (event) => events.push(event.event) });
+  const result = await complete(toolRequest(), { provider, debug: (event) => events.push(event.event) });
   assert.equal(result.status, 'cancelled');
   assert.equal(result.errors[0]?.phase, 'cancellation');
   assert.deepEqual(events.slice(-4), ['llm.provider.request', 'llm.cancel.observed', 'llm.cancelled', 'llm.response']);
 });
 
-test('v2 cancellation during parallel tool events prevents unstarted tool invocation', async () => {
+test('toolCapable cancellation during parallel tool events prevents unstarted tool invocation', async () => {
   const controller = new AbortController();
   const events: string[] = [];
   let invocations = 0;
-  const provider = new V2SequenceProvider([JSON.stringify({ toolCalls: [
+  const provider = new ToolSequenceProvider([JSON.stringify({ toolCalls: [
     { id: 'call-race-a', name: 'read_record', arguments: { logicalId: 'a' } },
     { id: 'call-race-b', name: 'read_record', arguments: { logicalId: 'b' } },
   ] })]);
-  const result = await completeV2(v2Request({ autoInvokeTools: true }), {
+  const result = await complete(toolRequest({ toolOptions: { autoInvoke: true } }), {
     provider,
     signal: controller.signal,
     debug: (event) => {
@@ -434,27 +430,27 @@ test('exposes the normalized completion service through ILlmProvider', async () 
   assert.equal(result.output?.$type, 'string');
 });
 
-test('unified complete dispatches v1 and v2 requests to matching response schemas', async () => {
+test('unified complete dispatches v1 and toolCapable requests to matching response schemas', async () => {
   const v1 = await complete({ schema, task: 'task', systemPrompt: 'system' }, { provider: new SequenceProvider(['ok']) });
-  const v2 = await complete(v2Request(), { provider: new V2SequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]) });
+  const toolCapable = await complete(toolRequest(), { provider: new ToolSequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]) });
   assert.equal(v1.schema, 'https://schemas.handschuh.dev/llm/response/v1');
-  assert.equal(v2.schema, 'https://schemas.handschuh.dev/llm/response/v2');
-  assert.equal(v2.status, 'success');
+  assert.equal(toolCapable.schema, 'https://schemas.handschuh.dev/llm/response/v1');
+  assert.equal(toolCapable.status, 'success');
 });
 
-test('unified complete routes malformed known v2 requests to response/v2', async () => {
-  const result = await complete({ schema: schemaV2, task: '', systemPrompt: 'system' }, { provider: new V2SequenceProvider([]) });
-  assert.equal(result.schema, 'https://schemas.handschuh.dev/llm/response/v2');
+test('unified complete routes malformed known toolCapable requests to response/toolCapable', async () => {
+  const result = await complete({ schema: toolSchema, task: '', systemPrompt: 'system' }, { provider: new ToolSequenceProvider([]) });
+  assert.equal(result.schema, 'https://schemas.handschuh.dev/llm/response/v1');
   assert.equal(result.status, 'input_invalid');
 });
 
-test('unified complete rejects an unknown request schema without mislabeling it as v2', async () => {
+test('unified complete rejects an unknown request schema without mislabeling it as toolCapable', async () => {
   const result = await complete({ schema: 'https://schemas.handschuh.dev/llm/request/v9', task: 'task', systemPrompt: 'system' } as never, { provider: new SequenceProvider(['ok']) });
   assert.equal(result.schema, 'https://schemas.handschuh.dev/llm/response/v1');
   assert.equal(result.status, 'input_invalid');
 });
 
-test('reports v1 and v2 request-schema violations before provider invocation', async () => {
+test('reports v1 and toolCapable request-schema violations before provider invocation', async () => {
   const v1Provider = new SequenceProvider(['ok']);
   const v1 = await complete({ ...request(), extra: true }, { provider: v1Provider });
   assert.equal(v1.schema, 'https://schemas.handschuh.dev/llm/response/v1');
@@ -463,19 +459,19 @@ test('reports v1 and v2 request-schema violations before provider invocation', a
   assert.match(v1.errors[0]?.message ?? '', /additional properties/u);
   assert.equal(v1Provider.calls.length, 0);
 
-  const v2Provider = new V2SequenceProvider([]);
-  const v2 = await complete(v2Request({ extra: true }), { provider: v2Provider });
-  assert.equal(v2.schema, 'https://schemas.handschuh.dev/llm/response/v2');
-  assert.equal(v2.status, 'input_invalid');
-  assert.equal(v2.errors[0]?.code, 'REQUEST_INVALID');
-  assert.match(v2.errors[0]?.message ?? '', /additional properties/u);
-  assert.equal(v2Provider.calls.length, 0);
+  const toolCapableProvider = new ToolSequenceProvider([]);
+  const toolCapable = await complete(toolRequest({ extra: true }), { provider: toolCapableProvider });
+  assert.equal(toolCapable.schema, 'https://schemas.handschuh.dev/llm/response/v1');
+  assert.equal(toolCapable.status, 'input_invalid');
+  assert.equal(toolCapable.errors[0]?.code, 'REQUEST_INVALID');
+  assert.match(toolCapable.errors[0]?.message ?? '', /additional properties/u);
+  assert.equal(toolCapableProvider.calls.length, 0);
 });
 
-test('ILlmProvider accepts a v2 request and returns response/v2', async () => {
+test('ILlmProvider accepts a toolCapable request and returns response/toolCapable', async () => {
   const service: ILlmProvider = { complete };
-  const result = await service.complete(v2Request(), { provider: new V2SequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]) });
-  assert.equal(result.schema, 'https://schemas.handschuh.dev/llm/response/v2');
+  const result = await service.complete(toolRequest(), { provider: new ToolSequenceProvider([JSON.stringify({ content: '{"ok":true}', toolCalls: [] })]) });
+  assert.equal(result.schema, 'https://schemas.handschuh.dev/llm/response/v1');
 });
 
 test('ILlmProvider performs bounded output-schema correction iterations', async () => {
@@ -543,12 +539,12 @@ test('ILlmProvider performs bounded output-schema correction iterations', async 
   assert.equal(exhaustedProvider.calls.length, 2);
 });
 
-test('v2 includes output-schema violations in correction retries', async () => {
-  const provider = new V2SequenceProvider([
+test('toolCapable includes output-schema violations in correction retries', async () => {
+  const provider = new ToolSequenceProvider([
     JSON.stringify({ content: '{\"ok\":\"wrong type\"}', toolCalls: [] }),
     JSON.stringify({ content: '{\"ok\":true}', toolCalls: [] }),
   ]);
-  const result = await completeV2(v2Request({ maxIterations: 2 }), {
+  const result = await complete(toolRequest({ maxIterations: 2 }), {
     provider: provider,
   });
 
@@ -723,7 +719,6 @@ test('OpenRouterProvider sends base64 images as image_url content parts', async 
     const provider = new OpenRouterProvider();
     const result = await provider.complete({
       provider: 'openrouter',
-      protocol: 'v1',
       model: 'openai/gpt-5.6-luna',
       thinking: 'low',
       systemPrompt: 'Inspect the image.',
@@ -731,7 +726,7 @@ test('OpenRouterProvider sends base64 images as image_url content parts', async 
       files: [{ name: 'tile', path: 'tile.png', type: 'image/png', purpose: 'Satellite tile', encoding: 'base64', content: pngBytes.toString('base64'), resolvedPath: 'tile.png' }],
       credentials: { apiKey: 'test-key' },
     });
-    assert.equal(result, 'ok');
+    assert.equal(result.content, 'ok');
     const content = body?.messages?.[1]?.content as Array<{ type?: string; text?: string; image_url?: { url?: string; detail?: string } }>;
     assert.equal(content[0].type, 'text');
     assert.equal(content[0].text, '<llmPrompt />');
@@ -743,7 +738,7 @@ test('OpenRouterProvider sends base64 images as image_url content parts', async 
   }
 });
 
-test('OpenRouterProvider maps v2 tools, tool results, and native tool calls', async () => {
+test('OpenRouterProvider maps toolCapable tools, tool results, and native tool calls', async () => {
   const originalFetch = globalThis.fetch;
   let body: { tools?: unknown[]; messages?: Array<Record<string, unknown>> } | undefined;
   globalThis.fetch = async (_input, init) => {
@@ -752,8 +747,7 @@ test('OpenRouterProvider maps v2 tools, tool results, and native tool calls', as
   };
   try {
     const provider = new OpenRouterProvider();
-    const request: ProviderCompletionRequestV2 = {
-      protocol: 'v2',
+    const request: ProviderCompletionRequest = {
       provider: 'openrouter',
       model: 'openai/gpt-5.6-luna',
       thinking: 'low',
@@ -761,7 +755,7 @@ test('OpenRouterProvider maps v2 tools, tool results, and native tool calls', as
       llmPrompt: '<llmPrompt />',
       files: [],
       credentials: { apiKey: 'test-key' },
-      tools: [{ name: 'read_record', description: 'Read a record.', inputSchema: JSON.stringify({ type: 'object', properties: { logicalId: { type: 'string' } } }) }],
+      toolOptions: { tools: [{ name: 'read_record', description: 'Read a record.', inputSchema: JSON.stringify({ type: 'object', properties: { logicalId: { type: 'string' } } }) }] },
       toolResults: [{ callId: 'call-prior', name: 'previous_tool', status: 'success', value: { ok: true } }],
     };
     const result = await provider.complete(request);
@@ -781,7 +775,7 @@ test('OpenRouterProvider maps finish_reason stop to a terminal decision', async 
   globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '{"ok":true}', tool_calls: [] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
   try {
     const result = await new OpenRouterProvider().complete({
-      protocol: 'v2', provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Finish.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, tools: [], toolResults: [],
+      provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Finish.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, toolOptions: { tools: [] }, toolResults: [],
     });
     assert.equal(result.decision, 'stop');
     assert.equal(result.content, '{"ok":true}');
@@ -796,7 +790,7 @@ test('OpenRouterProvider rejects missing or unsupported finish_reason', async ()
   for (const finishReason of [undefined, 'length']) {
     globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ ...(finishReason === undefined ? {} : { finish_reason: finishReason }), message: { content: '{"ok":true}', tool_calls: [] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
     await assert.rejects(() => new OpenRouterProvider().complete({
-      protocol: 'v2', provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Finish.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, tools: [], toolResults: [],
+      provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Finish.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, toolOptions: { tools: [] }, toolResults: [],
     }), /missing or unsupported completion finish reason/u);
   }
   globalThis.fetch = originalFetch;
@@ -807,7 +801,7 @@ test('OpenRouterProvider rejects malformed native tool arguments', async () => {
   globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ finish_reason: 'tool_calls', message: { content: null, tool_calls: [{ id: 'call-bad', function: { name: 'read_record', arguments: '{' } }] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
   try {
     await assert.rejects(() => new OpenRouterProvider().complete({
-      protocol: 'v2', provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Use tools.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, tools: [], toolResults: [],
+      provider: 'openrouter', model: 'openai/gpt-5.6-luna', thinking: 'low', systemPrompt: 'Use tools.', llmPrompt: '<llmPrompt />', files: [], credentials: { apiKey: 'test-key' }, toolOptions: { tools: [{ name: 'read_record', description: 'Read', inputSchema: '{"type":"object"}' }] }, toolResults: [],
     }), /invalid JSON tool arguments/u);
   } finally {
     globalThis.fetch = originalFetch;
@@ -845,7 +839,7 @@ test('help documents minimal request and response contracts', async () => {
 
 test('debug sink emits bounded redacted request and response events', async () => {
   const events: Array<{ event: string; data?: unknown }> = [];
-  const provider: LlmProvider = { async complete() { return 'debug response'; } };
+  const provider: LlmProvider = { async complete() { return { content: 'debug response', toolCalls: [], decision: 'stop' }; } };
   const result = await complete({
     schema,
     task: 'debug task',

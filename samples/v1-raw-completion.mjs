@@ -10,7 +10,7 @@ try {
   }, {
     provider: {
       async complete() {
-        return 'v1 raw sample response';
+        return { content: 'v1 raw sample response', toolCalls: [], decision: 'stop' };
       },
     },
   });

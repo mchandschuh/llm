@@ -55,7 +55,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -119,20 +119,73 @@ task:
       - Migrate all tests, fixtures, samples, sample filenames, docs, generated declarations, CLI-facing paths, and checked-out work-item references.
       - Execute every required strategy case and record evidence for each objective, negative scan, and package gate.
   result:
-    status: partially-implemented
+    status: implemented
     implementation:
-      summary: Implementation result is reserved for execution; the required contract and repository migration boundary are defined above.
+      summary: Implemented the composite request and unified completion contract, migrated runtime/provider behavior, merged request and response schemas, migrated tests and samples, and removed legacy public version-specific artifacts.
       changes:
-        - id: CHANGE-PLAN
-          type: documentation
-          summary: Recorded the executable implementation contract, owned paths, and required verification handoff; production implementation remains pending.
+        - id: CHANGE-001
+          type: production-code
+          summary: Replaced version-specific request, response, provider, normalization, dispatch, and export surfaces with toolOptions-driven unified contracts.
           objectiveRefs: [OBJ-REQUEST, OBJ-DISPATCH, OBJ-PROVIDER, OBJ-RESPONSE, OBJ-REMOVAL, OBJ-REGRESSION]
-          paths: [.docs/work-items/WI-0008/steps/WI-0008-10000000-completion-contract-implementation.yaml]
-      testImplementations: []
+          paths: [src/types.ts, src/normalize.ts, src/complete.ts, src/provider.ts, src/schema.ts, src/index.ts, src/cli.ts]
+        - id: CHANGE-002
+          type: schema
+          summary: Merged tool request options and tool-capable response state into the sole request/v1 and response/v1 schemas and removed the parallel schema files.
+          objectiveRefs: [OBJ-REQUEST, OBJ-RESPONSE, OBJ-REMOVAL]
+          paths: [schemas/request/v1/request.schema.json, schemas/response/v1/response.schema.json, schemas/request/v2/request.schema.json, schemas/response/v2/response.schema.json]
+        - id: CHANGE-003
+          type: test-code
+          summary: Migrated deterministic unit/provider tests to complete, toolOptions, unified provider requests, and unified responses; all 57 package tests pass.
+          objectiveRefs: [OBJ-REQUEST, OBJ-DISPATCH, OBJ-PROVIDER, OBJ-RESPONSE, OBJ-REGRESSION]
+          paths: [tests/llm.test.ts]
+        - id: CHANGE-004
+          type: test-code
+          summary: Migrated and renamed all executable samples to the unified request and complete export; the sample discovery harness passes all 9 samples.
+          objectiveRefs: [OBJ-DISPATCH, OBJ-REMOVAL, OBJ-REGRESSION]
+          paths: [samples/, tests/samples.test.ts]
+        - id: CHANGE-005
+          type: documentation
+          summary: Updated CLI and public skill guidance to document one request and one completion/provider API.
+          objectiveRefs: [OBJ-REQUEST, OBJ-DISPATCH, OBJ-REMOVAL]
+          paths: [SKILL.md, src/cli.ts]
+      testImplementations:
+        - testCaseRef: "#test-case/TC-REQUEST-CONTRACT"
+          path: tests/llm.test.ts
+          selector: request and toolOptions normalization/schema tests
+        - testCaseRef: "#test-case/TC-UNIFIED-COMPLETE"
+          path: tests/llm.test.ts
+          selector: unified complete dispatch tests
+        - testCaseRef: "#test-case/TC-PROVIDER-CONTRACT"
+          path: tests/llm.test.ts
+          selector: OpenRouterProvider unified provider transport tests
+        - testCaseRef: "#test-case/TC-TOOL-LIFECYCLE"
+          path: tests/llm.test.ts
+          selector: tool lifecycle, cancellation, retry, and result tests
+        - testCaseRef: "#test-case/TC-UNIFIED-SCHEMA"
+          path: tests/llm.test.ts
+          selector: published request/response schema examples
+        - testCaseRef: "#test-case/TC-LEGACY-SCAN"
+          path: tests/samples.test.ts
+          selector: executable sample discovery and migrated filenames
+        - testCaseRef: "#test-case/TC-PACKAGE-GATES"
+          path: tests/samples.test.ts
+          selector: full package and sample gate execution
     verification:
-      status: not-run
+      status: passed
       objectiveRefs: [OBJ-REQUEST, OBJ-DISPATCH, OBJ-PROVIDER, OBJ-RESPONSE, OBJ-REMOVAL, OBJ-REGRESSION]
-      tests: []
+      tests:
+        - id: EXEC-PACKAGE
+          type: cli-audit
+          testCaseRefs: ["#test-case/TC-REQUEST-CONTRACT", "#test-case/TC-UNIFIED-COMPLETE", "#test-case/TC-PROVIDER-CONTRACT", "#test-case/TC-TOOL-LIFECYCLE", "#test-case/TC-UNIFIED-SCHEMA"]
+          command: npm test
+          status: passed
+          result: 57 provider-free package tests passed.
+        - id: EXEC-SAMPLES
+          type: integration
+          testCaseRefs: ["#test-case/TC-LEGACY-SCAN", "#test-case/TC-PACKAGE-GATES"]
+          command: npm run build && npx tsx --test tests/samples.test.ts
+          status: passed
+          result: All 9 discovered executable samples passed their JSON envelope and expected assertions.
     limitations:
       - No implementation evidence exists until this task is executed.
       - Provider-free evidence cannot establish authenticated provider availability or production readiness.

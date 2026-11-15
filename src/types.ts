@@ -1,7 +1,5 @@
 export const REQUEST_SCHEMA = 'https://schemas.handschuh.dev/llm/request/v1' as const;
 export const RESPONSE_SCHEMA = 'https://schemas.handschuh.dev/llm/response/v1' as const;
-export const REQUEST_SCHEMA_V2 = 'https://schemas.handschuh.dev/llm/request/v2' as const;
-export const RESPONSE_SCHEMA_V2 = 'https://schemas.handschuh.dev/llm/response/v2' as const;
 export const TOOL_DEFINITION_SCHEMA = 'https://schemas.handschuh.dev/llm/tool-definition/v1' as const;
 export const TOOL_CALL_SCHEMA = 'https://schemas.handschuh.dev/llm/tool-call/v1' as const;
 export const PARALLEL_TOOL_CALL_BATCH_SCHEMA = 'https://schemas.handschuh.dev/llm/parallel-tool-call-batch/v1' as const;
@@ -42,6 +40,7 @@ export interface LlmRequest {
   readonly taskSchema?: InlineJsonSchema;
   readonly files?: readonly ReferenceFile[];
   readonly outputSchema?: InlineJsonSchema;
+  readonly toolOptions?: ToolOptions;
 }
 
 export interface ToolDefinition {
@@ -70,23 +69,11 @@ export interface ToolResult {
   };
 }
 
-export interface LlmRequestV2 {
-  readonly schema: typeof REQUEST_SCHEMA_V2;
-  readonly provider?: string;
-  readonly model?: string;
-  readonly thinking?: Thinking;
-  readonly maxFailedAttempts?: number;
-  readonly maxIterations?: number;
-  readonly maxToolRounds?: number;
-  readonly maxToolCalls?: number;
-  readonly credentials?: Credentials;
-  readonly task: TaskValue;
-  readonly systemPrompt: string;
-  readonly taskSchema?: InlineJsonSchema;
-  readonly files?: readonly ReferenceFile[];
+export interface ToolOptions {
   readonly tools?: readonly ToolDefinition[];
-  readonly autoInvokeTools?: boolean;
-  readonly outputSchema?: InlineJsonSchema;
+  readonly autoInvoke?: boolean;
+  readonly maxRounds?: number;
+  readonly maxCalls?: number;
 }
 
 export interface ResolvedSource {
@@ -107,27 +94,15 @@ export interface NormalizedRequest {
   readonly taskSchema?: InlineJsonSchema;
   readonly files: readonly (ReferenceFile & { readonly encoding: FileEncoding; readonly content: string; readonly resolvedPath: string })[];
   readonly outputSchema?: InlineJsonSchema;
+  readonly toolOptions?: NormalizedToolOptions;
   readonly configurationRoot: string;
 }
 
-export interface NormalizedRequestV2 {
-  readonly schema: typeof REQUEST_SCHEMA_V2;
-  readonly provider: string;
-  readonly model: string;
-  readonly thinking: Thinking;
-  readonly maxFailedAttempts: number;
-  readonly maxIterations: number;
-  readonly maxToolRounds: number;
-  readonly maxToolCalls: number;
-  readonly credentials?: Credentials;
-  readonly task: TaskValue;
-  readonly systemPrompt: ResolvedSource;
-  readonly taskSchema?: InlineJsonSchema;
-  readonly files: readonly (ReferenceFile & { readonly encoding: FileEncoding; readonly content: string; readonly resolvedPath: string })[];
+export interface NormalizedToolOptions {
   readonly tools: readonly ToolDefinition[];
-  readonly autoInvokeTools: boolean;
-  readonly outputSchema?: InlineJsonSchema;
-  readonly configurationRoot: string;
+  readonly autoInvoke: boolean;
+  readonly maxRounds: number;
+  readonly maxCalls: number;
 }
 
 export interface ProviderCompletionRequestBase {
@@ -142,13 +117,8 @@ export interface ProviderCompletionRequestBase {
 }
 
 export interface ProviderCompletionRequest extends ProviderCompletionRequestBase {
-  readonly protocol: 'v1';
-}
-
-export interface ProviderCompletionRequestV2 extends ProviderCompletionRequestBase {
-  readonly protocol: 'v2';
-  readonly tools: readonly ToolDefinition[];
-  readonly toolResults: readonly ToolResult[];
+  readonly toolOptions?: NormalizedToolOptions;
+  readonly toolResults?: readonly ToolResult[];
 }
 
 export type ProviderCompletionDecision = 'continue' | 'stop';
@@ -160,8 +130,7 @@ export interface ProviderCompletionResponse {
 }
 
 export interface LlmProvider {
-  complete(request: ProviderCompletionRequestV2): Promise<ProviderCompletionResponse>;
-  complete(request: ProviderCompletionRequest): Promise<string>;
+  complete(request: ProviderCompletionRequest): Promise<ProviderCompletionResponse>;
 }
 
 export interface ToolInvocationContext {
@@ -206,11 +175,16 @@ export interface ToolAwareOutput {
 
 export type ResponseStatus =
   | 'success'
+  | 'cancelled'
+  | 'tool_calls_pending'
+  | 'tool_rounds_exhausted'
+  | 'tool_invocation_error'
   | 'input_invalid'
   | 'configuration_error'
   | 'provider_error'
   | 'output_invalid'
-  | 'attempts_exhausted';
+  | 'attempts_exhausted'
+  | 'unvalidated';
 
 export type ErrorCode =
   | 'REQUEST_INVALID'
@@ -252,28 +226,6 @@ export interface LlmResponse {
   readonly output: LlmOutput | null;
   readonly failedAttempts: number;
   readonly iterations: number;
-  readonly errors: readonly LlmError[];
-}
-
-export type ResponseStatusV2 =
-  | 'success'
-  | 'cancelled'
-  | 'tool_calls_pending'
-  | 'tool_rounds_exhausted'
-  | 'tool_invocation_error'
-  | 'input_invalid'
-  | 'configuration_error'
-  | 'provider_error'
-  | 'output_invalid'
-  | 'attempts_exhausted'
-  | 'unvalidated';
-
-export interface LlmResponseV2 {
-  readonly schema: typeof RESPONSE_SCHEMA_V2;
-  readonly status: ResponseStatusV2;
-  readonly output: ToolAwareOutput | RawOutput | null;
-  readonly failedAttempts: number;
-  readonly iterations: number;
   readonly toolRounds: number;
   readonly toolCalls: number;
   readonly toolResults: readonly ToolResult[];
@@ -289,7 +241,6 @@ export interface LlmResponseV2 {
  */
 export interface ILlmProvider {
   complete(request: LlmRequest, options?: CompletionOptions): Promise<LlmResponse>;
-  complete(request: LlmRequestV2, options?: CompletionOptionsV2): Promise<LlmResponseV2>;
 }
 
 export interface CompletionOptions {
@@ -297,16 +248,13 @@ export interface CompletionOptions {
   readonly configurationFilePath?: string;
   readonly configurationRoot?: string;
   readonly debug?: import('./debug.js').DebugSink;
-}
-
-export interface CompletionOptionsV2 extends CompletionOptions {
   readonly toolInvoker?: ToolInvoker;
   readonly signal?: AbortSignal;
 }
 
-export type AnyLlmRequest = LlmRequest | LlmRequestV2;
-export type AnyLlmResponse = LlmResponse | LlmResponseV2;
-export type AnyCompletionOptions = CompletionOptions | CompletionOptionsV2;
+export type AnyLlmRequest = LlmRequest;
+export type AnyLlmResponse = LlmResponse;
+export type AnyCompletionOptions = CompletionOptions;
 
 export interface PromptParts {
   readonly task: string;

@@ -223,7 +223,7 @@ Only the `openrouter` adapter is built in. A non-OpenRouter provider name
 requires an injected `LlmProvider`; otherwise the completion returns
 `configuration_error` without making a provider request.
 
-For v2 tool-capable completions, OpenRouter's Chat Completions response includes
+For tool-capable tool-capable completions, OpenRouter's Chat Completions response includes
 the provider-specific `choices[0].finish_reason`. The adapter normalizes this
 intermediate provider response to `ProviderCompletionResponse.decision`:
 
@@ -233,13 +233,13 @@ intermediate provider response to `ProviderCompletionResponse.decision`:
   calls.
 
 Missing or unsupported finish reasons, continuation without tool calls, and a
-stop decision with tool calls are provider protocol errors. Automatic v2
+stop decision with tool calls are provider protocol errors. Automatic tool-capable
 orchestration does not infer termination from an empty tool-call collection.
 The decision controls the intermediate provider/tool loop; terminal callers
-still receive the versioned `llm/response/v2` envelope and its `toolResults`
+still receive the versioned `llm/response/tool-capable` envelope and its `toolResults`
 history.
 
-Automatic v2 tool execution emits `llm.tool.batch.start`, `llm.tool.call`,
+Automatic tool-capable tool execution emits `llm.tool.batch.start`, `llm.tool.call`,
 `llm.tool.result`, and `llm.tool.batch.end` through the same bounded `DebugSink`
 used by request/provider/response diagnostics. Tool event payloads are
 sanitized and sink failures are isolated from completion behavior.
@@ -247,7 +247,7 @@ sanitized and sink failures are isolated from completion behavior.
 Cancellation is cooperative: pass an `AbortSignal` through runtime completion
 options. The signal is propagated to provider fetches and
 `ToolInvocationContext`; cancellation stops later model/tool work, preserves
-completed tool results, and returns v2 status `cancelled` with a bounded
+completed tool results, and returns tool-capable status `cancelled` with a bounded
 `CANCELLED` diagnostic with error phase `cancellation`. If a monitor aborts from
 `llm.provider.response`, the runtime checks the signal before terminal output
 processing. If it aborts from `llm.tool.call`, each parallel callback checks the
@@ -330,7 +330,7 @@ The public exports also include:
 - `composePrompt`, `composeRequestPrompt`, and `composeCorrectionPrompt`;
 - `OpenRouterProvider`;
 - `LlmProvider`, whose single overloaded `complete` method accepts the raw v1
-  or v2 provider request and returns the correlated raw response;
+  or tool-capable provider request and returns the correlated raw response;
 - `LlmFailure`;
 - the request, response, provider, output, and configuration TypeScript types.
 
@@ -370,12 +370,12 @@ adapters. Do not instantiate network providers in tests unless an integration
 test explicitly requires that evidence.
 
 The raw provider seam is unified across protocol versions. Implement one
-`LlmProvider.complete` overload set: v1 requests return raw text, while v2
-requests return `ProviderCompletionResponse`. The v2 request overload must be
-declared before the broader v1 overload because v2 extends the common provider
-request shape. The high-level `complete` and `completeV2` functions remain
+`LlmProvider.complete` overload set: v1 requests return raw text, while tool-capable
+requests return `ProviderCompletionResponse`. The tool-capable request overload must be
+declared before the broader v1 overload because tool-capable extends the common provider
+request shape. The high-level `complete` and `complete` functions remain
 versioned convenience entry points for terminal `llm/response/v1` and
-`llm/response/v2` envelopes.
+`llm/response/tool-capable` envelopes.
 
 ## Agent workflow
 

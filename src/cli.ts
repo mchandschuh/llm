@@ -7,8 +7,6 @@ const packagePath = resolve(dirname(fileURLToPath(import.meta.url)), '../package
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const requestSchemaPath = resolve(packageRoot, 'schemas/request/v1/request.schema.json');
 const responseSchemaPath = resolve(packageRoot, 'schemas/response/v1/response.schema.json');
-const requestSchemaV2Path = resolve(packageRoot, 'schemas/request/v2/request.schema.json');
-const responseSchemaV2Path = resolve(packageRoot, 'schemas/response/v2/response.schema.json');
 
 async function version(): Promise<string> {
   const packageJson = JSON.parse(await readFile(packagePath, 'utf8')) as { version: string };
@@ -28,15 +26,14 @@ function help(): number {
   console.log('  "task": { "operation": "summarize", "target": "current work item" },');
   console.log('  "systemPrompt": "Return a concise plain-text summary."');
   console.log('}');
-  console.log(`\nTool-capable request (${requestSchemaV2Path}):`);
+  console.log(`\nTool-capable request (${requestSchemaPath}):`);
   console.log('{');
-  console.log('  "schema": "https://schemas.handschuh.dev/llm/request/v2",');
+  console.log('  "schema": "https://schemas.handschuh.dev/llm/request/v1",');
   console.log('  "task": { "operation": "inspect", "target": "current records" },');
   console.log('  "systemPrompt": "Use declared tools when needed.",');
-  console.log('  "tools": [],');
-  console.log('  "autoInvokeTools": false');
+  console.log('  "toolOptions": { "tools": [], "autoInvoke": false, "maxRounds": 3, "maxCalls": 128 }');
   console.log('}');
-  console.log(`\nTool-capable response (${responseSchemaV2Path}) uses response/v2 status and counters.`);
+  console.log(`\nTool-capable responses use ${responseSchemaPath} with tool counters and results.`);
   console.log(`\nSuccessful raw-text response (${responseSchemaPath}):`);
   console.log('{');
   console.log('  "schema": "https://schemas.handschuh.dev/llm/response/v1",');
@@ -68,7 +65,7 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
   }
   try {
     const configurationFilePath = resolve(process.cwd(), path);
-    const request = JSON.parse(await readFile(configurationFilePath, 'utf8')) as import('./types.js').LlmRequest | import('./types.js').LlmRequestV2;
+    const request = JSON.parse(await readFile(configurationFilePath, 'utf8')) as import('./types.js').LlmRequest;
     const { complete } = await import('./complete.js');
     const result = await complete(request, { configurationFilePath, ...(debug ? { debug: stderrDebugSink() } : {}) });
     console.log(JSON.stringify(result, null, 2));
