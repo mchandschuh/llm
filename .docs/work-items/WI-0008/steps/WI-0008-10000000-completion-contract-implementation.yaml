@@ -4,7 +4,7 @@ taskUid: WI-0008-10000000
 orderKey: "10000000"
 parentTaskUid: WI-0008-00000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement the unified completion contract
 objective: Implement the composite request, nested toolOptions, unified response and provider contracts, single public entry point, capability-driven dispatch, and repository-wide legacy-artifact removal defined by WI-0008.
 references:

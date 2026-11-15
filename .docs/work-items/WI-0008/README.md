@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 workItemId: WI-0008
 recordType: work-item-summary
 ---
@@ -8,8 +8,9 @@ recordType: work-item-summary
 
 ## Status
 
-`planned` for the requested repository work-item preparation. No implementation,
-validation, review, or delivery claim is made by this record.
+`complete` for the bounded local package scope. Implementation, validation,
+review, and local delivery records are committed. No authenticated provider,
+production, deployment, or downstream integration claim is made.
 
 ## Authority
 
@@ -57,7 +58,6 @@ by one version-neutral response contract.
 Task commits:
 
 - `00000000`: `WI-0008: 01: test(llm): define unified contract evidence`
-- `10000000`: pending implementation commit
 - `10000000`: `WI-0008: 02: refactor(llm): implement unified completion contract`
 - `80000000`: `WI-0008: 03: test(llm): validate unified completion contract`
 - `90000000`: `WI-0008: 04: review(llm): assess unified completion contract`
@@ -110,5 +110,5 @@ The future ordered steps must provide evidence for all of the following:
 - No real external tool invocation or side effect is claimed.
 - No package publication, deployment, production readiness, or downstream
   integration evidence is included.
-- This record is preparation only; later task records must establish implementation,
-  validation, review, and delivery evidence separately.
+- The task-list command's repository schema-registry path mismatch remains a tooling
+  limitation; direct authoritative task-envelope validation passed.

@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0008",
-  "status": "planned",
+  "status": "complete",
   "title": "Consolidate completion contracts around capability-driven tool options",
   "type": "refactor",
   "objective": "Replace the split request and completion variants with one composite request contract based on the existing request/v1 shape plus optional toolOptions, one unified response contract, one complete export, and one provider completion method; remove all legacy version-specific identifiers, files, exports, documentation, samples, and repository-record references from the current tree.",
