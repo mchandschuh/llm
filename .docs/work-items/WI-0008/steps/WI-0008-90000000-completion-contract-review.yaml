@@ -4,7 +4,7 @@ taskUid: WI-0008-90000000
 orderKey: "90000000"
 parentTaskUid: WI-0008-00000000
 taskType: review
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Review the unified completion contract implementation
 objective: Independently review the exact implementation and validation results for contract correctness, behavior preservation, complete legacy removal, scope, and evidence limits.
 references:
@@ -38,7 +38,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
@@ -99,16 +99,53 @@ task:
   result:
     status: complete
     decision: accepted
-    summary: Review result is reserved for execution after implementation and validation.
+    summary: Accepted review of the unified completion contract implementation and independent validation evidence.
     actor:
       id: wi-0008-reviewer
       role: reviewer
       authorityRef: WI-0008
-    criteriaEvaluations: []
+    criteriaEvaluations:
+      - criterionRef: "#criterion/CRIT-001"
+        status: satisfied
+        summary: request/v1 is the sole request schema; toolOptions contains tools, autoInvoke, maxRounds, and maxCalls with normalized defaults and bounds, and old top-level controls are rejected.
+        evidenceRefs: [WI-0008|80000000#result/R-001]
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-002"
+        status: satisfied
+        summary: complete, LlmProvider.complete, and OpenRouterProvider.complete are the single public/high-level/provider seams; capability is selected by toolOptions and no protocol discriminator remains in the accepted implementation scope.
+        evidenceRefs: [WI-0008|10000000#result/R-001, WI-0008|80000000#result/R-001]
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-003"
+        status: satisfied
+        summary: The unified response schema and tests preserve ordinary output plus pending, success, unvalidated, invocation-error, cancellation, rounds, calls, results, and diagnostics.
+        evidenceRefs: [WI-0008|80000000#result/R-001]
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-004"
+        status: satisfied
+        summary: The source/schema/test/sample/public-documentation scan returned no unexpected legacy version-specific markers, paths, names, fields, or filenames.
+        evidenceRefs: [WI-0008|80000000#result/R-001]
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-005"
+        status: satisfied
+        summary: The implementation preserves bounded tool behavior, finish reasons, cancellation, retries, samples, and provider-free evidence; no production or live-provider claim is made.
+        evidenceRefs: [WI-0008|80000000#result/R-001]
+        findingRefs: []
     findings: []
-    evidence: []
-    limitations: [No review evidence exists until the exact implementation and validation results are available.]
-    nonClaims: [This planned review does not claim acceptance of an unimplemented change.]
+    evidence:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0008|80000000#result/R-001
+        claim: Independent package, sample, schema, declaration, legacy-scan, and integrity evidence passed.
+        tier: cli-audit
+        source: validation-task
+      - id: EVID-002
+        kind: diff
+        ref: WI-0008|10000000#result/R-001
+        claim: Implementation changes correlate to request, dispatch, provider, response, removal, and regression objectives.
+        tier: inspection
+        source: implementation-task
+    limitations: [Evidence is local, deterministic, provider-free, and does not establish production readiness or downstream integration.]
+    nonClaims: [No authenticated provider availability, deployment, publication, or real external tool side effect is claimed.]
     reproducibility:
       policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
       renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000

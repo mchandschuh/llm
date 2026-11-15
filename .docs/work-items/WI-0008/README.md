@@ -51,7 +51,7 @@ by one version-neutral response contract.
 | `00000000` | Define unified completion-contract test strategy | `complete` | none |
 | `10000000` | Implement composite request, unified runtime, and repository migration | `complete` | `00000000` |
 | `80000000` | Independently validate contracts, regressions, generated output, and legacy removal | `complete` | `10000000` |
-| `90000000` | Review exact implementation and validation evidence | `planned` | `80000000` |
+| `90000000` | Review exact implementation and validation evidence | `complete` | `80000000` |
 | `91000000` | Record local release and final audit | `planned` | `90000000` |
 
 Task commits:
@@ -59,6 +59,7 @@ Task commits:
 - `00000000`: `WI-0008: 01: test(llm): define unified contract evidence`
 - `10000000`: pending implementation commit
 - `10000000`: `WI-0008: 02: refactor(llm): implement unified completion contract`
+- `80000000`: `WI-0008: 03: test(llm): validate unified completion contract`
 
 The implementation task is contract-bearing: it repeats the exact `toolOptions`
 field names and defaults, requires one public `complete`, one provider method,
