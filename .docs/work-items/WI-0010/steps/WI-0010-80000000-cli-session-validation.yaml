@@ -4,7 +4,7 @@ taskUid: WI-0010-80000000
 orderKey: "80000000"
 parentTaskUid: null
 taskType: validation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Validate CLI modes, persistence, security, compatibility, and review coverage
 objective: Independently validate every WI-0010 requirement, invariant, implementation result, CLI command matrix, persistence boundary, shell handoff, package gate, and scope limitation.
 references:
@@ -52,7 +52,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
@@ -158,21 +158,59 @@ task:
       - Do not make authenticated provider calls or execute real external tools.
       - Do not claim production shell installation, remote persistence, deployment, or parent-shell mutation.
   result:
-    status: implemented-unproven
-    summary: Validation task is prepared but not executed.
+    status: passed
+    summary: Independent validation passed the CLI command matrix, local persistence/security boundary, complete package gates, no-REPL scope audit, and data-driven WI-0010 coverage audit.
     executions:
-      - id: EXEC-PLANNED
+      - id: EXEC-CLI-MATRIX
         procedureRef: "#procedure/VAL-CLI-MATRIX"
-        status: inconclusive
+        status: passed
         observed:
-          outcome: not-run
-          summary: Validation is declared but has not been executed.
-        evidenceTier: static
+          outcome: passed
+          exitCode: 0
+          summary: Prompt isolation, fresh explicit-ID starts, subsequent LLM_CHAT_ID continuation, export-only handoff, missing-handoff failure, output modes, and legacy parser behavior passed through provider-injected CLI tests.
+          assertions: [15 focused CLI/session tests passed, fresh -c did not rehydrate old state, later bare continuation did rehydrate prior history.]
+        evidenceTier: integration
         evidence:
-          - kind: record
-            source: validation task
-            claim: The procedure is declared but was not executed in the planned result.
+          - kind: test
+            source: tests/cli.test.ts
+            claim: 15 focused CLI/session tests passed.
+          - kind: test
+            source: tests/cli-session-store.test.ts
+            claim: Valid, missing, corrupt, unsafe, secret-bearing, overwrite, and restrictive session cases passed.
+      - id: EXEC-PERSISTENCE-SECURITY
+        procedureRef: "#procedure/VAL-PERSISTENCE-SECURITY"
+        status: passed
+        observed:
+          outcome: passed
+          exitCode: 0
+          summary: Session JSON validation, atomic replacement, 0700/0600 permissions, root containment, corruption handling, credential exclusion, embedded tool-call validation, and prompt isolation passed.
+          assertions: [Persisted state was bounded and validated, unsafe IDs were rejected before path access, and credential-bearing state was excluded or rejected.]
+        evidenceTier: component
+        evidence:
+          - kind: test
+            source: tests/cli-session-store.test.ts
+            claim: Persistence and security tests passed within the 92-test package suite.
+          - kind: test
+            source: tests/wi-0010-coverage.test.ts
+            claim: Coverage audit maps the security-scope and prompt-isolation cases to executable anchors.
+      - id: EXEC-PACKAGE-SCOPE
+        procedureRef: "#procedure/VAL-PACKAGE-SCOPE"
+        status: passed
+        observed:
+          outcome: passed
+          exitCode: 0
+          summary: Typecheck, 92-test package suite, compiled build/declarations, 16 focused validation tests, coverage audit, declaration inspection, conflict scan, whitespace scan, no-REPL scan, and task-owned path review passed.
+          assertions: [The package gates exited zero, declarations compiled, the data-driven coverage audit passed all declared strategy entities, and no interactive implementation or old persistence root was found.]
+        evidenceTier: cli-audit
+        evidence:
+          - kind: test
+            source: tests/wi-0010-coverage.test.ts
+            claim: Data-driven audit passed for 7 strategy requirements, 15 acceptance criteria, 6 invariants, 6 objectives, 8 test cases, 3 validation procedures, and the clarified no-REPL/fresh-session non-goals.
+          - kind: git
+            source: repository
+            claim: No conflict markers or task-owned whitespace errors were found.
     findings: []
-    evidenceTier: static
-    limitations: [Validation is planned only; no implementation or runtime execution evidence is claimed.]
-    nonClaims: [No requirement, persistence, CLI, production, or shell-integration behavior is claimed validated until required procedures pass.]
+    evidenceTier: cli-audit
+    limitations:
+      - Validation is provider-free and local; it does not establish authenticated provider behavior, remote persistence, deployment, production shell installation, or parent-shell environment mutation.
+    nonClaims: [No remote, deployment, authenticated-provider, production-shell-installation, or parent-shell-mutation behavior is claimed validated.]
