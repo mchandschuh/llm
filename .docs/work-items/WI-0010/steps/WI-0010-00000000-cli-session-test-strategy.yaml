@@ -4,7 +4,7 @@ taskUid: WI-0010-00000000
 orderKey: "00000000"
 parentTaskUid: null
 taskType: test-strategy
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Define verification strategy for prompt and persistent chat CLI modes
 objective: Define deterministic provider-free evidence for CLI architecture, stateless prompt mode, persistent chat mode, chat-id selection, shell environment handoff, security boundaries, backward compatibility, and all WI-0010 non-goals.
 references:
@@ -37,7 +37,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/result

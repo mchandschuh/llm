@@ -4,7 +4,7 @@ taskUid: WI-0010-10000000
 orderKey: "10000000"
 parentTaskUid: null
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Refactor the existing CLI into nodejs-cli-pattern module boundaries
 objective: Port the current monolithic CLI entrypoint to the repository-approved nodejs-cli-pattern architecture before adding prompt or persistent chat features.
 references:
@@ -51,7 +51,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -107,19 +107,54 @@ task:
       - Run typecheck, tests, build, CLI help/version/config smoke tests, and declaration inspection.
       - Record changes, evidence, and limitations in the result.
   result:
-    status: blocked
+    status: implemented
     implementation:
-      summary: Not executed; task is planned after the completed WI-0010 test strategy.
+      summary: Refactored the monolithic CLI into explicit argument, path, help, output, and config-command modules with a thin native-ESM src/cli.ts dispatcher.
       changes:
-        - id: CHANGE-PLANNED-CLI-REFACTOR
+        - id: CHANGE-CLI-MODULES
           type: production-code
-          summary: Planned refactor of the existing CLI into nodejs-cli-pattern argument, mode, output, and thin-entrypoint modules.
-          objectiveRefs: [OBJ-MODULES, OBJ-COMPATIBILITY, OBJ-BOUNDARY]
-          paths: [src/cli.ts, src/cli/, tests/cli.test.ts]
-      testImplementations: []
+          summary: Added reusable CLI argument, help, path, output, and config execution boundaries following nodejs-cli-pattern guidance.
+          objectiveRefs: [OBJ-MODULES, OBJ-BOUNDARY]
+          paths: [src/cli.ts, src/cli/]
+        - id: CHANGE-CLI-REGRESSIONS
+          type: test-code
+          summary: Added parser tests for request-file/config, help/version, debug, and invalid argument shapes.
+          objectiveRefs: [OBJ-COMPATIBILITY]
+          paths: [tests/cli.test.ts]
+      testImplementations:
+        - testCaseRef: WI-0010|00000000#test-case/TC-CLI-ARCHITECTURE
+          path: tests/cli.test.ts
+          selector: CLI parser preserves request-file/config, help/version, debug, and invalid-argument behavior
+        - testCaseRef: WI-0010|00000000#test-case/TC-COMPATIBILITY
+          path: tests/llm.test.ts
+          selector: existing CLI help/version/config/debug compatibility tests
     verification:
-      status: not-run
+      status: passed
       objectiveRefs: [OBJ-MODULES, OBJ-COMPATIBILITY, OBJ-BOUNDARY]
-      tests: []
+      tests:
+        - id: EXEC-CLI-TYPECHECK
+          type: cli-audit
+          testCaseRefs: [WI-0010|00000000#test-case/TC-CLI-ARCHITECTURE]
+          command: npm run typecheck
+          status: passed
+          result: TypeScript typecheck passed.
+        - id: EXEC-CLI-TESTS
+          type: integration
+          testCaseRefs: [WI-0010|00000000#test-case/TC-CLI-ARCHITECTURE, WI-0010|00000000#test-case/TC-COMPATIBILITY]
+          command: npm test
+          status: passed
+          result: 79 provider-free package tests passed.
+        - id: EXEC-CLI-BUILD
+          type: cli-audit
+          testCaseRefs: [WI-0010|00000000#test-case/TC-PACKAGE-GATES]
+          command: npm run build
+          status: passed
+          result: Compiled package and declarations generated successfully.
+        - id: EXEC-CLI-FOCUSED
+          type: unit
+          testCaseRefs: [WI-0010|00000000#test-case/TC-CLI-ARCHITECTURE]
+          command: node --test --import tsx tests/cli.test.ts
+          status: passed
+          result: Three focused CLI parser tests passed.
     limitations:
-      - Prompt/chat command features and session persistence are handled by later dependent tasks.
+      - Prompt/chat command features, session persistence, and environment handoff are handled by later dependent tasks.
