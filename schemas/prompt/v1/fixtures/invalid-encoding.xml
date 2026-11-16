@@ -1,0 +1,4 @@
+<llmPrompt version="1">
+  <task instruction="bad encoding">wrong</task>
+  <files><file name="x" path="x" type="text/plain" encoding="utf16" purpose="bad">x</file></files>
+</llmPrompt>

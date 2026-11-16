@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           id="https://schemas.handschuh.dev/llm/prompt/v1"
+           elementFormDefault="unqualified">
+  <xs:annotation>
+    <xs:documentation>LLM prompt XML v1. The generated prompt intentionally remains namespace-free for compatibility; this id identifies the versioned contract.</xs:documentation>
+  </xs:annotation>
+
+  <xs:simpleType name="Encoding">
+    <xs:annotation><xs:documentation>Content encoding used by a prompt file.</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="utf8"><xs:annotation><xs:documentation>UTF-8 text content.</xs:documentation></xs:annotation></xs:enumeration>
+      <xs:enumeration value="base64"><xs:annotation><xs:documentation>Binary content represented by the provider attachment boundary.</xs:documentation></xs:annotation></xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:element name="llmPrompt">
+    <xs:annotation><xs:documentation>Root of one generated language-model prompt.</xs:documentation></xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="task">
+          <xs:annotation><xs:documentation>Required task data and model instruction. Content may be escaped text or CDATA.</xs:documentation></xs:annotation>
+          <xs:complexType mixed="true">
+            <xs:attribute name="instruction" type="xs:string" use="required">
+              <xs:annotation><xs:documentation>Instruction describing how the model should interpret task content.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="taskSchema" type="xs:anyURI" use="optional">
+              <xs:annotation><xs:documentation>Optional serialized JSON Schema describing the task data.</xs:documentation></xs:annotation>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="taskSchema" minOccurs="0">
+          <xs:annotation><xs:documentation>Optional serialized task JSON Schema in text or CDATA content.</xs:documentation></xs:annotation>
+          <xs:complexType mixed="true"/>
+        </xs:element>
+        <xs:element name="files">
+          <xs:annotation><xs:documentation>Required ordered reference-file container, including when empty.</xs:documentation></xs:annotation>
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="file" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation><xs:documentation>One reference file represented in the prompt.</xs:documentation></xs:annotation>
+                <xs:complexType mixed="true">
+                  <xs:attribute name="name" type="xs:string" use="required">
+                    <xs:annotation><xs:documentation>Stable prompt-local file label.</xs:documentation></xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="path" type="xs:string" use="required">
+                    <xs:annotation><xs:documentation>Repository-relative source path.</xs:documentation></xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="type" type="xs:string" use="required">
+                    <xs:annotation><xs:documentation>MIME type of the source file.</xs:documentation></xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="encoding" type="Encoding" use="required">
+                    <xs:annotation><xs:documentation>Whether file content is UTF-8 text or a base64 binary placeholder.</xs:documentation></xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="purpose" type="xs:string" use="required">
+                    <xs:annotation><xs:documentation>Reason the file is supplied to the model.</xs:documentation></xs:annotation>
+                  </xs:attribute>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="outputSchema" minOccurs="0">
+          <xs:annotation><xs:documentation>Optional serialized output JSON Schema in text or CDATA content.</xs:documentation></xs:annotation>
+          <xs:complexType mixed="true">
+            <xs:attribute name="instruction" type="xs:string" use="required">
+              <xs:annotation><xs:documentation>Instruction describing the required output schema.</xs:documentation></xs:annotation>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="version" use="required" fixed="1">
+        <xs:annotation><xs:documentation>Required prompt contract version and fixed value 1.</xs:documentation></xs:annotation>
+        <xs:simpleType><xs:restriction base="xs:string"><xs:enumeration value="1"/></xs:restriction></xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<llmPrompt version="1">
+  <task instruction="Provide task data to the model."><![CDATA[Inspect the attachment.]]></task>
+  <files>
+    <file name="image" path="image.png" type="image/png" encoding="base64" purpose="Binary image"><![CDATA[[binary attachment supplied separately]]></file>
+  </files>
+</llmPrompt>

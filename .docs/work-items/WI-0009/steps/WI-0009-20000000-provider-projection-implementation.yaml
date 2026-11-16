@@ -4,7 +4,7 @@ taskUid: WI-0009-20000000
 orderKey: "20000000"
 parentTaskUid: WI-0009-10000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement OpenRouter history projection and prompt XML schema
 objective: Implement the dedicated OpenRouter HTTP projection, complete assistant/tool message serialization, request projection documentation, and prompt XSD defined by the completed design.
 references:
@@ -53,7 +53,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -125,22 +125,56 @@ task:
       - Implement the projection module and integrate it with OpenRouterProvider.
       - Add the request projection Markdown and prompt XSD/fixtures.
       - Add mocked HTTP and XML validation tests for request 3 and credentials redaction.
-      - Run typecheck/tests and record implementation/verification evidence or blockers.
   result:
-    status: blocked
+    status: implemented
     implementation:
-      summary: Not executed; implementation is intentionally deferred until this task is processed.
+      summary: Implemented the pure OpenRouterHttpProjection, routed OpenRouterProvider serialization through it, added the closed request messages contract, projection documentation, prompt XSD, representative fixtures, and provider/XML contract tests.
       changes:
-        - id: CHANGE-PLANNED-PROJECTION
+        - id: CHANGE-PROJECTION
           type: production-code
-          summary: Planned provider projection, request documentation, and prompt XML schema implementation; execution is blocked until prerequisite session contracts are implemented.
-          objectiveRefs: [OBJ-PROJECTION, OBJ-HISTORY-WIRE, OBJ-PROMPT-XSD, OBJ-DOCUMENTATION]
-          paths: [src/provider.ts, src/openrouter-projection.ts, src/prompt.ts, schemas/request/v1/, schemas/prompt/v1/, tests/llm.test.ts]
-      testImplementations: []
+          summary: Added deterministic complete-history OpenRouter request projection with assistant/tool correlation, image parts, tool declarations, and credential exclusion.
+          objectiveRefs: [OBJ-PROJECTION, OBJ-HISTORY-WIRE]
+          paths: [src/openrouter-projection.ts, src/provider.ts, src/index.ts]
+        - id: CHANGE-REQUEST-CONTRACT
+          type: schema
+          summary: Added the ordered messages request property and reusable ChatMessage/ToolCall schema definitions.
+          objectiveRefs: [OBJ-HISTORY-WIRE]
+          paths: [schemas/request/v1/request.schema.json, schemas/request/v1/request.schema.md]
+        - id: CHANGE-PROMPT-XSD
+          type: schema
+          summary: Added the versioned prompt XSD, positive/negative fixtures, and local prompt contract checks.
+          objectiveRefs: [OBJ-PROMPT-XSD]
+          paths: [schemas/prompt/v1/llm-prompt.xsd, schemas/prompt/v1/fixtures/, tests/provider-projection.test.ts]
+      testImplementations:
+        - id: TEST-PROJECTION
+          summary: Request-3 role sequence, assistant tool-call IDs/arguments, tool_call_id correlation, tools, images, and credential exclusion.
+          paths: [tests/provider-projection.test.ts]
+        - id: TEST-HTTP
+          summary: Mocked OpenRouter fetch verifies projected body and authorization-only credential use.
+          paths: [tests/provider-projection.test.ts]
+        - id: TEST-PROMPT-XSD
+          summary: Generated prompts and positive/negative fixtures are checked against the documented prompt contract and XSD annotations.
+          paths: [tests/provider-projection.test.ts]
     verification:
-      status: not-run
+      status: passed
       objectiveRefs: [OBJ-PROJECTION, OBJ-HISTORY-WIRE, OBJ-PROMPT-XSD, OBJ-DOCUMENTATION]
-      tests: []
+      tests:
+        - command: npm run typecheck
+          result: passed
+        - command: npm test
+          result: passed
+          evidence: 71 tests passed
+        - command: npm run build
+          result: passed
+        - command: node -e "JSON.parse(require('fs').readFileSync('schemas/request/v1/request.schema.json','utf8'))"
+          result: passed
+        - command: node --test --import tsx tests/provider-projection.test.ts
+          result: passed
+          evidence: 3 focused tests passed
+        - command: git diff --check
+          result: passed
     limitations:
-      - No projection, schema, or documentation implementation evidence exists until task execution.
+      - XML Schema engine binaries/libraries are unavailable in this checkout; the automated prompt test performs provider-free structural/ordering/attribute/encoding checks and verifies XSD documentation, but does not claim libxml or equivalent XSD-engine evidence.
+      - The repository schema authoring audit retains two pre-existing style findings for the object-valued taskSchema and outputSchema examples; the request schema parses and its runtime examples/tests pass.
+      - No authenticated provider, deployment, production, persistence, compaction, or checkpointing evidence is claimed.
       - Samples and final repository validation are handled by dependent tasks.
