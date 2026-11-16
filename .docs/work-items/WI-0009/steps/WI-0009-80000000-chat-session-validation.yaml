@@ -4,7 +4,7 @@ taskUid: WI-0009-80000000
 orderKey: "80000000"
 parentTaskUid: WI-0009-00000000
 taskType: validation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Validate chat session implementation and design obligation coverage
 objective: Independently validate every WI-0009 requirement, design obligation, implementation result, test-strategy case, provider projection, prompt XML schema, sample, documentation, integrity, and scope boundary.
 references:
@@ -64,7 +64,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
@@ -240,22 +240,64 @@ task:
       - Do not claim production, deployment, persistence, compaction, checkpointing, or downstream integration.
       - Do not accept implementation changes that silently deviate from completed design artifacts.
   result:
-    status: implemented-unproven
-    summary: Validation task is prepared but not executed; all required procedures and evidence boundaries are declared.
+    status: complete
+    summary: Independently validated WI-0009 design correlation, implementation contracts, projection/XSD behavior, samples/documentation, package gates, generated declarations, integrity, and task-owned path organization.
     executions:
-      - id: EXEC-PLANNED
+      - id: EXEC-DESIGN-CORRELATION
         procedureRef: "#procedure/VAL-DESIGN-CORRELATION"
-        status: not-run
+        status: passed
         observed:
-          outcome: not-run
-          summary: Validation has not been executed.
+          outcome: passed
+          summary: Validator reported 11 requirements, 23 acceptance criteria, 9 verification obligations, 11 strategy requirements, 6 invariants, and 13 minimum test cases.
+        command: node scripts/validate-wi-0009-design.mjs
+        evidenceTier: cli-audit
+      - id: EXEC-CONTRACT-HISTORY
+        procedureRef: "#procedure/VAL-CONTRACT-HISTORY"
+        status: passed
+        observed:
+          outcome: passed
+          summary: Typecheck and full package suite passed; session, ordinary-history, replay, validation/retry, cancellation, and user-policy tests passed.
+        command: npm run typecheck && npm test
+        evidenceTier: integration
+        evidence: [75 package tests passed in the pre-review run]
+      - id: EXEC-PROJECTION-XSD
+        procedureRef: "#procedure/VAL-PROJECTION-XSD"
+        status: passed
+        observed:
+          outcome: passed
+          summary: Projection, mocked HTTP, generated prompt, and positive/negative prompt fixture tests passed.
+        command: node --test --import tsx tests/provider-projection.test.ts tests/prompt-xsd.test.ts
+        evidenceTier: component
+      - id: EXEC-SAMPLES-DOCS
+        procedureRef: "#procedure/VAL-SAMPLES-DOCS"
+        status: passed
+        observed:
+          outcome: passed
+          summary: All existing and three new samples emitted one JSON line, wrote no stderr, and passed ordinary, interruptible, and blocked policy assertions.
+        command: npm run build && node --test --import tsx tests/samples.test.ts && node --test --import tsx tests/chat-session-samples.test.ts
+        evidenceTier: integration
+        evidence: [4 bounded sample tests passed; blocked sample used approximately three seconds of tool time]
+      - id: EXEC-PACKAGE-SCOPE
+        procedureRef: "#procedure/VAL-PACKAGE-SCOPE"
+        status: passed
+        observed:
+          outcome: passed
+          summary: Full typecheck/test/build gates, review coverage audit, generated declaration inspection, changed-path audit, whitespace scan, and conflict-marker scan passed.
+        command: npm run typecheck && npm test && npm run build
+        evidenceTier: cli-audit
+        evidence: [76 tests passed including tests/wi-0009-coverage.test.ts]
+    findings:
+      - id: FINDING-SCHEMA-AUDIT-BASELINE
+        severity: low
+        status: known-limitation
+        summary: The repository schema authoring audit reports two existing SCHEMA_REFERENCE_NOT_STRING findings for object-valued taskSchema and outputSchema examples in schemas/request/v1/request.schema.json. JSON parsing, runtime schema examples, and package tests pass; the authoring-audit findings are not silently reclassified as passed.
+        paths: [schemas/request/v1/request.schema.json]
         evidenceTier: static
-        evidence:
-          - kind: record
-            source: validation task
-            claim: Procedure is declared for later execution.
-            path: .docs/work-items/WI-0009/steps/WI-0009-80000000-chat-session-validation.yaml
-    findings: []
-    evidenceTier: static
-    limitations: [Validation is planned only; no implementation or runtime execution evidence exists in this task result.]
-    nonClaims: [No requirement is claimed implemented or validated until all required procedures execute successfully.]
+    evidenceTier: cli-audit
+    limitations:
+      - XML Schema engine binaries/libraries are unavailable in this checkout; prompt tests provide structural/ordering/attribute/encoding evidence and verify XSD documentation, but do not claim libxml or equivalent XSD-engine execution.
+      - Provider-free local evidence does not establish authenticated provider behavior, production readiness, deployment, persistence, compaction, checkpointing, or external tool effects.
+      - The known request schema authoring-audit findings remain open as a baseline limitation.
+    nonClaims:
+      - No authenticated provider, production, deployment, persistence, compaction, checkpointing, or downstream integration claim.
+      - No claim that the unavailable XML Schema engine validation was executed.
