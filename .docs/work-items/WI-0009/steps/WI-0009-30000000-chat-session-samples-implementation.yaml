@@ -4,7 +4,7 @@ taskUid: WI-0009-30000000
 orderKey: "30000000"
 parentTaskUid: WI-0009-20000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement chat samples, documentation, and integration coverage
 objective: Add the three required executable chat samples, public non-concurrency/non-goal documentation, sample discovery assertions, and end-to-end tests defined by the completed design and test strategy.
 references:
@@ -58,7 +58,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -124,22 +124,58 @@ task:
       - HALT PROCESSING on any design conflict or need to change the documented user-message policy.
       - Add the three samples with the repository-standard JSON-line envelope.
       - Add unit/integration assertions and update public documentation without overstating provider/runtime evidence.
-      - Run sample discovery and package gates; record concrete test implementations and limitations.
   result:
-    status: blocked
+    status: implemented
     implementation:
-      summary: Not executed; implementation is intentionally deferred until this task is processed.
+      summary: Added three provider-free executable chat samples, focused sample assertions, and public documentation for session ownership, complete history replay, interruption policies, caller-enforced non-concurrency, and explicit persistence/compaction/checkpointing non-goals.
       changes:
-        - id: CHANGE-PLANNED-SAMPLES
+        - id: CHANGE-CONVERSATION-SAMPLE
           type: test-code
-          summary: Planned chat samples, documentation, and integration coverage; execution is blocked until session and projection implementations are complete.
-          objectiveRefs: [OBJ-CONVERSATION-SAMPLE, OBJ-INTERRUPT-SAMPLE, OBJ-BLOCKED-SAMPLE, OBJ-DOCUMENTATION]
-          paths: [samples/, tests/llm.test.ts, tests/samples.test.ts, README.md, SKILL.md]
-      testImplementations: []
+          summary: Added ordinary two-turn conversation sample proving retained assistant history before a later user message.
+          objectiveRefs: [OBJ-CONVERSATION-SAMPLE]
+          paths: [samples/chat-conversation.mjs]
+        - id: CHANGE-INTERRUPT-SAMPLE
+          type: test-code
+          summary: Added interrupt-enabled long-running tool sample proving an isolated response while pending work remains observable.
+          objectiveRefs: [OBJ-INTERRUPT-SAMPLE]
+          paths: [samples/chat-interruptible-tool-round.mjs]
+        - id: CHANGE-BLOCKED-SAMPLE
+          type: test-code
+          summary: Added default-policy sample with a bounded approximately three-second tool proving the user message is blocked and not processed early.
+          objectiveRefs: [OBJ-BLOCKED-SAMPLE]
+          paths: [samples/chat-blocked-tool-round.mjs]
+        - id: CHANGE-DOCUMENTATION
+          type: documentation
+          summary: Documented session API, message/history semantics, interruption policies, caller-enforced non-concurrency, and non-goals.
+          objectiveRefs: [OBJ-DOCUMENTATION]
+          paths: [README.md, SKILL.md]
+      testImplementations:
+        - id: TEST-SAMPLE-POLICIES
+          summary: Executes each named sample and asserts ordinary history, interrupt response-only behavior/lifecycle events, blocked default behavior, timing, and no early history mutation.
+          paths: [tests/chat-session-samples.test.ts]
+        - id: TEST-SAMPLE-PROTOCOL
+          summary: Existing discovery harness validates every sample as one JSON line with no stderr.
+          paths: [tests/samples.test.ts]
     verification:
-      status: not-run
+      status: passed
       objectiveRefs: [OBJ-CONVERSATION-SAMPLE, OBJ-INTERRUPT-SAMPLE, OBJ-BLOCKED-SAMPLE, OBJ-DOCUMENTATION]
-      tests: []
+      tests:
+        - command: npm run typecheck
+          result: passed
+        - command: npm test
+          result: passed
+          evidence: 75 tests passed
+        - command: npm run build
+          result: passed
+        - command: node --test --import tsx tests/chat-session-samples.test.ts
+          result: passed
+          evidence: 3 focused sample tests passed; blocked sample used approximately three seconds of bounded tool time
+        - command: node --test --import tsx tests/samples.test.ts
+          result: passed
+          evidence: all executable samples passed with one JSON line and no stderr
+        - command: git diff --check
+          result: passed
     limitations:
-      - No sample or documentation implementation evidence exists until task execution.
+      - Samples use injected provider/tool doubles and establish local provider-free behavior only; they do not prove authenticated provider, production, deployment, persistence, or external side-effect behavior.
+      - The approximately three-second blocked sample is intentionally time-bounded and is not a latency SLA.
       - Independent validation, review, and delivery are handled by dependent tasks.

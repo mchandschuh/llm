@@ -53,3 +53,51 @@ npm run build
 The CLI is available as `llm` when the user-local npm link is installed. See
 `SKILL.md` for request/response contracts, CLI usage, provider configuration,
 and Node.js library examples.
+
+## Session-scoped chat
+
+The package also exposes `chatFactory.createSession(...)` for one independent,
+append-only conversation:
+
+```js
+import { chatFactory } from 'llm';
+
+const session = chatFactory.createSession({
+  request: {
+    schema: 'https://schemas.handschuh.dev/llm/request/v1',
+    task: { operation: 'chat' },
+    systemPrompt: 'Answer briefly.',
+  },
+});
+
+const turn = await session.sendUserMessage('Hello.');
+console.log(turn.response.status, session.history);
+```
+
+`LlmChatSession` owns its initial task context and ordered system, user,
+assistant, and tool history. A later provider request receives the complete
+history, including assistant tool calls before their matching tool results.
+`task` and `taskSchema` remain separate from `messages`.
+
+Callers must serialize mutations and turn submissions for one session. The
+session deliberately does not add a mutex, queue, or automatic concurrency
+control; a concurrent mutation throws an error. Set
+`userMessageInterruptsToolRound: true` to obtain an isolated response-only
+interrupt while a tool remains pending. The default `false` returns a blocked
+turn without mutating canonical history.
+
+History accumulates for the lifetime of the session. Persistence, checkpointing,
+restore, compaction, truncation, and memory retrieval are explicit non-goals of
+this boundary. The provider remains stateless and tools are injected by the
+caller, which keeps samples and tests provider-free.
+
+Provider projection details are documented in
+`schemas/request/v1/request.schema.md`; the generated prompt XML contract is in
+`schemas/prompt/v1/llm-prompt.xsd`.
+
+Provider-free executable session examples are available under `samples/`:
+
+- `chat-conversation.mjs` — ordinary back-and-forth with retained history;
+- `chat-interruptible-tool-round.mjs` — isolated user response during pending work;
+- `chat-blocked-tool-round.mjs` — default blocked user-message behavior during a
+  bounded approximately three-second tool.

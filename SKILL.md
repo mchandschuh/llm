@@ -329,10 +329,33 @@ The public exports also include:
 - `normalizeRequest` for request preparation and source resolution;
 - `composePrompt`, `composeRequestPrompt`, and `composeCorrectionPrompt`;
 - `OpenRouterProvider`;
+- `OpenRouterHttpProjection` for deterministic OpenRouter request-body mapping;
+- `chatFactory`, which creates independent `LlmChatSession` instances with
+  append-only provider-neutral history;
 - `LlmProvider`, whose single overloaded `complete` method accepts the raw v1
   or tool-capable provider request and returns the correlated raw response;
 - `LlmFailure`;
 - the request, response, provider, output, and configuration TypeScript types.
+
+### Chat sessions
+
+`chatFactory.createSession` accepts a request, injected provider/tool boundary,
+session `AbortSignal`, compatible `DebugSink`, and
+`userMessageInterruptsToolRound` (default `false`). Each session keeps task and
+taskSchema separate from its ordered `messages` history and replays complete
+assistant/tool rounds to the provider.
+
+Callers must serialize mutations and turns submitted to one session. The session
+does not provide a mutex, queue, persistence layer, checkpoint/restore flow,
+compaction, truncation, or memory retrieval. Direct mutation during an active
+turn throws. With the default interruption policy, a user message submitted
+while tools run is returned as a blocked turn without history mutation. With
+`userMessageInterruptsToolRound: true`, the user receives a response-only
+isolated branch while the canonical tool round continues; that branch is not
+inserted into canonical history.
+
+See `README.md`, `schemas/request/v1/request.schema.md`, and the three
+`samples/chat-*.mjs` programs for provider-free executable examples.
 
 For deterministic tests, inject a small provider instead of making a network
 call:
