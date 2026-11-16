@@ -336,7 +336,9 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
       continue;
     }
     try {
-  const result = response('success', outputFromText(raw, outputSchema, normalized.outputSchema), failedAttempts, iterations, []);
+      const output = outputFromText(raw, outputSchema, normalized.outputSchema);
+      emitMessage(options, { role: 'assistant', content: raw, toolCalls: [] });
+      const result = response('success', output, failedAttempts, iterations, []);
       emitDebug(options.debug, 'llm.response', result);
       return result;
     } catch (error) {

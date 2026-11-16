@@ -88,6 +88,17 @@ test('session keeps task context separate from ordered provider messages', async
   assert.doesNotMatch(call.messages[1]!.role === 'user' ? call.messages[1]!.content : '', /read_record/u);
 });
 
+test('ordinary session turns append final assistant messages before the next user turn', async () => {
+  const provider = new SequenceProvider([finalResponse('first answer'), finalResponse('second answer')]);
+  const session = chatFactory.createSession({ request: request({ toolOptions: undefined }), provider });
+
+  await session.sendUserMessage('first');
+  await session.sendUserMessage('second');
+
+  assert.deepEqual(provider.calls[1]!.messages.map((message) => message.role), ['system', 'user', 'user', 'assistant', 'user']);
+  assert.equal(provider.calls[1]!.messages.at(-2)?.content, 'first answer');
+});
+
 test('session replays two complete assistant/tool rounds and retains the final assistant', async () => {
   const provider = new SequenceProvider([toolResponse('call-round-1'), toolResponse('call-round-2'), finalResponse('rounds complete')]);
   const session = chatFactory.createSession({ request: request(), provider, toolInvoker: { invoke: async (call) => ({ id: call.id }) } });

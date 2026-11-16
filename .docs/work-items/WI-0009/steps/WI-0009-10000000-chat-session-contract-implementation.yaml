@@ -4,7 +4,7 @@ taskUid: WI-0009-10000000
 orderKey: "10000000"
 parentTaskUid: WI-0009-00000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement chat session contracts and canonical history lifecycle
 objective: Implement the public chatFactory/LlmChatProvider facade, LlmChatSession, provider-neutral message contracts, task/message separation, canonical tool-round history, cancellation, and user-message policy defined by the completed design.
 references:
@@ -51,7 +51,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -121,20 +121,48 @@ task:
       - Run typecheck and the package test suite; inspect generated declarations and changed paths.
       - Record implementation changes, test implementations, verification results, limitations, and any unresolved design issue in the task result.
   result:
-    status: blocked
+    status: implemented
     implementation:
-      summary: Not executed; implementation is intentionally deferred until this task is processed.
+      summary: Implemented the provider-neutral message contracts, factory-created LlmChatSession, append-only canonical history, complete multi-round tool replay, blocked/default and isolated interrupt user policies, cancellation, caller-enforced non-concurrency, and ordinary-v1 final assistant history capture.
       changes:
-        - id: CHANGE-PLANNED-CONTRACT
+        - id: CHANGE-TYPES-HISTORY
           type: production-code
-          summary: Planned public session contract and canonical history implementation; execution is blocked until the task is activated.
-          objectiveRefs: [OBJ-TYPES, OBJ-SESSION, OBJ-REPLAY, OBJ-POLICY]
-          paths: [src/types.ts, src/chat.ts, src/complete.ts, src/index.ts, tests/llm.test.ts]
-      testImplementations: []
+          summary: Added readonly chat message/session contracts, LlmRequest.messages, normalized/provider history fields, and assistant/tool message capture.
+          objectiveRefs: [OBJ-TYPES, OBJ-REPLAY]
+          paths: [src/types.ts, src/normalize.ts, src/complete.ts, src/provider.ts, src/debug.ts]
+        - id: CHANGE-SESSION
+          type: production-code
+          summary: Added chatFactory and per-session lifecycle with canonical turns, blocked messages, isolated interrupt responses, cancellation, and serialized mutation checks.
+          objectiveRefs: [OBJ-SESSION, OBJ-POLICY]
+          paths: [src/chat.ts, src/index.ts]
+        - id: CHANGE-ORDINARY-HISTORY
+          type: production-code
+          summary: Corrected the ordinary-v1 completion path to emit its final assistant message through the session history sink before later user turns.
+          objectiveRefs: [OBJ-REPLAY, OBJ-SESSION]
+          paths: [src/complete.ts]
+      testImplementations:
+        - id: TEST-CHAT-LIFECYCLE
+          summary: Factory independence/options, context separation, ordinary later-user ordering, two-round replay, parallel calls, failed/invalid tools, blocked/interrupt policies, retries, cancellation, and non-concurrency.
+          paths: [tests/chat.test.ts]
+        - id: TEST-ORDINARY-HISTORY-REGRESSION
+          summary: Ordinary session turns retain the final assistant before the next canonical user message.
+          paths: [tests/chat.test.ts]
     verification:
-      status: not-run
+      status: passed
       objectiveRefs: [OBJ-TYPES, OBJ-SESSION, OBJ-REPLAY, OBJ-POLICY]
-      tests: []
+      tests:
+        - command: npm run typecheck
+          result: passed
+        - command: npm test
+          result: passed
+          evidence: 75 tests passed after task-04 sample additions
+        - command: npm run build
+          result: passed
+        - command: node --test --import tsx tests/chat.test.ts
+          result: passed
+          evidence: 12 focused tests passed
+        - command: git diff --check
+          result: passed
     limitations:
-      - No production implementation evidence exists until task execution.
+      - Evidence is local and provider-free; no authenticated provider, external tool, persistence, production, or deployment claim is made.
       - Provider projection, prompt schema, samples, validation, review, and delivery are handled by dependent tasks.
