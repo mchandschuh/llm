@@ -16,7 +16,11 @@ try {
   const provider = {
     async complete(request) {
       if (!request.toolOptions) {
-        return { content: 'Interrupt response while the tool remains pending.', toolCalls: [], decision: 'stop' };
+        return { 
+          content: 'Interrupt response while the tool remains pending.',
+          toolCalls: [], 
+          decision: 'stop'
+        };
       }
       mainRequests.push(request.messages.map((message) => message.role));
       if (mainRequests.length === 1) {
