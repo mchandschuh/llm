@@ -1,0 +1,312 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0009",
+  "status": "planned",
+  "title": "Add session-scoped chat history and multi-round tool conversation support",
+  "type": "feature",
+  "objective": "Add a session-scoped chat API that accumulates user, assistant, and tool messages, replays complete provider history across additional tool rounds, supports configurable user-message interruption while tools run, preserves the initial task and taskSchema separately from provider messages, and documents and validates the XML prompt and HTTP projection contracts.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0009-chat-session-history",
+      "created": false,
+      "rationale": "The repository workflow processes this scoped feature as an ordered set of commits on the current branch; the intended work boundary is recorded without requiring a topic branch."
+    }
+  },
+  "baseline": "ac5daf7179a51eabea649cd5e992d7e3ed749b89",
+  "request": {
+    "source": "conversation",
+    "text": "Create a new chat-session architecture for the llm package. Expose chatFactory.createSession with session-scoped AbortSignal and an EventSink compatible with DebugEvents/DebugSink, add LlmChatSession history semantics, preserve task and taskSchema separately from public LlmRequest.messages and raw ProviderCompletionRequest.messages, replay complete assistant/tool message history across multiple tool rounds, support additional user messages with configurable interruption while tools run, add provider HTTP projection documentation and a discoverable projection class, add and validate schemas/prompt/v1/llm-prompt.xsd, provide three executable chat samples, document the non-concurrency assumption, exclude compaction and checkpointing, and prepare a work item with an initial design task whose outputs and verification obligations cover all requirements.",
+    "sha256": "45bff00d7013e82462bfd0f199171555f68284c402fc9e6c463bb744ac9fd810"
+  },
+  "scope": [
+    {
+      "name": "chat-factory-and-session-api",
+      "description": "Expose a public chatFactory with createSession and an LlmChatSession instance boundary for each independent conversation.",
+      "reason": "The public API should make session ownership explicit and prevent callers from treating one mutable conversation as a global provider."
+    },
+    {
+      "name": "session-options-and-lifecycle",
+      "description": "Define ChatFactoryCreateSessionOptions including AbortSignal, an EventSink compatible with the repository DebugSink/DebugEvent pattern, provider-layer pass-through options, and UserMessageInterruptsToolRound with a default of false.",
+      "reason": "Session-scoped cancellation, observability, and user-message behavior must be configured when the session is created."
+    },
+    {
+      "name": "provider-message-history",
+      "description": "Keep task and taskSchema as distinct completion-request context fields while adding public LlmRequest.messages and raw ProviderCompletionRequest.messages for accumulated user, assistant, and tool messages.",
+      "reason": "The initial task context must remain available while the provider receives a canonical replayable conversation history."
+    },
+    {
+      "name": "multi-round-tool-replay",
+      "description": "Append assistant tool-call messages and matching tool result messages to session history and send the complete ordered history on every subsequent provider request.",
+      "reason": "Additional rounds must preserve call-round-1 and call-round-2, not send only the latest tool result."
+    },
+    {
+      "name": "additional-user-message-semantics",
+      "description": "Support additional user messages in an active session and specify whether they interrupt a tool round or wait until a long-running tool round completes.",
+      "reason": "Chat behavior requires back-and-forth user/model turns as well as an explicit policy for messages arriving while tools are running."
+    },
+    {
+      "name": "provider-http-projection",
+      "description": "Document the mapping from normalized request fields, prompt XML, session messages, tools, credentials, and reasoning settings to the OpenRouter Chat Completions HTTP request, and place the mapping in a discoverable projection class/module.",
+      "reason": "The transport contract must be inspectable and testable rather than hidden inside the provider method."
+    },
+    {
+      "name": "prompt-xml-schema",
+      "description": "Add an XML Schema under schemas/prompt/v1/llm-prompt.xsd for the XML prompt emitted in the initial user message, with descriptions and schema-validation evidence.",
+      "reason": "The generated prompt XML is a contract and needs a durable, validated schema definition."
+    },
+    {
+      "name": "executable-chat-samples",
+      "description": "Add executable provider-free samples for ordinary back-and-forth chat, interruptible long-running tool calls, and blocked user messages during a long-running tool call.",
+      "reason": "The session behavior must be documented through runnable examples, including both configured tool-round policies."
+    },
+    {
+      "name": "concurrency-documentation",
+      "description": "Document that callers of LlmChatSession must enforce the non-concurrency assumption and that the session does not implement concurrent mutation, compaction, or checkpointing.",
+      "reason": "The requested first implementation has a deliberately narrow lifecycle boundary and must state its operational assumptions."
+    },
+    {
+      "name": "verification-and-handoff",
+      "description": "Define deterministic tests, schema validation, sample discovery, typecheck, build, projection inspection, and changed-path review sufficient to hand the design to implementation.",
+      "reason": "The feature crosses public types, session state, provider transport, XML schema, documentation, and executable samples."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "compaction",
+      "description": "Do not implement context compaction, summarization, truncation, token budgeting, or history reduction.",
+      "reason": "This phase accumulates and replays session messages without reducing history.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "checkpointing",
+      "description": "Do not implement checkpoint persistence, session restore, durable history stores, or checkpoint concepts in the public API.",
+      "reason": "Checkpointing is explicitly deferred and must not shape the initial session contract.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "implicit-session-concurrency",
+      "description": "Do not add a mutex, queue, optimistic concurrency protocol, or other automatic concurrent-mutation mechanism to LlmChatSession.",
+      "reason": "Callers are responsible for enforcing the documented non-concurrency assumption at the session boundary.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "live-provider-and-real-side-effects",
+      "description": "Do not require live OpenRouter credentials or real external tool side effects for tests and samples.",
+      "reason": "The repository uses deterministic provider and tool doubles for local evidence.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "historical-git-rewrite",
+      "description": "Do not rewrite, reset, amend, or force-push existing Git history.",
+      "reason": "The feature must be delivered as new commits on top of the recorded baseline.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0009_REQ_001",
+        "name": "session-factory-api",
+        "description": "The public package exposes chatFactory.createSession as the factory-backed LlmChatProvider/session boundary and returns an independent LlmChatSession instance for each call.",
+        "reason": "A factory makes the per-chat lifecycle and ownership boundary explicit.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0009_REQ_001_AC_001",
+            "description": "Public source exports and generated declarations expose chatFactory, createSession, ChatFactoryCreateSessionOptions, and LlmChatSession with a documented per-session ownership model."
+          },
+          {
+            "id": "WI-0009_REQ_001_AC_002",
+            "description": "Two sessions created from the factory have independent message histories, options, cancellation state, and debug sinks."
+          }
+        ]
+      },
+      {
+        "id": "WI-0009_REQ_002",
+        "name": "session-options",
+        "description": "createSession accepts an AbortSignal, an EventSink compatible with DebugEvents/DebugSink, provider-layer pass-through configuration, and UserMessageInterruptsToolRound defaulting to false.",
+        "reason": "Session-level control and observability must flow to all provider and tool activity without requiring repeated per-turn wiring.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0009_REQ_002_AC_001",
+            "description": "The option type and implementation define the AbortSignal and EventSink/DebugEvent sink ownership, identify any additional provider pass-through options, and default UserMessageInterruptsToolRound to false."
+          },
+          {
+            "id": "WI-0009_REQ_002_AC_002",
+            "description": "Cancellation and debug events from a session-created completion reach the provider/tool orchestration layers with credentials and secret values excluded from diagnostics."
+          }
+        ]
+      },
+      {
+        "id": "WI-0009_REQ_003",
+        "name": "task-and-message-separation",
+        "description": "Completion requests retain task and taskSchema as separate context fields, expose LlmRequest.messages at the public/session boundary, and add ProviderCompletionRequest.messages as the ordered raw-provider conversation history.",
+        "reason": "The initial objectives, rules, task schema, and relevant files remain distinct from subsequent chat messages.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0009_REQ_003_AC_001",
+            "description": "TypeScript types, normalization, and provider requests retain task and taskSchema separately while exposing LlmRequest.messages and ProviderCompletionRequest.messages without embedding tool results into the initial XML prompt."
+          },
+          {
+            "id": "WI-0009_REQ_003_AC_002",
+            "description": "The initial user message contains the documented XML prompt context, while system instructions, assistant messages, tool messages, and later user messages have distinct provider-neutral message roles."
+          }
+        ]
+      },
+      {
+        "id": "WI-0009_REQ_004",
+        "name": "complete-tool-history-replay",
+        "description": "Every automatic tool round appends the model assistant message containing tool calls and the matching tool result messages, and every later provider request sends the complete ordered session history.",
+        "reason": "The model must receive call-round-1 and call-round-2 context in the request that follows the second round.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0009_REQ_004_AC_001",
+            "description": "A deterministic two-round test proves request 2 includes the first assistant tool-call message and its tool results, and request 3 includes both assistant tool-call messages and both rounds of tool results in valid order."
+          },
+          {
+            "id": "WI-0009_REQ_004_AC_002",
+            "description": "OpenRouter projection emits assistant tool_calls before matching role=tool messages, preserves tool_call_id correlation, supports parallel calls, and retains the full history across terminal completion."
+          }
+        ]
+      },
+      {
+        "id": "WI-0009_REQ_005",
+        "name": "additional-user-messages",
+        "description": "LlmChatSession supports additional user messages after and between model turns without discarding prior history.",
+        "reason": "The package must support back-and-forth chat rather than only one initial task followed by an internal tool loop.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0009_REQ_005_AC_001",
+            "description": "A deterministic chat test proves a later user message is appended after the prior assistant response and the next provider request contains the complete preceding conversation followed by the new user message."
+          },
+          {
+            "id": "WI-0009_REQ_005_AC_002",
+            "description": "The design and implementation define how a user message is accepted, rejected, queued, or surfaced while a tool round is active without inserting it between an assistant tool-call message and its required tool results."
+          }
+        ]
+      },
+      {
+        "id": "WI-0009_REQ_006",
+        "name": "interruptible-tool-rounds",
+        "description": "UserMessageInterruptsToolRound controls whether an additional user message can interrupt a running tool round; false is the default and both interruptible and blocked behavior are defined.",
+        "reason": "The requested samples require one session that accepts an interrupt while a long-running tool continues and another that blocks the user message.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0009_REQ_006_AC_001",
+            "description": "Interrupt-enabled behavior is deterministic: the additional user message receives a model response while pending tool work remains observable and safely completes or is cancelled according to the documented lifecycle."
+          },
+          {
+            "id": "WI-0009_REQ_006_AC_002",
+            "description": "Default blocked behavior is deterministic: a user message submitted during a long-running tool call does not enter model history until the configured tool round completes, and the behavior is documented."
+          }
+        ]
+      },
+      {
+        "id": "WI-0009_REQ_007",
+        "name": "http-projection-boundary",
+        "description": "The provider HTTP projection is implemented in a discoverable dedicated class/module and documented next to the request schema.",
+        "reason": "The mapping from package contracts to OpenRouter wire messages must be explicit, independently testable, and easy to find.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0009_REQ_007_AC_001",
+            "description": "The projection documentation maps task, taskSchema, messages, system instructions, files, tools, model, thinking, credentials, tool_call_id, and assistant tool_calls to their OpenRouter HTTP destinations and identifies fields that remain local-only."
+          },
+          {
+            "id": "WI-0009_REQ_007_AC_002",
+            "description": "Focused provider tests inspect serialized HTTP bodies and prove that full session message history, assistant tool calls, tool results, and tool definitions are projected correctly without leaking credentials."
+          }
+        ]
+      },
+      {
+        "id": "WI-0009_REQ_008",
+        "name": "prompt-xml-schema",
+        "description": "The repository contains schemas/prompt/v1/llm-prompt.xsd describing the XML structure emitted in the initial user message, with element and attribute descriptions.",
+        "reason": "The XML prompt is a stable contract and must be validated independently of the JSON request contract.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0009_REQ_008_AC_001",
+            "description": "The XSD describes llmPrompt versioning, task content and attributes, optional taskSchema, files/file attributes and content encoding, and optional outputSchema with human-readable documentation annotations."
+          },
+          {
+            "id": "WI-0009_REQ_008_AC_002",
+            "description": "The XML schema and representative generated prompt fixtures pass schema-validate or the repository-approved XML schema validation command, with the exact validation command recorded."
+          }
+        ]
+      },
+      {
+        "id": "WI-0009_REQ_009",
+        "name": "chat-samples",
+        "description": "The samples directory includes three executable provider-free chat examples: ordinary back-and-forth, interruptible long-running tools, and blocked user input during a long-running tool.",
+        "reason": "Runnable examples are required to document session behavior and the two user-message policies.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0009_REQ_009_AC_001",
+            "description": "The ordinary chat sample demonstrates at least one user/model back-and-forth exchange and emits the repository-standard single JSON result envelope."
+          },
+          {
+            "id": "WI-0009_REQ_009_AC_002",
+            "description": "The interruptible-tool sample demonstrates a long-running tool, an additional user message, a model response while the tool remains pending, and captured history/events proving the behavior."
+          },
+          {
+            "id": "WI-0009_REQ_009_AC_003",
+            "description": "The blocked-tool sample uses a bounded approximately three-second tool, demonstrates the default blocked user-message behavior, and emits assertions proving the message was not processed early."
+          }
+        ]
+      },
+      {
+        "id": "WI-0009_REQ_010",
+        "name": "non-concurrency-and-scope-documentation",
+        "description": "Public documentation states that LlmChatSession callers must enforce the non-concurrency assumption, while compaction and checkpointing are explicit non-goals.",
+        "reason": "The initial session boundary intentionally avoids automatic concurrent mutation and persistence complexity.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0009_REQ_010_AC_001",
+            "description": "LlmChatSession documentation states that callers must not concurrently mutate or submit turns to one session and identifies the behavior if the assumption is violated."
+          },
+          {
+            "id": "WI-0009_REQ_010_AC_002",
+            "description": "Documentation and tests contain no checkpointing or compaction implementation, public API, or implied behavior; session history simply accumulates and is sent to the provider."
+          }
+        ]
+      },
+      {
+        "id": "WI-0009_REQ_011",
+        "name": "typescript-conventions-and-gates",
+        "description": "The implementation follows the repository TypeScript, native ESM, formatting, naming, testing, and validation conventions.",
+        "reason": "The work changes public TypeScript contracts and must remain consistent with the existing package and generated declarations.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0009_REQ_011_AC_001",
+            "description": "The design and implementation use strict TypeScript, explicit .js ESM imports, readonly public contract fields, existing error vocabulary, existing DebugEvent/DebugSink patterns, and no unconfirmed dependencies."
+          },
+          {
+            "id": "WI-0009_REQ_011_AC_002",
+            "description": "npm run typecheck, npm test, npm run build, sample discovery, schema validation, git diff --check, conflict-marker scan, generated declaration inspection, and changed-path review all pass."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0009/steps/"
+}

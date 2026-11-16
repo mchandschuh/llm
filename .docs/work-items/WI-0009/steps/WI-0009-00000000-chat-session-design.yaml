@@ -1,0 +1,789 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0009
+taskUid: WI-0009-00000000
+orderKey: "00000000"
+parentTaskUid: null
+taskType: design
+processingStatus: unprocessed
+title: Define the chat session and provider message-history design
+objective: Define implementable contracts, state transitions, transport projection, XML prompt schema, sample behavior, and verification handoffs for session-scoped chat history and multi-round tool conversations.
+references:
+  required:
+    - .docs/work-items/WI-0009/work-item.json
+    - src/types.ts
+    - src/complete.ts
+    - src/provider.ts
+    - src/prompt.ts
+    - src/debug.ts
+    - src/index.ts
+    - schemas/request/v1/request.schema.json
+    - schemas/response/v1/response.schema.json
+    - tests/llm.test.ts
+    - tests/samples.test.ts
+    - package.json
+    - SKILL.md
+  informational:
+    - README.md
+    - samples/
+    - schemas/
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0009/
+  commitSubject: "WI-0009: 01: design(llm): define chat session history"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: envelope-schema
+      executable: schema-validate
+      arguments:
+        - --root
+        - /home/michael/.cline/skills/sdlc/schemas
+      expectedExitCode: 0
+    - id: requirement-coverage-review
+      executable: node
+      arguments:
+        - --input-type=module
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-design/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-design/v1#/properties/result
+  intent:
+    summary: Define the public chatFactory/LlmChatProvider factory facade and LlmChatSession boundary, provider message-history contracts, multi-round tool replay, configurable user-message interruption, OpenRouter HTTP projection, prompt XML schema, executable sample behavior, and implementation verification handoff.
+    objectives:
+      - Define the chatFactory/LlmChatProvider factory facade, chatFactory.createSession, and LlmChatSession ownership, lifecycle, options, cancellation, EventSink/DebugEvent propagation, and non-concurrency assumptions.
+      - Define LlmRequest.messages and ProviderCompletionRequest task/taskSchema/messages separation plus provider-neutral system, user, assistant, and tool message contracts.
+      - Define the session state machine that appends assistant tool calls and tool results and replays complete history through request 3 and later rounds.
+      - Define additional user-message behavior for UserMessageInterruptsToolRound false and true, including long-running tools and pending work.
+      - Define an explicit OpenRouter HTTP projection class/module and adjacent Markdown projection contract.
+      - Define schemas/prompt/v1/llm-prompt.xsd, its descriptions, representative fixtures, and schema-validation evidence.
+      - Define three provider-free executable samples and deterministic tests that prove ordinary chat, interruptible tools, and blocked tools.
+      - Define TypeScript formatting/coding conventions, implementation paths, non-goals, and complete validation gates for the implementation handoff.
+    inScope:
+      - Public chatFactory/LlmChatProvider factory facade and LlmChatSession exports and declaration generation.
+      - ChatFactoryCreateSessionOptions including AbortSignal, EventSink/DebugEvent sink, provider pass-through options, and UserMessageInterruptsToolRound default false.
+      - LlmRequest task, taskSchema, messages, and initial-context boundaries plus ProviderCompletionRequest task, taskSchema, messages, toolOptions, provider settings, credentials, and signal boundaries.
+      - Provider-neutral ordered message types and OpenRouter assistant/tool message projection.
+      - Full ordered history replay across two or more tool rounds and later user turns.
+      - User-message interrupt and blocked semantics without inserting a user message into an unfinished assistant/tool exchange.
+      - OpenRouter projection class/module and schemas/request/v1/request.schema.md documentation.
+      - schemas/prompt/v1/llm-prompt.xsd and representative prompt fixtures/validation.
+      - Three executable samples, sample discovery assertions, unit/component/provider projection tests, and public documentation.
+      - Design artifacts under /home/michael/src/github/llm/.docs/work-items/WI-0009/.
+    outOfScope:
+      - Context compaction, summarization, truncation, token budgeting, memory reduction, or history pruning.
+      - Checkpoint persistence, session restore, durable history stores, replay checkpoints, or checkpoint terminology in the public API.
+      - Automatic mutexes, queues, optimistic concurrency, or other concurrent session mutation controls; callers enforce the non-concurrency requirement.
+      - Live provider credentials, authenticated tests, real external tool side effects, deployment, downstream integrations, or production-readiness claims.
+      - Unrelated provider protocol changes beyond the message-history and projection contract required for this work item.
+    policy:
+      id: component-design
+      version: "1"
+    profile: implementable
+    scope: component
+    facets:
+      - structure
+      - behavior
+      - contract
+      - policy
+    references:
+      - id: REF-001
+        type: artifact
+        locator: sdlc://repo/local%2Fgithub%2Fllm/WI-0009#work-item.json%23work-item/WI-0009
+        description: Authoritative WI-0009 scope, requirements, acceptance criteria, non-goals, and TypeScript conventions.
+      - id: REF-002
+        type: document
+        locator: src/types.ts
+        description: Existing public request, provider, tool, response, and DebugEvent-related type boundary.
+      - id: REF-003
+        type: document
+        locator: src/complete.ts
+        description: Existing bounded completion and automatic tool-round lifecycle that currently loses assistant history.
+      - id: REF-004
+        type: document
+        locator: src/provider.ts
+        description: Existing OpenRouter adapter and current role=tool projection.
+      - id: REF-005
+        type: document
+        locator: src/prompt.ts
+        description: Existing XML prompt generator for the initial user message.
+      - id: REF-006
+        type: document
+        locator: src/debug.ts
+        description: Existing DebugEvent, DebugSink, redaction, and lifecycle event conventions.
+      - id: REF-007
+        type: document
+        locator: schemas/request/v1/request.schema.json
+        description: Existing request contract whose task and taskSchema context must remain separate from messages.
+      - id: REF-008
+        type: document
+        locator: schemas/response/v1/response.schema.json
+        description: Existing response contract with ordered public toolResults reporting.
+      - id: REF-009
+        type: document
+        locator: tests/llm.test.ts
+        description: Existing deterministic tool lifecycle and OpenRouter serialization tests.
+      - id: REF-010
+        type: document
+        locator: tests/samples.test.ts
+        description: Existing executable sample discovery and one-line JSON envelope harness.
+      - id: REF-011
+        type: url
+        locator: https://openrouter.ai/docs/guides/features/tool-calling
+        description: OpenRouter tool-calling message sequence and Chat Completions request examples.
+      - id: REF-012
+        type: url
+        locator: https://platform.openai.com/docs/guides/function-calling.md
+        description: Chat Completions function-calling history requirements and assistant/tool message sequence.
+    provenance:
+      referenceRefs:
+        - REF-001
+        - REF-002
+        - REF-003
+        - REF-004
+        - REF-005
+        - REF-006
+        - REF-007
+        - REF-008
+        - REF-009
+        - REF-010
+        - REF-011
+        - REF-012
+      basis: The design boundary is derived from the requested session API, current package behavior, the observed loss of assistant tool-call history, repository sample/schema conventions, and official provider message-sequencing guidance.
+      confidence: 95
+    considerations:
+      - id: C-001
+        kind: boundary
+        statement: chatFactory.createSession creates the per-chat ownership boundary, exposes LlmChatSession, and may wrap the raw LlmProvider without making the raw provider own cross-turn session history.
+        evaluation: Define session state and history ownership in LlmChatSession, expose factory creation, and pass complete messages to the provider on every round.
+        referenceRefs:
+          - REF-001
+          - REF-002
+          - REF-003
+        status: accepted
+        impact: 100
+        confidence: 96
+      - id: C-002
+        kind: constraint
+        statement: task and taskSchema remain separate initial context fields while LlmRequest.messages and ProviderCompletionRequest.messages represent the canonical ordered conversation history at their respective boundaries.
+        evaluation: Specify how initial task context becomes the initial user message/XML prompt and how session history populates both public request messages and raw provider messages without rewriting task context.
+        referenceRefs:
+          - REF-001
+          - REF-005
+          - REF-007
+        status: accepted
+        impact: 100
+        confidence: 96
+      - id: C-003
+        kind: constraint
+        statement: Every assistant tool-call message must precede its matching role=tool messages, and all prior complete message history must be replayed for later rounds.
+        evaluation: Model request 2 and request 3 sequences explicitly, validate tool_call_id correlation, and reject or fail closed on malformed history.
+        referenceRefs:
+          - REF-003
+          - REF-004
+          - REF-011
+          - REF-012
+        status: accepted
+        impact: 100
+        confidence: 99
+      - id: C-004
+        kind: decision
+        statement: UserMessageInterruptsToolRound defaults to false; true allows an additional user turn while pending tools remain active, while false blocks or defers that user turn according to an explicit session contract.
+        evaluation: Define observable ordering, pending tool ownership, cancellation behavior, and response delivery for both modes without inserting a user message into an incomplete assistant/tool exchange.
+        referenceRefs:
+          - REF-001
+          - REF-003
+          - REF-006
+        status: accepted
+        impact: 100
+        confidence: 90
+      - id: C-005
+        kind: constraint
+        statement: LlmChatSession callers must enforce non-concurrency; the session does not add automatic concurrent mutation control.
+        evaluation: Document the precondition and test only deterministic serialized usage; identify behavior under violation without implementing a queue or mutex.
+        referenceRefs:
+          - REF-001
+          - REF-009
+        status: accepted
+        impact: 95
+        confidence: 96
+      - id: C-006
+        kind: boundary
+        statement: Compaction and checkpointing are explicit non-goals; session history accumulates and is sent to the provider without reduction or persistence.
+        evaluation: Include negative scope checks and ensure no public type, class, option, sample, or design artifact introduces those concepts as implementation behavior.
+        referenceRefs:
+          - REF-001
+        status: accepted
+        impact: 100
+        confidence: 99
+    activities:
+      - id: ACT-001
+        type: analysis
+        summary: Inspect the current completion loop, provider adapter, prompt generator, type exports, tests, samples, schemas, and official Chat Completions tool-calling sequence.
+        status: planned
+        referenceRefs:
+          - REF-001
+          - REF-002
+          - REF-003
+          - REF-004
+          - REF-005
+          - REF-009
+          - REF-011
+          - REF-012
+        provenance:
+          referenceRefs:
+            - REF-002
+            - REF-003
+            - REF-004
+            - REF-011
+            - REF-012
+          basis: The activity establishes the current loss of assistant history and the provider-required replay sequence before design decisions are finalized.
+          confidence: 96
+      - id: ACT-002
+        type: modeling
+        summary: Model the LlmChatSession state machine for initial context, user turns, assistant tool calls, tool results, terminal assistant responses, interruption, blocking, cancellation, and failure paths.
+        status: planned
+        referenceRefs:
+          - REF-001
+          - REF-003
+          - REF-006
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-003
+            - REF-006
+          basis: The requested session semantics require explicit state and ordering decisions before implementation.
+          confidence: 94
+      - id: ACT-003
+        type: modeling
+        summary: Define provider-neutral message types and map each message and request field to the OpenRouter HTTP payload.
+        status: planned
+        referenceRefs:
+          - REF-002
+          - REF-004
+          - REF-007
+          - REF-011
+          - REF-012
+        provenance:
+          referenceRefs:
+            - REF-002
+            - REF-004
+            - REF-011
+            - REF-012
+          basis: The current provider boundary needs a discoverable message projection that preserves exact assistant/tool ordering.
+          confidence: 95
+      - id: ACT-004
+        type: modeling
+        summary: Specify the prompt XML XSD, projection documentation, sample scenarios, test fixtures, implementation paths, and TypeScript handoff conventions.
+        status: planned
+        referenceRefs:
+          - REF-001
+          - REF-005
+          - REF-009
+          - REF-010
+        provenance:
+          referenceRefs:
+            - REF-001
+            - REF-005
+            - REF-009
+            - REF-010
+          basis: The work item requires durable schema, documentation, executable sample, and verification outputs in addition to source contracts.
+          confidence: 94
+  result:
+    summary: Planned design output must provide a complete implementation handoff for a factory-created chat session, replayable provider history, interruptible or blocked tool rounds, explicit OpenRouter projection, prompt XML schema, executable samples, non-concurrency documentation, and all requested non-goals.
+    model:
+      name: llm-chat-session
+      kind: interface
+      description: Session-scoped chat history and bounded model/tool turn orchestration around a raw provider transport boundary.
+      notation: flow-oriented
+      version: "1"
+    elements:
+      - id: E-001
+        type: chat-factory
+        name: chat-factory
+        description: Public chatFactory/LlmChatProvider factory facade that creates an independent LlmChatSession with session-scoped options and provider-layer dependencies.
+        provenance:
+          referenceRefs: [REF-001, REF-002]
+          basis: The requested import and createSession API define the public session entry point.
+          confidence: 96
+      - id: E-002
+        type: chat-session
+        name: llm-chat-session
+        description: Per-chat state owner that accumulates ordered messages, preserves initial task context, exposes user turns, and coordinates model/tool rounds.
+        provenance:
+          referenceRefs: [REF-001, REF-003]
+          basis: The session owns history and lifecycle while the raw provider remains transport-oriented.
+          confidence: 96
+      - id: E-003
+        type: session-options
+        name: chat-session-options
+        description: ChatFactoryCreateSessionOptions carrying AbortSignal, EventSink/DebugEvent sink, provider pass-through settings, and UserMessageInterruptsToolRound default false.
+        provenance:
+          referenceRefs: [REF-001, REF-006]
+          basis: The requested session controls must be configured at session creation.
+          confidence: 94
+      - id: E-004
+        type: message-history
+        name: provider-message-history
+        description: Provider-neutral ordered system, user, assistant, and tool messages with assistant tool-call and tool_call_id correlation.
+        provenance:
+          referenceRefs: [REF-001, REF-002, REF-011, REF-012]
+          basis: Official Chat Completions sequencing requires complete replayable history.
+          confidence: 99
+      - id: E-005
+        type: completion-context
+        name: initial-completion-context
+        description: Separate task and taskSchema context plus the initial XML user message containing objectives, rules, and relevant files.
+        provenance:
+          referenceRefs: [REF-001, REF-005, REF-007]
+          basis: The request explicitly keeps task and taskSchema separate from messages while retaining initial context.
+          confidence: 96
+      - id: E-006
+        type: tool-round-state
+        name: tool-round-state-machine
+        description: Ordered append and replay lifecycle for assistant tool calls, matching tool results, additional user turns, interruption, blocking, cancellation, and terminal assistant output.
+        provenance:
+          referenceRefs: [REF-001, REF-003, REF-006, REF-011, REF-012]
+          basis: Multi-round and user-interruption semantics require explicit state transitions and invariants.
+          confidence: 93
+      - id: E-007
+        type: http-projection
+        name: openrouter-http-projection
+        description: Dedicated projection class/module that serializes provider requests and ordered session messages into OpenRouter Chat Completions HTTP bodies.
+        provenance:
+          referenceRefs: [REF-004, REF-011, REF-012]
+          basis: The requested discoverable projection boundary must make transport mapping independently testable.
+          confidence: 95
+      - id: E-008
+        type: prompt-schema
+        name: llm-prompt-xml-schema
+        description: Versioned XSD and fixture contract for the XML prompt emitted in the initial user message.
+        provenance:
+          referenceRefs: [REF-001, REF-005]
+          basis: The generated XML prompt requires a durable documented and validated schema.
+          confidence: 94
+      - id: E-009
+        type: executable-samples
+        name: chat-samples
+        description: Three provider-free executable samples covering back-and-forth chat, interruptible long-running tools, and blocked user input.
+        provenance:
+          referenceRefs: [REF-001, REF-010]
+          basis: The work item requires runnable documentation for all requested session modes.
+          confidence: 96
+      - id: E-010
+        type: implementation-handoff
+        name: typescript-implementation-handoff
+        description: Durable design documents under the WI-0009 directory identifying changed classes, types, schemas, tests, samples, documentation, conventions, and validation commands.
+        provenance:
+          referenceRefs: [REF-001, REF-002, REF-009, REF-010]
+          basis: The initial design task must produce sufficient output for a later implementation task.
+          confidence: 96
+    relations:
+      - id: REL-001
+        type: creates
+        source: {type: element, id: E-001}
+        target: {type: element, id: E-002}
+        description: The factory creates an independent chat session.
+        provenance:
+          referenceRefs: [REF-001, REF-002]
+          basis: The public factory is the session ownership boundary.
+          confidence: 98
+      - id: REL-002
+        type: owns
+        source: {type: element, id: E-002}
+        target: {type: element, id: E-004}
+        description: The session owns ordered history and appends complete conversation messages.
+        provenance:
+          referenceRefs: [REF-001, REF-003]
+          basis: History must be accumulated per session and replayed to the provider.
+          confidence: 98
+      - id: REL-003
+        type: configures
+        source: {type: element, id: E-003}
+        target: {type: element, id: E-002}
+        description: Session options configure cancellation, EventSink/DebugEvent diagnostics, provider pass-through, and user-message interruption policy.
+        provenance:
+          referenceRefs: [REF-001, REF-006]
+          basis: Options are accepted by createSession and apply to its lifecycle.
+          confidence: 96
+      - id: REL-004
+        type: preserves
+        source: {type: element, id: E-005}
+        target: {type: element, id: E-004}
+        description: Initial task context remains separate while the initial user message becomes the first history entry.
+        provenance:
+          referenceRefs: [REF-001, REF-005, REF-007]
+          basis: Initial context and later messages have different semantic ownership.
+          confidence: 95
+      - id: REL-005
+        type: appends
+        source: {type: element, id: E-006}
+        target: {type: element, id: E-004}
+        description: Each tool round appends assistant tool calls and matching tool results before the next provider request.
+        provenance:
+          referenceRefs: [REF-003, REF-004, REF-011, REF-012]
+          basis: The official message sequence requires assistant/tool ordering and full replay.
+          confidence: 99
+      - id: REL-006
+        type: projects-to
+        source: {type: element, id: E-004}
+        target: {type: element, id: E-007}
+        description: Provider-neutral session history is projected into OpenRouter messages and tool declarations.
+        provenance:
+          referenceRefs: [REF-004, REF-011, REF-012]
+          basis: The dedicated projection owns wire-format conversion.
+          confidence: 97
+      - id: REL-007
+        type: documents
+        source: {type: element, id: E-005}
+        target: {type: element, id: E-008}
+        description: The prompt XML emitted for initial user context is documented by the versioned XSD.
+        provenance:
+          referenceRefs: [REF-005]
+          basis: The XSD describes the generated XML structure.
+          confidence: 96
+      - id: REL-008
+        type: demonstrates
+        source: {type: element, id: E-009}
+        target: {type: element, id: E-002}
+        description: Executable provider-free samples demonstrate session turns and both tool-round user-message policies.
+        provenance:
+          referenceRefs: [REF-001, REF-010]
+          basis: Samples provide runnable documentation for the session lifecycle.
+          confidence: 96
+    views:
+      - id: V-001
+        type: session-flow
+        name: chat-session-tool-round-flow
+        description: Initial context, user turns, assistant tool calls, tool results, additional user messages, and terminal assistant responses across one session.
+        elementRefs: [E-001, E-002, E-004, E-005, E-006]
+        relationRefs: [REL-001, REL-002, REL-004, REL-005]
+        provenance:
+          referenceRefs: [REF-001, REF-003, REF-011, REF-012]
+          basis: The view makes message ordering and session ownership inspectable for implementation.
+          confidence: 96
+      - id: V-002
+        type: transport-projection
+        name: openrouter-request-projection
+        description: Normalized task context, provider messages, tools, credentials, and reasoning settings mapped to the OpenRouter HTTP body.
+        elementRefs: [E-004, E-005, E-007, E-008]
+        relationRefs: [REL-004, REL-006, REL-007]
+        provenance:
+          referenceRefs: [REF-004, REF-005, REF-011, REF-012]
+          basis: The view separates the XML initial user message from native assistant/tool message projection.
+          confidence: 96
+      - id: V-003
+        type: requirement-coverage
+        name: chat-session-requirement-coverage
+        description: Work-item requirements mapped to design elements, durable artifacts, tests, and sample evidence.
+        elementRefs: [E-001, E-002, E-003, E-004, E-006, E-007, E-008, E-009, E-010]
+        relationRefs: [REL-001, REL-002, REL-003, REL-005, REL-006, REL-008]
+        provenance:
+          referenceRefs: [REF-001, REF-009, REF-010]
+          basis: The view is required to verify that the design task addresses every work-item requirement.
+          confidence: 95
+    artifacts:
+      - id: A-001
+        type: interfaceDefinition
+        name: chat-session-contract-design
+        description: Required design document defining chatFactory, LlmChatSession, ChatFactoryCreateSessionOptions, provider-neutral messages, task/taskSchema separation, lifecycle methods, and non-concurrency documentation.
+        locator: .docs/work-items/WI-0009/chat-session-contract-design.md
+        format: markdown
+        status: proposed
+        provenance:
+          referenceRefs: [REF-001, REF-002, REF-003, REF-006]
+          basis: The design output must make the public TypeScript contract implementable.
+          confidence: 96
+      - id: A-002
+        type: model
+        name: chat-session-state-model
+        description: Required state-machine document defining history append rules, assistant/tool pairing, additional user messages, interruption, blocking, cancellation, failure, and terminal turns.
+        locator: .docs/work-items/WI-0009/chat-session-state-model.md
+        format: markdown
+        status: proposed
+        provenance:
+          referenceRefs: [REF-001, REF-003, REF-006, REF-011, REF-012]
+          basis: The implementation needs explicit lifecycle invariants for multi-round and user-interruption behavior.
+          confidence: 94
+      - id: A-003
+        type: document
+        name: http-projection-design
+        description: Required projection design and mapping document for task context, messages, tools, model, thinking, files, credentials, assistant tool calls, and tool results.
+        locator: .docs/work-items/WI-0009/http-projection-design.md
+        format: markdown
+        status: proposed
+        provenance:
+          referenceRefs: [REF-004, REF-007, REF-011, REF-012]
+          basis: The implementation must expose a discoverable dedicated projection class/module and adjacent request-schema documentation.
+          confidence: 96
+      - id: A-004
+        type: schema
+        name: prompt-xml-schema-design
+        description: Required design artifact specifying schemas/prompt/v1/llm-prompt.xsd, descriptions, fixtures, and validation procedure.
+        locator: .docs/work-items/WI-0009/prompt-xml-schema-design.md
+        format: markdown
+        status: proposed
+        provenance:
+          referenceRefs: [REF-001, REF-005]
+          basis: The XML prompt contract must be durable and validated during implementation.
+          confidence: 94
+      - id: A-005
+        type: document
+        name: sample-and-test-design
+        description: Required test and executable-sample design covering ordinary chat, two-round history replay, interruptible tools, blocked tools, schema validation, projection bodies, and non-concurrency documentation.
+        locator: .docs/work-items/WI-0009/sample-and-test-design.md
+        format: markdown
+        status: proposed
+        provenance:
+          referenceRefs: [REF-001, REF-009, REF-010]
+          basis: Every acceptance criterion must have deterministic implementation evidence.
+          confidence: 96
+      - id: A-006
+        type: document
+        name: typescript-implementation-handoff
+        description: Required implementation handoff listing changed source, schema, test, sample, and documentation paths plus naming, formatting, ESM import, readonly-field, error, dependency, and validation conventions.
+        locator: .docs/work-items/WI-0009/typescript-implementation-handoff.md
+        format: markdown
+        status: proposed
+        provenance:
+          referenceRefs: [REF-001, REF-002, REF-009, REF-010]
+          basis: The next implementation task requires an explicit path and convention handoff.
+          confidence: 96
+    outcomes:
+      - id: O-001
+        type: designDecision
+        statement: Use chatFactory.createSession as the public per-chat ownership boundary, expose LlmChatSession, and keep the raw LlmProvider transport-oriented.
+        status: proposed
+        impact: 100
+        confidence: 96
+        referenceRefs: [REF-001, REF-002]
+        elementRefs: [E-001, E-002]
+        suggestedTaskType: implementation
+      - id: O-002
+        type: designDecision
+        statement: Keep task and taskSchema separate from LlmRequest.messages and ProviderCompletionRequest.messages, with the initial XML prompt represented as the first user message and later chat/tool messages represented by provider-neutral roles.
+        status: proposed
+        impact: 100
+        confidence: 96
+        referenceRefs: [REF-001, REF-005, REF-007]
+        elementRefs: [E-004, E-005]
+        suggestedTaskType: implementation
+      - id: O-003
+        type: designDecision
+        statement: Append every assistant tool-call message and matching tool result message before sending the next round, preserving all prior history through request 3 and later turns.
+        status: proposed
+        impact: 100
+        confidence: 99
+        referenceRefs: [REF-003, REF-004, REF-011, REF-012]
+        elementRefs: [E-004, E-006, E-007]
+        suggestedTaskType: implementation
+      - id: O-004
+        type: designDecision
+        statement: UserMessageInterruptsToolRound defaults false; true and false behavior must be separately specified, tested, and demonstrated without breaking assistant/tool message pairing.
+        status: proposed
+        impact: 100
+        confidence: 90
+        referenceRefs: [REF-001, REF-003, REF-006]
+        elementRefs: [E-003, E-006, E-009]
+        suggestedTaskType: implementation
+      - id: O-005
+        type: designDecision
+        statement: Do not implement compaction, checkpointing, or automatic session concurrency control; document caller-enforced non-concurrency and accumulate history without reduction or persistence.
+        status: proposed
+        impact: 100
+        confidence: 99
+        referenceRefs: [REF-001]
+        elementRefs: [E-002, E-010]
+        suggestedTaskType: implementation
+      - id: O-006
+        type: implementationHandoff
+        statement: Implementation must produce the requested class/module, contract, schema, documentation, tests, and three samples only after the design artifacts and coverage verification pass.
+        status: proposed
+        impact: 100
+        confidence: 95
+        referenceRefs: [REF-001, REF-009, REF-010]
+        elementRefs: [E-007, E-008, E-009, E-010]
+        artifactRefs: [A-001, A-002, A-003, A-004, A-005, A-006]
+        suggestedTaskType: implementation
+    outputs:
+      - id: OUT-001
+        category: interface-contract
+        status: proposed
+        sourceRefs: [REF-001, REF-002, REF-003, REF-006]
+        elementRefs: [E-001, E-002, E-003, E-004, E-005]
+        artifactRefs: [A-001, A-006]
+        description: Implementable public factory, session, options, provider request, provider message, and task-context contracts with TypeScript conventions and non-concurrency documentation.
+      - id: OUT-002
+        category: state-and-invariants
+        status: proposed
+        sourceRefs: [REF-001, REF-003, REF-004, REF-011, REF-012]
+        elementRefs: [E-002, E-004, E-006]
+        artifactRefs: [A-002]
+        description: Complete ordered message-history and tool-round state model covering request 2/request 3 replay, additional user turns, interruption, blocking, cancellation, and failure.
+      - id: OUT-003
+        category: architecture-structure
+        status: proposed
+        sourceRefs: [REF-004, REF-007, REF-011, REF-012]
+        elementRefs: [E-004, E-007]
+        relationRefs: [REL-006]
+        artifactRefs: [A-003]
+        description: Discoverable dedicated OpenRouter HTTP projection class/module and adjacent request-schema Markdown mapping every field to its wire destination or local-only boundary.
+      - id: OUT-004
+        category: interface-contract
+        status: proposed
+        sourceRefs: [REF-001, REF-005]
+        elementRefs: [E-005, E-008]
+        artifactRefs: [A-004]
+        description: Versioned prompt XML XSD design with descriptions, representative fixtures, and exact schema-validation handoff.
+      - id: OUT-005
+        category: test-handoff
+        status: proposed
+        sourceRefs: [REF-001, REF-009, REF-010]
+        elementRefs: [E-006, E-007, E-008, E-009]
+        artifactRefs: [A-005]
+        description: Deterministic tests and executable samples proving ordinary chat, complete two-round history replay, interruptible tools, blocked tools, projection bodies, XML validation, and sample protocol compliance.
+      - id: OUT-006
+        category: implementation-handoff
+        status: proposed
+        sourceRefs: [REF-001, REF-002, REF-009, REF-010]
+        elementRefs: [E-010]
+        artifactRefs: [A-006]
+        description: Ordered implementation path, TypeScript/native-ESM conventions, dependency constraints, non-goals, required validation commands, and changed-path boundaries.
+    verificationObligations:
+      - id: VER-001
+        kind: inspection
+        status: planned
+        sourceRefs: [REF-001, REF-002, REF-003, REF-004, REF-006]
+        targetRefs: [E-001, E-002, E-003, A-001, A-006]
+        method:
+          type: inspection
+          steps:
+            - Review the design artifacts for chatFactory, LlmChatSession, create-session options, provider pass-through, DebugEvent propagation, cancellation, non-concurrency assumptions, and TypeScript/native-ESM conventions.
+        requiredFor: [implementable]
+        description: Verify the public API and implementation handoff are complete and consistent with the repository.
+      - id: VER-002
+        kind: contract-test
+        status: planned
+        sourceRefs: [REF-001, REF-002, REF-003, REF-004, REF-011, REF-012]
+        targetRefs: [E-004, E-006, A-002, A-003]
+        method:
+          type: contract-test
+          steps:
+            - Trace initial request history, first assistant tool calls, first tool results, second assistant tool calls, second tool results, and terminal assistant output.
+            - Verify request 3 includes call-round-1 and call-round-2 assistant/tool history in valid provider order.
+            - Verify parallel tool call correlation and tool_call_id preservation.
+        requiredFor: [implementable]
+        description: Verify the central multi-round history invariant and provider-required message sequencing.
+      - id: VER-003
+        kind: component-test
+        status: planned
+        sourceRefs: [REF-001, REF-003, REF-006]
+        targetRefs: [E-003, E-006, E-009]
+        method:
+          type: component-test
+          steps:
+            - Model a long-running tool with UserMessageInterruptsToolRound false and verify the additional user message is blocked or deferred as designed.
+            - Model the same tool with UserMessageInterruptsToolRound true and verify the additional user message receives a response while pending tool work remains safely represented.
+            - Verify AbortSignal and DebugEvent behavior for both modes.
+        requiredFor: [implementable]
+        description: Verify both requested user-message policies, long-running tool behavior, cancellation, and event visibility.
+      - id: VER-004
+        kind: contract-test
+        status: planned
+        sourceRefs: [REF-004, REF-007, REF-011, REF-012]
+        targetRefs: [E-004, E-005, E-007, A-003]
+        method:
+          type: contract-test
+          steps:
+            - Capture mocked OpenRouter HTTP request bodies for ordinary chat and two tool rounds.
+            - Verify task/taskSchema context, initial XML user message, full messages history, tools, model, thinking, files, tool_call_id, and assistant tool_calls destinations.
+            - Verify credentials are used only for authorization and never serialized into messages or diagnostics.
+        requiredFor: [implementable]
+        description: Verify the discoverable HTTP projection matches the documented mapping and preserves complete history.
+      - id: VER-005
+        kind: contract-test
+        status: planned
+        sourceRefs: [REF-001, REF-005]
+        targetRefs: [E-005, E-008, A-004]
+        method:
+          type: contract-test
+          steps:
+            - Validate the XSD as an XML schema document with the repository-approved validator.
+            - Validate representative generated llmPrompt XML containing task, taskSchema, files, and outputSchema.
+            - Confirm descriptions exist for the root, elements, attributes, and file encoding semantics.
+        requiredFor: [implementable]
+        description: Verify the prompt XML contract is durable, documented, and executable against representative generated prompts.
+      - id: VER-006
+        kind: integration-test
+        status: planned
+        sourceRefs: [REF-001, REF-009, REF-010]
+        targetRefs: [E-009, A-005]
+        method:
+          type: integration-test
+          steps:
+            - Execute the ordinary back-and-forth chat sample.
+            - Execute the interruptible long-running-tool sample.
+            - Execute the default-blocked approximately three-second tool sample.
+            - Run the repository sample discovery harness and validate one JSON result envelope per sample.
+        requiredFor: [implementable]
+        description: Verify the three required executable examples and their deterministic assertions without live provider calls.
+      - id: VER-007
+        kind: inspection
+        status: planned
+        sourceRefs: [REF-001]
+        targetRefs: [E-002, E-010]
+        method:
+          type: inspection
+          steps:
+            - Search the proposed design and implementation paths for compaction and checkpointing concepts.
+            - Verify the work is explicitly limited to accumulating and replaying history and documents caller-enforced non-concurrency.
+        requiredFor: [implementable]
+        description: Verify explicit non-goals are preserved and no persistence, compaction, or automatic concurrency mechanism is introduced.
+      - id: VER-008
+        kind: build
+        status: planned
+        sourceRefs: [REF-001, REF-002, REF-009, REF-010]
+        targetRefs: [A-001, A-003, A-004, A-005, A-006]
+        method:
+          type: build
+          steps:
+            - Run schema validation for all new JSON/YAML design artifacts and the prompt XML schema.
+            - Run npm run typecheck, npm test, npm run build, and executable sample discovery after implementation.
+            - Inspect generated declarations, git diff --check, conflict markers, and changed paths.
+        requiredFor: [implementable]
+        description: Verify repository-wide implementation gates and artifact integrity before implementation handoff is accepted.
+      - id: VER-009
+        kind: analysis
+        status: planned
+        sourceRefs: [REF-001, REF-003, REF-006]
+        targetRefs: [E-002, E-006, A-002, A-005]
+        method:
+          type: analysis
+          steps:
+            - Compare serialized and interrupt-enabled user-turn handling against the caller-enforced non-concurrency requirement.
+            - Select and record the safe mechanism that lets an interrupting user receive a response while pending tool work remains represented without inserting a user message into an incomplete assistant/tool exchange.
+            - Convert the selected mechanism into explicit session invariants, API behavior, sample assertions, and implementation handoff requirements.
+        requiredFor: [implementable]
+        description: Resolve the open interrupt-versus-non-concurrency design question before implementation begins.
+    unresolvedQuestions:
+      - id: Q-001
+        question: Should an interrupting user message run through a separate concurrent provider request while the original tool round continues, or should the session serialize a second model turn after the tool result is available?
+        reason: The request requires a model response while pending tools remain active, but the raw provider and session concurrency boundary need an explicit safe sequencing decision.
+        status: open
+        impact: 100
+        confidence: 70
+        referenceRefs: [REF-001, REF-003, REF-006]
+        affectedRefs: [REF-001, REF-003, REF-006]
+        suggestedTaskType: decision
