@@ -54,6 +54,46 @@ The CLI is available as `llm` when the user-local npm link is installed. See
 `SKILL.md` for request/response contracts, CLI usage, provider configuration,
 and Node.js library examples.
 
+## One-shot prompt and process-per-turn chat
+
+The CLI supports one stateless prompt mode and a locally persisted chat mode:
+
+```text
+llm -p <prompt> [--json]
+llm --prompt <prompt> [--json]
+llm -c <prompt> [--print-chat-id]
+llm -c --chat-id <id> <prompt> [--print-chat-id]
+llm <prompt>  # continue the active LLM_CHAT_ID session
+```
+
+`-p/--prompt` performs exactly one completion. It never reads, writes, resumes,
+or depends on chat-session state or `LLM_CHAT_ID`, so it can be interspersed
+with chat commands safely.
+
+Every `-c/--chat <prompt>` invocation starts a new chat session. Without
+`--chat-id`, it generates a safe ID; with `--chat-id`, the supplied ID is only
+the destination for that new session. Existing contents at that ID are not
+rehydrated and are replaced after the turn. State is persisted as validated
+provider-neutral JSON under `/tmp/.llm/chat/{chat-id}.json`.
+
+Continuation is a separate subsequent `llm <prompt>` process. It requires the
+active `LLM_CHAT_ID` and rehydrates the corresponding validated JSON session.
+An executable cannot mutate its parent shell, so use the export-only handoff:
+
+```bash
+eval "$(llm -c 'Start a conversation.' --print-chat-id 2>/dev/null)"
+llm 'Continue using the active chat.'
+llm -p 'Perform an unrelated one-shot query.'
+```
+
+With `--print-chat-id`, stdout contains only the shell export and model output
+is sent to stderr. Invalid IDs and invalid persisted state are rejected.
+
+Each invocation accepts one prompt and exits. This feature intentionally has no
+REPL, interactive chat loop, long-lived process, TTY/readline requirement,
+stdin-driven message loop, slash-command exit interface, or promptless chat
+start.
+
 ## Session-scoped chat
 
 The package also exposes `chatFactory.createSession(...)` for one independent,

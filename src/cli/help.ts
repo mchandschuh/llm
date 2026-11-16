@@ -9,6 +9,9 @@ export async function packageVersion(): Promise<string> {
 export function printHelp(): number {
   console.log('Usage: llm <request.json>');
   console.log('       llm --config <request.json>');
+  console.log('       llm -p <prompt> [--json]');
+  console.log('       llm -c <prompt> [--chat-id <id>] [--print-chat-id]');
+  console.log('       llm <prompt>  # continue the LLM_CHAT_ID session');
   console.log('       llm --debug <request.json>');
   console.log('       llm --help');
   console.log('\nRun one provider-backed completion from a JSON request configuration.');

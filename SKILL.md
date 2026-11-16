@@ -110,6 +110,39 @@ The request path is resolved relative to the current working directory. The
 response envelope on stdout. Help and version exit successfully without
 initializing the provider.
 
+The CLI also provides stateless prompt and process-per-turn persistent chat:
+
+```text
+llm -p <prompt> [--json]
+llm --prompt <prompt> [--json]
+llm -c <prompt> [--print-chat-id]
+llm -c --chat-id <id> <prompt> [--print-chat-id]
+llm <prompt>  # continue the active LLM_CHAT_ID session
+```
+
+`-p/--prompt` performs exactly one completion and never reads, writes, resumes,
+or depends on chat-session persistence or `LLM_CHAT_ID`. Every `-c <prompt>`
+starts a fresh session. An omitted `--chat-id` generates a safe ID; an explicit
+`--chat-id` only selects the fresh session's destination and never resumes old
+state. Persisted state is validated provider-neutral JSON under
+`/tmp/.llm/chat/{chat-id}.json`; existing contents for a fresh explicit ID are
+replaced after the turn.
+
+Only a subsequent separate bare `llm <prompt>` invocation rehydrates state,
+using the active `LLM_CHAT_ID`. Because a child process cannot mutate its parent
+shell, use the documented export-only handoff:
+
+```bash
+eval "$(llm -c 'Start a conversation.' --print-chat-id 2>/dev/null)"
+llm 'Continue using the active chat.'
+```
+
+When `--print-chat-id` is used, stdout contains only the export statement and
+model/debug output is routed to stderr. Each invocation accepts one prompt and
+exits. There is intentionally no REPL, interactive chat loop, long-lived
+process, TTY/readline requirement, stdin-driven message loop, slash-command
+exit interface, or promptless chat start.
+
 Exit codes:
 
 - `0`: help, version, or a completion with `status: "success"`.
