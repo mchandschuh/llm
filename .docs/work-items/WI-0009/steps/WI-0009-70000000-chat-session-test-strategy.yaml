@@ -1,0 +1,291 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0009
+taskUid: WI-0009-70000000
+orderKey: "70000000"
+parentTaskUid: WI-0009-00000000
+taskType: test-strategy
+processingStatus: unprocessed
+title: Define deterministic chat-session evidence strategy
+objective: Define provider-free tests, fixtures, samples, coverage mappings, evidence ceilings, and implementation gates for every WI-0009 requirement and completed design obligation.
+references:
+  required:
+    - .docs/work-items/WI-0009/work-item.json
+    - .docs/work-items/WI-0009/steps/WI-0009-00000000-chat-session-design.yaml
+    - .docs/work-items/WI-0009/chat-session-contract-design.md
+    - .docs/work-items/WI-0009/chat-session-state-model.md
+    - .docs/work-items/WI-0009/http-projection-design.md
+    - .docs/work-items/WI-0009/prompt-xml-schema-design.md
+    - .docs/work-items/WI-0009/sample-and-test-design.md
+    - .docs/work-items/WI-0009/typescript-implementation-handoff.md
+    - .docs/work-items/WI-0009/design-review-record.md
+    - src/types.ts
+    - src/complete.ts
+    - src/provider.ts
+    - src/prompt.ts
+    - src/debug.ts
+    - tests/llm.test.ts
+    - tests/samples.test.ts
+    - package.json
+  informational:
+    - README.md
+    - SKILL.md
+    - samples/
+    - schemas/
+dependsOn:
+  - WI-0009-00000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0009/steps/
+  commitSubject: "WI-0009: 01: test(llm): define chat session evidence"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: envelope-schema
+      executable: schema-validate
+      arguments: [--root, /home/michael/.cline/skills/sdlc/schemas]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/result
+  intent:
+    summary: Define deterministic evidence for session factory contracts, complete multi-round history replay, interruptible and blocked tool rounds, provider projection, prompt XML, samples, documentation, and package gates.
+    inputs:
+      - id: INPUT-WORK-ITEM
+        kind: requirement
+        ref: WI-0009|00000000#work-item/WI-0009
+        purpose: Authoritative WI-0009 requirements, acceptance criteria, non-goals, and scope.
+        required: true
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0009|00000000#result/R-001
+        purpose: Completed design result with output, artifact, and verification-obligation correlations.
+        required: true
+      - id: INPUT-DESIGN-ARTIFACTS
+        kind: artifact
+        ref: WI-0009|00000000#artifact/A-007
+        purpose: Completed design review and implementation evidence boundary.
+        required: true
+    requirements:
+      - id: REQ-001
+        kind: requirement
+        statement: Cover WI-0009_REQ_001 and WI-0009_REQ_002 for chatFactory, LlmChatProvider, LlmChatSession, AbortSignal, EventSink/DebugEvent, provider pass-through, and default interruption behavior.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        required: true
+      - id: REQ-002
+        kind: requirement
+        statement: Cover WI-0009_REQ_003 and WI-0009_REQ_004 for task/taskSchema separation, public/raw messages, assistant/tool ordering, request-3 replay, and tool_call_id correlation.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        required: true
+      - id: REQ-003
+        kind: requirement
+        statement: Cover WI-0009_REQ_005 and WI-0009_REQ_006 for additional user messages, blocked default behavior, and isolated interrupt behavior.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        required: true
+      - id: REQ-004
+        kind: requirement
+        statement: Cover WI-0009_REQ_007 and WI-0009_REQ_008 for HTTP projection, request Markdown, prompt XSD, fixtures, and schema validation.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        required: true
+      - id: REQ-005
+        kind: requirement
+        statement: Cover WI-0009_REQ_009, WI-0009_REQ_010, and WI-0009_REQ_011 for three samples, non-concurrency/non-goals documentation, TypeScript conventions, and package gates.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        required: true
+    invariants:
+      - id: INV-001
+        statement: Every assistant tool-call message precedes matching tool messages and all prior messages are replayed on subsequent provider requests.
+        inputRefs: [INPUT-DESIGN]
+        required: true
+      - id: INV-002
+        statement: A user message never enters canonical history between an unresolved assistant tool-call message and its tool results.
+        inputRefs: [INPUT-DESIGN]
+        required: true
+      - id: INV-003
+        statement: Credentials never enter message history, prompts, diagnostics, samples, or durable artifacts.
+        inputRefs: [INPUT-DESIGN]
+        required: true
+      - id: INV-004
+        statement: Compaction, checkpointing, persistence, and automatic session concurrency controls remain out of scope.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        required: true
+    objectives:
+      - id: OBJ-CONTRACTS
+        statement: Define executable contract tests for the public session/factory and provider message types.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        requirementRefs: [REQ-001, REQ-002]
+        invariantRefs: [INV-001, INV-003]
+      - id: OBJ-LIFECYCLE
+        statement: Define deterministic lifecycle tests for two-round replay, additional users, interruption, blocking, cancellation, and tool failures.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        requirementRefs: [REQ-002, REQ-003]
+        invariantRefs: [INV-001, INV-002]
+      - id: OBJ-PROJECTION
+        statement: Define mocked HTTP and XML schema evidence for the projection boundary.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        requirementRefs: [REQ-004]
+        invariantRefs: [INV-001, INV-003]
+      - id: OBJ-SAMPLES-GATES
+        statement: Define sample discovery, documentation, scope, and package validation gates.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        requirementRefs: [REQ-005]
+        invariantRefs: [INV-004]
+    nonGoals:
+      - Do not require live provider credentials, network calls, production readiness, or real external tool effects.
+      - Do not define compaction, checkpointing, persistence, or automatic session locking tests.
+      - Do not alter the completed design artifacts; deviations are implementation blockers.
+  result:
+    status: defined
+    testCases:
+      - id: TC-FACTORY-CONTRACT
+        title: factory creates independent sessions and propagates options
+        type: unit
+        requirementLevel: required
+        purpose: Prove factory/session ownership, options, signal, event sink, provider, and invoker boundaries.
+        procedure:
+          executionMode: executable
+          target: public TypeScript session contract
+          steps: [Create two sessions, inspect independent histories/options, invoke deterministic turns, and inspect events.]
+          command: npm test
+        expectedOutcome: Sessions are independent and options reach the intended layers.
+        passCriteria: All public contract and propagation assertions pass.
+        evidenceTier: unit
+        fixtureRefs: [FIX-SESSION]
+        limitations: [Provider-free evidence only.]
+      - id: TC-HISTORY-REPLAY
+        title: two tool rounds replay complete assistant and tool history
+        type: unit
+        requirementLevel: required
+        purpose: Prove request 2/request 3 ordering and exact call/result correlation.
+        procedure:
+          executionMode: executable
+          target: session history and provider request capture
+          steps: [Return two tool-call responses, execute tools, capture provider requests, and assert request 3 role sequence.]
+          command: npm test
+        expectedOutcome: Request 3 contains both assistant/tool pairs and all prior messages.
+        passCriteria: Assistant IDs, arguments, tool_call_id values, and ordering match the design fixture.
+        evidenceTier: unit
+        fixtureRefs: [FIX-HISTORY]
+        limitations: [Mocked provider only.]
+      - id: TC-USER-POLICIES
+        title: blocked and interruptible user-message policies are deterministic
+        type: component
+        requirementLevel: required
+        purpose: Prove false blocks/defers and true uses an isolated interrupt branch without canonical history corruption.
+        procedure:
+          executionMode: executable
+          target: LlmChatSession long-running-tool lifecycle
+          steps: [Run the same delayed tool under both option values, submit a user message during the tool, inspect response/history/events, and wait for completion.]
+          command: npm test
+        expectedOutcome: Both policies preserve assistant/tool ordering and produce their documented result.
+        passCriteria: No user message appears inside an incomplete canonical tool exchange.
+        evidenceTier: unit
+        fixtureRefs: [FIX-LONG-TOOL]
+        limitations: [Bounded local delay only.]
+      - id: TC-PROJECTION
+        title: OpenRouter projection includes complete messages and excludes secrets
+        type: unit
+        requirementLevel: required
+        purpose: Prove model, reasoning, tools, assistant calls, tool results, files, and credentials mapping.
+        procedure:
+          executionMode: executable
+          target: OpenRouterHttpProjection and mocked fetch
+          steps: [Project captured requests, inspect request 3 JSON, validate role sequence, and assert credentials are absent from body.]
+          command: npm test
+        expectedOutcome: HTTP bodies follow the projection design exactly.
+        passCriteria: Every projection mapping assertion passes.
+        evidenceTier: unit
+        fixtureRefs: [FIX-HISTORY]
+        limitations: [Does not establish provider acceptance.]
+      - id: TC-PROMPT-XSD
+        title: generated prompt XML validates against the prompt XSD
+        type: unit
+        requirementLevel: required
+        purpose: Prove the generated XML structure and documented descriptions are aligned.
+        procedure:
+          executionMode: executable
+          target: prompt generator, XSD, and XML fixtures
+          steps: [Generate valid prompt variants, validate positive fixtures, validate negative fixtures, and inspect XSD documentation annotations.]
+          command: schema-validate schemas/prompt/v1/llm-prompt.xsd
+        expectedOutcome: Positive fixtures validate and negative fixtures fail for the declared reasons.
+        passCriteria: XML schema validation and fixture assertions pass.
+        evidenceTier: static
+        fixtureRefs: [FIX-PROMPT]
+        limitations: [JSON Schema semantics inside CDATA remain separately validated.]
+      - id: TC-SAMPLES-GATES
+        title: samples, documentation, and package gates pass
+        type: integration
+        requirementLevel: required
+        purpose: Prove all three chat samples execute and repository gates remain clean.
+        procedure:
+          executionMode: executable
+          target: samples/, tests/samples.test.ts, package, and documentation
+          steps: [Run typecheck, tests, build, sample discovery, diff check, conflict scan, declaration inspection, and changed-path review.]
+          command: npm run typecheck && npm test && npm run build
+        expectedOutcome: Package and all discovered samples pass without unrelated changes.
+        passCriteria: All commands exit zero and scope/non-goal scans pass.
+        evidenceTier: cli-audit
+        fixtureRefs: [FIX-REPOSITORY]
+        limitations: [Provider-free local evidence.]
+    fixtures:
+      - id: FIX-SESSION
+        name: session-contract-fixtures
+        purpose: Deterministic providers, invokers, abort controllers, and event sinks for session tests.
+        setup: Inject in-memory doubles and capture requests/events.
+        teardown: Restore globals and discard state.
+        sourceRefs: [WI-0009|00000000#result/R-001]
+      - id: FIX-HISTORY
+        name: two-round-history-fixtures
+        purpose: Two assistant tool-call responses, tool results, and final response for request 3 assertions.
+        setup: Use call-round-1 and call-round-2 fixtures from the design artifact.
+        teardown: Discard captured HTTP bodies and message history.
+        sourceRefs: [WI-0009|00000000#result/R-001]
+      - id: FIX-LONG-TOOL
+        name: long-running-tool-fixtures
+        purpose: Bounded delayed tool and user-message timing controls.
+        setup: Use AbortController and approximately three-second or test-shortened deterministic delays.
+        teardown: Abort/await all pending work.
+        sourceRefs: [WI-0009|00000000#result/R-001]
+      - id: FIX-PROMPT
+        name: prompt-xml-fixtures
+        purpose: Positive and negative XML documents for the prompt XSD.
+        setup: Generate fixtures from prompt output and mutate ordering/attributes for negatives.
+        teardown: Remove temporary fixtures.
+        sourceRefs: [WI-0009|00000000#result/R-001]
+      - id: FIX-REPOSITORY
+        name: repository-gate-fixture
+        purpose: Package, generated declaration, sample, documentation, and changed-path audit boundary.
+        setup: Run commands from repository root with provider/network disabled.
+        teardown: Preserve only task evidence.
+        sourceRefs: [WI-0009|00000000#work-item/WI-0009, WI-0009|00000000#result/R-001]
+    coverage:
+      - id: COV-CONTRACTS
+        requirementRefs: [REQ-001, REQ-002]
+        invariantRefs: [INV-001, INV-003]
+        objectiveRefs: [OBJ-CONTRACTS]
+        testCaseRefs: [TC-FACTORY-CONTRACT, TC-HISTORY-REPLAY]
+        rationale: Public contracts and complete history are tested through injected providers and captured requests.
+      - id: COV-LIFECYCLE
+        requirementRefs: [REQ-003]
+        invariantRefs: [INV-001, INV-002]
+        objectiveRefs: [OBJ-LIFECYCLE]
+        testCaseRefs: [TC-USER-POLICIES]
+        rationale: Both user-message policies and long-running tool behavior have dedicated evidence.
+      - id: COV-PROJECTION
+        requirementRefs: [REQ-004]
+        invariantRefs: [INV-001, INV-003]
+        objectiveRefs: [OBJ-PROJECTION]
+        testCaseRefs: [TC-PROJECTION, TC-PROMPT-XSD]
+        rationale: HTTP and XML contracts are independently captured and validated.
+      - id: COV-SAMPLES-GATES
+        requirementRefs: [REQ-005]
+        invariantRefs: [INV-004]
+        objectiveRefs: [OBJ-SAMPLES-GATES]
+        testCaseRefs: [TC-SAMPLES-GATES]
+        rationale: Samples, documentation, non-goals, and package gates are covered together.
+    minimumRequiredTestCaseRefs: [TC-FACTORY-CONTRACT, TC-HISTORY-REPLAY, TC-USER-POLICIES, TC-PROJECTION, TC-PROMPT-XSD, TC-SAMPLES-GATES]
+    recommendedTestCaseRefs: []
+    evidenceLimitations: [Strategy evidence is provider-free and does not establish production, deployment, persistence, compaction, checkpointing, or authenticated provider behavior.]

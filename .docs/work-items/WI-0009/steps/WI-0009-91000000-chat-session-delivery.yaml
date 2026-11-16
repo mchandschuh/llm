@@ -1,0 +1,135 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0009
+taskUid: WI-0009-91000000
+orderKey: "91000000"
+parentTaskUid: WI-0009-00000000
+taskType: delivery
+processingStatus: unprocessed
+title: Record local delivery of the chat session implementation
+objective: Deliver the locally validated and reviewed chat-session implementation, generated package, samples, schemas, documentation, and complete WI-0009 records without publication or deployment claims.
+references:
+  required:
+    - .docs/work-items/WI-0009/work-item.json
+    - .docs/work-items/WI-0009/steps/WI-0009-00000000-chat-session-design.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-70000000-chat-session-test-strategy.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-10000000-chat-session-contract-implementation.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-20000000-provider-projection-implementation.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-30000000-chat-session-samples-implementation.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-80000000-chat-session-validation.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-90000000-chat-session-review.yaml
+    - package.json
+    - dist/
+    - samples/
+    - schemas/
+  informational:
+    - README.md
+    - SKILL.md
+    - tests/
+dependsOn:
+  - WI-0009-90000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0009/
+    - dist/
+  commitSubject: "WI-0009: 07: chore(llm): record chat session delivery"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: final-build
+      executable: npm
+      arguments: [run, build]
+      expectedExitCode: 0
+    - id: final-tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/result
+  intent:
+    summary: Deliver the locally validated and independently reviewed chat-session implementation through the complete WI-0009 evidence chain.
+    deliveryTypes: [package, release]
+    inputs:
+      - id: INPUT-VALIDATION
+        kind: validation
+        ref: WI-0009|80000000#result/R-001
+        purpose: Independent requirement, design-obligation, package, sample, and scope validation.
+        required: true
+      - id: INPUT-REVIEW
+        kind: approval
+        ref: WI-0009|90000000#result/R-001
+        purpose: Independent review of requirements, design adherence, tests, code quality, formatting, and organization.
+        required: true
+      - id: INPUT-REPOSITORY
+        kind: repositoryState
+        ref: "#repository-state/HEAD"
+        purpose: Exact repository revision being delivered.
+        required: true
+    artifacts:
+      - id: ART-PACKAGE
+        kind: package
+        path: dist/
+        purpose: Locally built package containing the chat-session implementation.
+        required: true
+      - id: ART-SCHEMAS
+        kind: manifest
+        path: schemas/
+        purpose: Request projection documentation and prompt XML schema artifacts.
+        required: true
+      - id: ART-SAMPLES
+        kind: package
+        path: samples/
+        purpose: Executable provider-free chat samples.
+        required: true
+      - id: ART-RECORDS
+        kind: releaseRecord
+        path: .docs/work-items/WI-0009/
+        purpose: Complete WI-0009 work-item, design, strategy, implementation, validation, review, and delivery records.
+        required: true
+    procedures:
+      - id: PROC-FINAL-VERIFY
+        sequence: 1
+        name: final-build-test-and-audit
+        description: Rebuild, rerun tests and samples, inspect generated declarations and schemas, confirm validation/review acceptance, and capture final records.
+        steps: [Verify validation passed, verify review accepted, run npm run typecheck, run npm test, run npm run build, execute sample discovery, inspect generated declarations, inspect schemas and changed paths.]
+        command: npm run typecheck && npm test && npm run build
+        expected:
+          result: Final package, tests, samples, schemas, generated declarations, task records, and changed-path audit are complete and valid.
+        required: true
+    nonGoals:
+      - Do not publish to a registry or deploy to production.
+      - Do not make authenticated provider calls or execute real external tools.
+      - Do not claim persistence, checkpointing, compaction, production readiness, or downstream integration.
+  result:
+    status: blocked
+    summary: Delivery is prepared but blocked until validation passes and the independent review accepts the implementation.
+    artifacts:
+      - id: ART-PACKAGE-001
+        kind: package
+        path: dist/
+        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      - id: ART-SCHEMAS-001
+        kind: manifest
+        path: schemas/
+        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      - id: ART-SAMPLES-001
+        kind: package
+        path: samples/
+        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      - id: ART-RECORDS-001
+        kind: releaseRecord
+        path: .docs/work-items/WI-0009/
+        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executions:
+      - id: EXEC-FINAL-001
+        procedureRef: "#procedure/PROC-FINAL-VERIFY"
+        result:
+          status: blocked
+          summary: Final delivery procedure has not run because implementation, validation, and review are pending.
+        command: npm run typecheck && npm test && npm run build
+    limitations:
+      - Delivery is planned only; no package, release, publication, deployment, or production evidence exists yet.

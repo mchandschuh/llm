@@ -1,0 +1,209 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0009
+taskUid: WI-0009-90000000
+orderKey: "90000000"
+parentTaskUid: WI-0009-00000000
+taskType: review
+processingStatus: unprocessed
+title: Review all chat session tasks, outputs, coverage, and code quality
+objective: Independently review all WI-0009 task outputs for complete requirement, design-obligation, and test-case coverage; verify design adherence, code best practices, formatting, and file/folder organization before delivery.
+references:
+  required:
+    - .docs/work-items/WI-0009/work-item.json
+    - .docs/work-items/WI-0009/steps/WI-0009-00000000-chat-session-design.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-70000000-chat-session-test-strategy.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-10000000-chat-session-contract-implementation.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-20000000-provider-projection-implementation.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-30000000-chat-session-samples-implementation.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-80000000-chat-session-validation.yaml
+    - .docs/work-items/WI-0009/chat-session-contract-design.md
+    - .docs/work-items/WI-0009/chat-session-state-model.md
+    - .docs/work-items/WI-0009/http-projection-design.md
+    - .docs/work-items/WI-0009/prompt-xml-schema-design.md
+    - .docs/work-items/WI-0009/sample-and-test-design.md
+    - .docs/work-items/WI-0009/typescript-implementation-handoff.md
+    - .docs/work-items/WI-0009/design-review-record.md
+    - src/
+    - schemas/
+    - tests/
+    - samples/
+    - README.md
+    - SKILL.md
+  informational:
+    - package.json
+    - dist/
+    - .docs/work-items/
+dependsOn:
+  - WI-0009-80000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0009/steps/
+  commitSubject: "WI-0009: 06: review(llm): assess chat session implementation"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: diff-check
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review all WI-0009 task records and implementation outputs for requirement coverage, design adherence, verification/test completeness, code quality, formatting, and repository organization.
+    reviewKind: code
+    target:
+      taskType: validation
+      taskRef: WI-0009|80000000
+      result:
+        ref: WI-0009|80000000#result/R-001
+        sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    gateId: chat-session-implementation
+    policyRef:
+      ref: SKILL.md
+      sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    criteria:
+      - id: CRIT-001
+        statement: Every WI-0009 requirement and acceptance criterion is represented by the test strategy, implementation objectives, validation procedures, and review evidence.
+        purpose: Prevent incomplete task decomposition or unhandled requirements.
+        required: true
+        evidenceRefs: [WI-0009|70000000#result/R-001, WI-0009|80000000#result/R-001]
+      - id: CRIT-002
+        statement: Every completed design output and verification obligation is referenced as a source of truth, and implementation does not silently deviate from the design artifacts.
+        purpose: Preserve architecture/design fidelity and halt on unapproved deviations.
+        required: true
+        evidenceRefs: [WI-0009|00000000#result/R-001, WI-0009|10000000#result/R-001, WI-0009|20000000#result/R-001, WI-0009|30000000#result/R-001]
+      - id: CRIT-003
+        statement: The complete assistant/tool history replay, task/message separation, blocked/interruptible user policies, and provider projection behavior are covered by code and tests.
+        purpose: Confirm the central chat-session behavior is implemented rather than only documented.
+        required: true
+        evidenceRefs: [WI-0009|10000000#result/R-001, WI-0009|20000000#result/R-001, WI-0009|80000000#result/R-001]
+      - id: CRIT-004
+        statement: The prompt XML schema, request projection documentation, three samples, sample discovery, and public non-concurrency/non-goal documentation are present and organized in the intended folders.
+        purpose: Confirm documentation and executable evidence are complete and discoverable.
+        required: true
+        evidenceRefs: [WI-0009|20000000#result/R-001, WI-0009|30000000#result/R-001, WI-0009|80000000#result/R-001]
+      - id: CRIT-005
+        statement: Source code follows strict TypeScript/native ESM conventions, existing error/debug patterns, naming/readonly/formatting conventions, and sensible file/folder organization.
+        purpose: Review maintainability and repository consistency.
+        required: true
+        evidenceRefs: [WI-0009|10000000#result/R-001, WI-0009|20000000#result/R-001, WI-0009|30000000#result/R-001]
+      - id: CRIT-006
+        statement: Validation evidence is truthful, provider-free limitations are stated, and no compaction, checkpointing, persistence, or automatic concurrency-control scope has been introduced.
+        purpose: Prevent overclaiming and scope expansion.
+        required: true
+        evidenceRefs: [WI-0009|80000000#result/R-001, WI-0009|00000000#result/R-001]
+      - id: CRIT-007
+        statement: The task dependency graph, owned paths, implementation halt rules, validation procedures, and delivery prerequisites form a complete executable handoff.
+        purpose: Ensure delivery cannot bypass unresolved implementation, validation, or review work.
+        required: true
+        evidenceRefs: [WI-0009|70000000#result/R-001, WI-0009|80000000#result/R-001]
+    evidenceRequirements:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0009|80000000#result/R-001
+        purpose: Independent requirement, design-obligation, package, sample, and scope validation.
+        required: true
+        minimumTier: cli-audit
+      - id: EVID-002
+        kind: test
+        ref: WI-0009|70000000#result/R-001
+        purpose: Test strategy and required test-case coverage.
+        required: true
+        minimumTier: static
+      - id: EVID-003
+        kind: diff
+        ref: WI-0009|10000000#result/R-001
+        purpose: Implementation changed-path and design-source review.
+        required: true
+        minimumTier: inspection
+    nonGoals:
+      - id: NON-001
+        statement: Do not approve deployment, publication, authenticated provider behavior, or production readiness.
+      - id: NON-002
+        statement: Do not accept a design deviation without an updated design artifact and explicit task record.
+      - id: NON-003
+        statement: Do not rewrite immutable Git history.
+    context:
+      - id: CTX-001
+        kind: repository-guidance
+        ref: SKILL.md
+        purpose: Existing TypeScript, ESM, package, and documentation conventions.
+        required: true
+      - id: CTX-002
+        kind: prior-review
+        ref: WI-0009|00000000#artifact/A-007
+        purpose: Completed design-stage review and evidence boundary.
+        required: true
+  result:
+    status: blocked
+    decision: null
+    summary: Review is prepared but cannot be completed until implementation and validation results exist.
+    actor:
+      id: wi-0009-reviewer
+      role: reviewer
+      authorityRef: WI-0009
+    criteriaEvaluations:
+      - criterionRef: "#criterion/CRIT-001"
+        status: inconclusive
+        summary: Awaiting implementation and validation evidence.
+        evidenceRefs: [WI-0009|70000000#result/R-001]
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-002"
+        status: inconclusive
+        summary: Design sources are declared; implementation adherence is not yet executable evidence.
+        evidenceRefs: [WI-0009|00000000#result/R-001]
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-003"
+        status: inconclusive
+        summary: Awaiting implementation and validation evidence.
+        evidenceRefs: []
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-004"
+        status: inconclusive
+        summary: Awaiting implementation and validation evidence.
+        evidenceRefs: []
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-005"
+        status: inconclusive
+        summary: Awaiting code and changed-path review.
+        evidenceRefs: []
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-006"
+        status: satisfied
+        summary: Current design and task records explicitly preserve the stated non-goals and evidence limitations.
+        evidenceRefs: [WI-0009|00000000#result/R-001]
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-007"
+        status: satisfied
+        summary: The prepared task graph contains a leading strategy, three implementation tasks, validation, review, and delivery with ordered dependencies.
+        evidenceRefs: [WI-0009|70000000#result/R-001, WI-0009|80000000#result/R-001]
+        findingRefs: []
+    findings: []
+    evidence:
+      - id: EVID-001
+        kind: source-result
+        ref: WI-0009|00000000#result/R-001
+        claim: Design task completed with file-backed outputs and verification correlations.
+        tier: static
+        source: referenced-result
+    limitations: [Review cannot be accepted until implementation tasks and validation execute.]
+    nonClaims: [No code-quality, runtime, package, provider, or production review is claimed before implementation.]
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: EXEC-REVIEW-WI-0009
+      status: blocked
+      startedAt: "1970-01-01T00:00:00Z"
+      finishedAt: "1970-01-01T00:00:00Z"

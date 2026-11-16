@@ -1,0 +1,146 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0009
+taskUid: WI-0009-20000000
+orderKey: "20000000"
+parentTaskUid: WI-0009-10000000
+taskType: implementation
+processingStatus: unprocessed
+title: Implement OpenRouter history projection and prompt XML schema
+objective: Implement the dedicated OpenRouter HTTP projection, complete assistant/tool message serialization, request projection documentation, and prompt XSD defined by the completed design.
+references:
+  required:
+    - .docs/work-items/WI-0009/work-item.json
+    - .docs/work-items/WI-0009/steps/WI-0009-00000000-chat-session-design.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-70000000-chat-session-test-strategy.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-10000000-chat-session-contract-implementation.yaml
+    - .docs/work-items/WI-0009/http-projection-design.md
+    - .docs/work-items/WI-0009/prompt-xml-schema-design.md
+    - .docs/work-items/WI-0009/chat-session-state-model.md
+    - .docs/work-items/WI-0009/typescript-implementation-handoff.md
+    - .docs/work-items/WI-0009/design-review-record.md
+    - src/provider.ts
+    - src/prompt.ts
+    - schemas/request/v1/request.schema.json
+    - tests/provider-projection.test.ts
+  informational:
+    - schemas/
+    - package.json
+    - SKILL.md
+dependsOn:
+  - WI-0009-10000000
+  - WI-0009-70000000
+  - WI-0009-00000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/provider.ts
+    - src/openrouter-projection.ts
+    - src/prompt.ts
+    - schemas/request/v1/
+    - schemas/prompt/v1/
+    - tests/provider-projection.test.ts
+  commitSubject: "WI-0009: 03: feat(llm): add chat provider projection"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments: [run, typecheck]
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement the pure OpenRouter HTTP projection and prompt XML schema exactly as specified by A-003, A-004, and A-006.
+    changeTypes: [production-code, test-code, schema, documentation, generated-artifact]
+    changeIntent: feature
+    inputs:
+      - id: INPUT-WORK-ITEM
+        kind: requirement
+        ref: WI-0009|00000000#work-item/WI-0009
+        purpose: Authoritative requirements and acceptance criteria.
+        required: true
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0009|00000000#result/R-001
+        purpose: Completed design result and verification correlations.
+        required: true
+      - id: INPUT-PROJECTION
+        kind: artifact
+        ref: WI-0009|00000000#artifact/A-003
+        purpose: Authoritative OpenRouter field mapping and request-3 fixture.
+        required: true
+      - id: INPUT-PROMPT
+        kind: artifact
+        ref: WI-0009|00000000#artifact/A-004
+        purpose: Authoritative prompt XML XSD requirements and fixtures.
+        required: true
+      - id: INPUT-STATE
+        kind: artifact
+        ref: WI-0009|00000000#artifact/A-002
+        purpose: Authoritative assistant/tool ordering invariant.
+        required: true
+      - id: INPUT-HANDOFF
+        kind: artifact
+        ref: WI-0009|00000000#artifact/A-006
+        purpose: Authoritative source paths and symbol handoff.
+        required: true
+      - id: INPUT-STRATEGY
+        kind: testStrategy
+        ref: WI-0009|70000000#result/R-001
+        purpose: Required projection and XSD test cases.
+        required: true
+    objectives:
+      - id: OBJ-PROJECTION
+        statement: Add a discoverable side-effect-free OpenRouterHttpProjection and route OpenRouterProvider request serialization through it.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-PROJECTION, INPUT-HANDOFF]
+        testCaseRefs: [WI-0009|70000000#test-case/TC-PROJECTION]
+      - id: OBJ-HISTORY-WIRE
+        statement: Project full ordered system/user/assistant/tool history with assistant tool_calls preceding matching tool results and credentials excluded from the body.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-PROJECTION, INPUT-STATE]
+        testCaseRefs: [WI-0009|70000000#test-case/TC-HISTORY-REPLAY, WI-0009|70000000#test-case/TC-PROJECTION]
+      - id: OBJ-PROMPT-XSD
+        statement: Add the versioned prompt XML XSD, descriptions, and representative fixtures without changing prompt generation semantics unexpectedly.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-PROMPT]
+        testCaseRefs: [WI-0009|70000000#test-case/TC-PROMPT-XSD]
+      - id: OBJ-DOCUMENTATION
+        statement: Add schemas/request/v1/request.schema.md documenting the complete field-to-HTTP projection.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-PROJECTION]
+        testCaseRefs: [WI-0009|70000000#test-case/TC-PROJECTION]
+    ownedPaths: [src/provider.ts, src/openrouter-projection.ts, src/prompt.ts, schemas/request/v1/, schemas/prompt/v1/, tests/provider-projection.test.ts]
+    nonGoals:
+      - Do not redesign the session state machine or user interruption policy owned by the prior task.
+      - Do not add compaction, checkpointing, persistence, or live provider tests.
+      - HALT PROCESSING if a valid OpenRouter payload requires deviating from A-003/A-004/A-002; record the exact conflict and request design clarification before changing the design or code.
+    steps:
+      - Read A-003, A-004, A-002, A-006, and the test strategy before editing.
+      - HALT PROCESSING on any design conflict, missing projection rule, or required path/symbol deviation.
+      - Implement the projection module and integrate it with OpenRouterProvider.
+      - Add the request projection Markdown and prompt XSD/fixtures.
+      - Add mocked HTTP and XML validation tests for request 3 and credentials redaction.
+      - Run typecheck/tests and record implementation/verification evidence or blockers.
+  result:
+    status: blocked
+    implementation:
+      summary: Not executed; implementation is intentionally deferred until this task is processed.
+      changes:
+        - id: CHANGE-PLANNED-PROJECTION
+          type: production-code
+          summary: Planned provider projection, request documentation, and prompt XML schema implementation; execution is blocked until prerequisite session contracts are implemented.
+          objectiveRefs: [OBJ-PROJECTION, OBJ-HISTORY-WIRE, OBJ-PROMPT-XSD, OBJ-DOCUMENTATION]
+          paths: [src/provider.ts, src/openrouter-projection.ts, src/prompt.ts, schemas/request/v1/, schemas/prompt/v1/, tests/llm.test.ts]
+      testImplementations: []
+    verification:
+      status: not-run
+      objectiveRefs: [OBJ-PROJECTION, OBJ-HISTORY-WIRE, OBJ-PROMPT-XSD, OBJ-DOCUMENTATION]
+      tests: []
+    limitations:
+      - No projection, schema, or documentation implementation evidence exists until task execution.
+      - Samples and final repository validation are handled by dependent tasks.

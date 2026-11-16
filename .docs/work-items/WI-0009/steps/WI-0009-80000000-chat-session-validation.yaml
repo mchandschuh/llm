@@ -1,0 +1,261 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0009
+taskUid: WI-0009-80000000
+orderKey: "80000000"
+parentTaskUid: WI-0009-00000000
+taskType: validation
+processingStatus: unprocessed
+title: Validate chat session implementation and design obligation coverage
+objective: Independently validate every WI-0009 requirement, design obligation, implementation result, test-strategy case, provider projection, prompt XML schema, sample, documentation, integrity, and scope boundary.
+references:
+  required:
+    - .docs/work-items/WI-0009/work-item.json
+    - .docs/work-items/WI-0009/classification-result.json
+    - .docs/work-items/WI-0009/steps/WI-0009-00000000-chat-session-design.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-70000000-chat-session-test-strategy.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-10000000-chat-session-contract-implementation.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-20000000-provider-projection-implementation.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-30000000-chat-session-samples-implementation.yaml
+    - .docs/work-items/WI-0009/chat-session-contract-design.md
+    - .docs/work-items/WI-0009/chat-session-state-model.md
+    - .docs/work-items/WI-0009/http-projection-design.md
+    - .docs/work-items/WI-0009/prompt-xml-schema-design.md
+    - .docs/work-items/WI-0009/sample-and-test-design.md
+    - .docs/work-items/WI-0009/typescript-implementation-handoff.md
+    - .docs/work-items/WI-0009/design-review-record.md
+    - src/
+    - schemas/
+    - tests/
+    - samples/
+    - README.md
+    - SKILL.md
+    - package.json
+  informational:
+    - dist/
+    - .docs/work-items/
+dependsOn:
+  - WI-0009-30000000
+  - WI-0009-20000000
+  - WI-0009-10000000
+  - WI-0009-70000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0009/steps/
+  commitSubject: "WI-0009: 05: test(llm): validate chat session implementation"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments: [run, typecheck]
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments: [run, build]
+      expectedExitCode: 0
+    - id: integrity
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Independently validate the completed chat-session implementation, design adherence, complete output/obligation correlation, test strategy coverage, package gates, and repository scope.
+    inputs:
+      - id: INPUT-WORK-ITEM
+        kind: requirement
+        ref: WI-0009|00000000#work-item/WI-0009
+        purpose: Authoritative requirements, acceptance criteria, non-goals, and scope.
+        required: true
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0009|00000000#result/R-001
+        purpose: Authoritative design outputs, artifacts, and nine verification obligations.
+        required: true
+      - id: INPUT-STRATEGY
+        kind: testStrategy
+        ref: WI-0009|70000000#result/R-001
+        purpose: Required test cases, fixtures, coverage, and evidence limitations.
+        required: true
+      - id: INPUT-IMPLEMENTATION-CONTRACT
+        kind: implementation
+        ref: WI-0009|10000000#result/R-001
+        purpose: Session contract implementation result and test evidence.
+        required: true
+      - id: INPUT-IMPLEMENTATION-PROJECTION
+        kind: implementation
+        ref: WI-0009|20000000#result/R-001
+        purpose: Projection and prompt-schema implementation result and evidence.
+        required: true
+      - id: INPUT-IMPLEMENTATION-SAMPLES
+        kind: implementation
+        ref: WI-0009|30000000#result/R-001
+        purpose: Samples, documentation, and integration implementation result.
+        required: true
+    targets:
+      - id: TARGET-DESIGN
+        kind: taskResult
+        taskType: design
+        ref: WI-0009|00000000#result/R-001
+        purpose: Validate every output, artifact, verification obligation, and design decision correlation.
+        required: true
+      - id: TARGET-STRATEGY
+        kind: taskResult
+        taskType: test-strategy
+        ref: WI-0009|70000000#result/R-001
+        purpose: Validate every required test case and coverage mapping.
+        required: true
+      - id: TARGET-CONTRACT-IMPLEMENTATION
+        kind: taskResult
+        taskType: implementation
+        ref: WI-0009|10000000#result/R-001
+        purpose: Validate public session and canonical history implementation.
+        required: true
+      - id: TARGET-PROJECTION-IMPLEMENTATION
+        kind: taskResult
+        taskType: implementation
+        ref: WI-0009|20000000#result/R-001
+        purpose: Validate projection, request documentation, and prompt schema implementation.
+        required: true
+      - id: TARGET-SAMPLES-IMPLEMENTATION
+        kind: taskResult
+        taskType: implementation
+        ref: WI-0009|30000000#result/R-001
+        purpose: Validate samples, documentation, and integration implementation.
+        required: true
+      - id: TARGET-REPOSITORY
+        kind: repositoryState
+        ref: "#repository-state/HEAD"
+        purpose: Validate the exact repository revision, changed paths, generated declarations, and package state.
+        required: true
+    objectiveRefs: ["WI-0009|10000000#objective/OBJ-TYPES", "WI-0009|10000000#objective/OBJ-SESSION", "WI-0009|10000000#objective/OBJ-REPLAY", "WI-0009|10000000#objective/OBJ-POLICY", "WI-0009|20000000#objective/OBJ-PROJECTION", "WI-0009|20000000#objective/OBJ-HISTORY-WIRE", "WI-0009|20000000#objective/OBJ-PROMPT-XSD", "WI-0009|20000000#objective/OBJ-DOCUMENTATION", "WI-0009|30000000#objective/OBJ-CONVERSATION-SAMPLE", "WI-0009|30000000#objective/OBJ-INTERRUPT-SAMPLE", "WI-0009|30000000#objective/OBJ-BLOCKED-SAMPLE", "WI-0009|30000000#objective/OBJ-DOCUMENTATION"]
+    testCaseRefs: ["WI-0009|70000000#test-case/TC-FACTORY-CONTRACT", "WI-0009|70000000#test-case/TC-HISTORY-REPLAY", "WI-0009|70000000#test-case/TC-USER-POLICIES", "WI-0009|70000000#test-case/TC-PROJECTION", "WI-0009|70000000#test-case/TC-PROMPT-XSD", "WI-0009|70000000#test-case/TC-SAMPLES-GATES"]
+    procedures:
+      - id: VAL-DESIGN-CORRELATION
+        sequence: 1
+        name: validate-design-correlation
+        description: Resolve all design outputs, artifacts, source files, verification obligations, and direct output verificationRefs.
+        reason: Every design obligation must be traceable to an implementation/validation target and durable artifact.
+        targetRefs: ["#target/TARGET-DESIGN"]
+        objectiveRefs: ["WI-0009|10000000#objective/OBJ-TYPES", "WI-0009|20000000#objective/OBJ-PROJECTION"]
+        testCaseRefs: ["WI-0009|70000000#test-case/TC-FACTORY-CONTRACT"]
+        method:
+          executionMode: executable
+          target: WI-0009 design result and artifact directory
+          steps: [Parse the design result, index OUT/E/REL/A/VER IDs, resolve all references, verify every A locator exists, and verify every VER has a file target and output correlation.]
+          command: node scripts/validate-wi-0009-design.mjs
+        expected:
+          outcome: passed
+          exitCode: 0
+          assertions: [All 7 artifacts exist, all 6 outputs are complete, all 9 verification obligations are file-backed, and all 6 outputs have verificationRefs.]
+        evidenceTier: static
+        required: true
+      - id: VAL-CONTRACT-HISTORY
+        sequence: 2
+        name: validate-contract-and-history
+        description: Run the public contract, task/message separation, assistant/tool replay, interruption, blocking, and cancellation tests.
+        reason: The central behavioral requirements concern session ownership and valid complete history replay.
+        targetRefs: ["#target/TARGET-CONTRACT-IMPLEMENTATION", "#target/TARGET-STRATEGY", "#target/TARGET-REPOSITORY"]
+        objectiveRefs: ["WI-0009|10000000#objective/OBJ-SESSION", "WI-0009|10000000#objective/OBJ-REPLAY", "WI-0009|10000000#objective/OBJ-POLICY"]
+        testCaseRefs: ["WI-0009|70000000#test-case/TC-FACTORY-CONTRACT", "WI-0009|70000000#test-case/TC-HISTORY-REPLAY", "WI-0009|70000000#test-case/TC-USER-POLICIES"]
+        method:
+          executionMode: executable
+          target: package test suite and generated declarations
+          steps: [Run typecheck, run tests, inspect request 3 role ordering, inspect session samples/tests, and inspect declarations for public exports.]
+          command: npm run typecheck && npm test
+        expected:
+          outcome: passed
+          exitCode: 0
+          assertions: [Factory/session tests pass, request 3 includes both assistant/tool pairs, both user policies pass, and no credentials appear in history or diagnostics.]
+        evidenceTier: cli-audit
+        required: true
+      - id: VAL-PROJECTION-XSD
+        sequence: 3
+        name: validate-projection-and-prompt-schema
+        description: Validate mocked OpenRouter bodies, projection documentation, prompt XML XSD, positive fixtures, and negative fixtures.
+        reason: HTTP and XML contracts must be independently validated.
+        targetRefs: ["#target/TARGET-PROJECTION-IMPLEMENTATION", "#target/TARGET-STRATEGY", "#target/TARGET-REPOSITORY"]
+        objectiveRefs: ["WI-0009|20000000#objective/OBJ-PROJECTION", "WI-0009|20000000#objective/OBJ-HISTORY-WIRE", "WI-0009|20000000#objective/OBJ-PROMPT-XSD", "WI-0009|20000000#objective/OBJ-DOCUMENTATION"]
+        testCaseRefs: ["WI-0009|70000000#test-case/TC-HISTORY-REPLAY", "WI-0009|70000000#test-case/TC-PROJECTION", "WI-0009|70000000#test-case/TC-PROMPT-XSD"]
+        method:
+          executionMode: executable
+          target: OpenRouter projection, request documentation, XSD, and XML fixtures
+          steps: [Run projection tests, validate the prompt XSD, validate positive and negative XML fixtures, inspect documentation mapping, and verify credentials are header-only.]
+          command: npm test
+        expected:
+          outcome: passed
+          exitCode: 0
+          assertions: [Request 3 role sequence is valid, all projection fields map as designed, XSD fixtures behave as expected, and documentation names all local-only fields.]
+        evidenceTier: component
+        required: true
+      - id: VAL-SAMPLES-DOCS
+        sequence: 4
+        name: validate-samples-and-documentation
+        description: Execute all three chat samples and inspect public guidance for non-concurrency, compaction, checkpointing, and evidence limitations.
+        reason: Required executable documentation must cover both user-message policies and explicit non-goals.
+        targetRefs: ["#target/TARGET-SAMPLES-IMPLEMENTATION", "#target/TARGET-STRATEGY", "#target/TARGET-REPOSITORY"]
+        objectiveRefs: ["WI-0009|30000000#objective/OBJ-CONVERSATION-SAMPLE", "WI-0009|30000000#objective/OBJ-INTERRUPT-SAMPLE", "WI-0009|30000000#objective/OBJ-BLOCKED-SAMPLE", "WI-0009|30000000#objective/OBJ-DOCUMENTATION"]
+        testCaseRefs: ["WI-0009|70000000#test-case/TC-USER-POLICIES", "WI-0009|70000000#test-case/TC-SAMPLES-GATES"]
+        method:
+          executionMode: executable
+          target: samples/, tests/samples.test.ts, README.md, and SKILL.md
+          steps: [Run sample discovery, inspect each JSON result envelope, inspect timing/policy assertions, and scan documentation for caller-enforced non-concurrency and non-goals.]
+          command: npm run build && node --test --import tsx tests/samples.test.ts
+        expected:
+          outcome: passed
+          exitCode: 0
+          assertions: [All three new samples pass, all existing samples remain green, no sample writes stderr, and documentation matches the accepted design.]
+        evidenceTier: integration
+        required: true
+      - id: VAL-PACKAGE-SCOPE
+        sequence: 5
+        name: validate-package-and-scope
+        description: Run the complete package gates and inspect generated declarations, conflict markers, whitespace, ownership, and design-deviation records.
+        reason: The feature crosses public source, schemas, tests, samples, docs, generated output, and durable task records.
+        targetRefs: ["#target/TARGET-REPOSITORY", "#target/TARGET-DESIGN", "#target/TARGET-STRATEGY"]
+        objectiveRefs: ["WI-0009|10000000#objective/OBJ-TYPES", "WI-0009|20000000#objective/OBJ-PROMPT-XSD", "WI-0009|30000000#objective/OBJ-DOCUMENTATION"]
+        testCaseRefs: ["WI-0009|70000000#test-case/TC-SAMPLES-GATES"]
+        method:
+          executionMode: executable
+          target: repository package and WI-0009 task graph
+          steps: [Run typecheck/tests/build, inspect declarations, run git diff --check, scan conflict markers, audit changed paths, and confirm no implementation task recorded an unapproved design deviation.]
+          command: npm run typecheck && npm test && npm run build
+        expected:
+          outcome: passed
+          exitCode: 0
+          assertions: [All package gates pass, changed paths match task ownership, design sources are referenced, and all deviations are halted or approved through a design update.]
+        evidenceTier: cli-audit
+        required: true
+    nonGoals:
+      - Do not make authenticated provider calls or execute real external tools.
+      - Do not claim production, deployment, persistence, compaction, checkpointing, or downstream integration.
+      - Do not accept implementation changes that silently deviate from completed design artifacts.
+  result:
+    status: implemented-unproven
+    summary: Validation task is prepared but not executed; all required procedures and evidence boundaries are declared.
+    executions:
+      - id: EXEC-PLANNED
+        procedureRef: "#procedure/VAL-DESIGN-CORRELATION"
+        status: not-run
+        observed:
+          outcome: not-run
+          summary: Validation has not been executed.
+        evidenceTier: static
+        evidence:
+          - kind: record
+            source: validation task
+            claim: Procedure is declared for later execution.
+            path: .docs/work-items/WI-0009/steps/WI-0009-80000000-chat-session-validation.yaml
+    findings: []
+    evidenceTier: static
+    limitations: [Validation is planned only; no implementation or runtime execution evidence exists in this task result.]
+    nonClaims: [No requirement is claimed implemented or validated until all required procedures execute successfully.]

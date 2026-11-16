@@ -1,0 +1,145 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0009
+taskUid: WI-0009-30000000
+orderKey: "30000000"
+parentTaskUid: WI-0009-20000000
+taskType: implementation
+processingStatus: unprocessed
+title: Implement chat samples, documentation, and integration coverage
+objective: Add the three required executable chat samples, public non-concurrency/non-goal documentation, sample discovery assertions, and end-to-end tests defined by the completed design and test strategy.
+references:
+  required:
+    - .docs/work-items/WI-0009/work-item.json
+    - .docs/work-items/WI-0009/steps/WI-0009-00000000-chat-session-design.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-70000000-chat-session-test-strategy.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-10000000-chat-session-contract-implementation.yaml
+    - .docs/work-items/WI-0009/steps/WI-0009-20000000-provider-projection-implementation.yaml
+    - .docs/work-items/WI-0009/sample-and-test-design.md
+    - .docs/work-items/WI-0009/chat-session-state-model.md
+    - .docs/work-items/WI-0009/typescript-implementation-handoff.md
+    - .docs/work-items/WI-0009/design-review-record.md
+    - samples/
+    - tests/samples.test.ts
+    - tests/chat-session-samples.test.ts
+    - README.md
+    - SKILL.md
+  informational:
+    - package.json
+    - src/
+    - schemas/
+dependsOn:
+  - WI-0009-20000000
+  - WI-0009-10000000
+  - WI-0009-70000000
+  - WI-0009-00000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - samples/
+    - tests/chat-session-samples.test.ts
+    - tests/samples.test.ts
+    - README.md
+    - SKILL.md
+  commitSubject: "WI-0009: 04: feat(llm): add chat samples and documentation"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments: [run, typecheck]
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments: [run, build]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Add deterministic chat samples and public documentation exactly as specified by A-005, A-002, and A-006.
+    changeTypes: [test-code, documentation, production-code, generated-artifact]
+    changeIntent: feature
+    inputs:
+      - id: INPUT-WORK-ITEM
+        kind: requirement
+        ref: WI-0009|00000000#work-item/WI-0009
+        purpose: Authoritative requirements and acceptance criteria.
+        required: true
+      - id: INPUT-DESIGN
+        kind: design
+        ref: WI-0009|00000000#result/R-001
+        purpose: Completed design result and verification correlations.
+        required: true
+      - id: INPUT-SAMPLES
+        kind: artifact
+        ref: WI-0009|00000000#artifact/A-005
+        purpose: Authoritative sample paths, assertions, and test coverage.
+        required: true
+      - id: INPUT-STATE
+        kind: artifact
+        ref: WI-0009|00000000#artifact/A-002
+        purpose: Authoritative user-message and non-concurrency behavior.
+        required: true
+      - id: INPUT-HANDOFF
+        kind: artifact
+        ref: WI-0009|00000000#artifact/A-006
+        purpose: Authoritative sample/test/documentation paths and conventions.
+        required: true
+      - id: INPUT-STRATEGY
+        kind: testStrategy
+        ref: WI-0009|70000000#result/R-001
+        purpose: Required sample and package test cases.
+        required: true
+    objectives:
+      - id: OBJ-CONVERSATION-SAMPLE
+        statement: Add the ordinary back-and-forth chat sample and assertions for retained history across user/model turns.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-SAMPLES]
+        testCaseRefs: [WI-0009|70000000#test-case/TC-SAMPLES-GATES]
+      - id: OBJ-INTERRUPT-SAMPLE
+        statement: Add the long-running interruptible tool sample demonstrating a response while pending work remains active.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-STATE, INPUT-SAMPLES]
+        testCaseRefs: [WI-0009|70000000#test-case/TC-USER-POLICIES]
+      - id: OBJ-BLOCKED-SAMPLE
+        statement: Add the default blocked long-running tool sample demonstrating user-message rejection/defer semantics.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-STATE, INPUT-SAMPLES]
+        testCaseRefs: [WI-0009|70000000#test-case/TC-USER-POLICIES]
+      - id: OBJ-DOCUMENTATION
+        statement: Document caller-enforced non-concurrency, accumulating history, compaction/checkpointing non-goals, and the session/projection API in public guidance.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-STATE, INPUT-HANDOFF]
+        testCaseRefs: [WI-0009|70000000#test-case/TC-SAMPLES-GATES]
+    ownedPaths: [samples/, tests/chat-session-samples.test.ts, tests/samples.test.ts, README.md, SKILL.md]
+    nonGoals:
+      - Do not add live provider calls, credentials, real external tools, compaction, checkpointing, persistence, or automatic concurrency controls.
+      - Do not redefine session behavior from A-002 or change projection/XSD behavior from A-003/A-004.
+      - HALT PROCESSING if a sample or documentation requirement cannot be satisfied without deviating from A-002, A-005, or A-006; request design clarification before changing the design.
+    steps:
+      - Read A-002, A-005, A-006, the test strategy, and prior implementation results before editing.
+      - HALT PROCESSING on any design conflict or need to change the documented user-message policy.
+      - Add the three samples with the repository-standard JSON-line envelope.
+      - Add unit/integration assertions and update public documentation without overstating provider/runtime evidence.
+      - Run sample discovery and package gates; record concrete test implementations and limitations.
+  result:
+    status: blocked
+    implementation:
+      summary: Not executed; implementation is intentionally deferred until this task is processed.
+      changes:
+        - id: CHANGE-PLANNED-SAMPLES
+          type: test-code
+          summary: Planned chat samples, documentation, and integration coverage; execution is blocked until session and projection implementations are complete.
+          objectiveRefs: [OBJ-CONVERSATION-SAMPLE, OBJ-INTERRUPT-SAMPLE, OBJ-BLOCKED-SAMPLE, OBJ-DOCUMENTATION]
+          paths: [samples/, tests/llm.test.ts, tests/samples.test.ts, README.md, SKILL.md]
+      testImplementations: []
+    verification:
+      status: not-run
+      objectiveRefs: [OBJ-CONVERSATION-SAMPLE, OBJ-INTERRUPT-SAMPLE, OBJ-BLOCKED-SAMPLE, OBJ-DOCUMENTATION]
+      tests: []
+    limitations:
+      - No sample or documentation implementation evidence exists until task execution.
+      - Independent validation, review, and delivery are handled by dependent tasks.
