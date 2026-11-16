@@ -22,8 +22,8 @@
   "baseline": "02a5a6f7ae3042208ecff3687e18558898ca0b92",
   "request": {
     "source": "conversation",
-    "text": "Expose features via easy CLI commands. Add llm -p/--prompt for a strictly one-shot prompt that never creates, reads, mutates, resumes, or depends on chat-session history. Add llm -c/--chat to start a chat session, persist chat state under /tmp/.llm/chat-sessions/{chat-id}.json, and support subsequent llm <prompt> continuation only when the session environment handoff is present and the referenced chat JSON exists and validates. Add llm -c --chat-id <chat-id> <prompt> to resume an existing session when present or use the supplied identifier for a new session when absent. Preserve the current config-file CLI. The first implementation task must refactor the existing CLI to use /home/michael/.cline/skills/nodejs-cli-pattern/SKILL.md because the current CLI does not use that pattern. No design task is required.",
-    "sha256": "fc91036a2c986e62554a45deb804d6577d3c311ba36b85b359bae049048bf531"
+    "text": "Expose features via easy CLI commands. Add llm -p/--prompt for a strictly one-off prompt that never creates, reads, mutates, resumes, or depends on chat-session history. Add llm -c/--chat <prompt> to always start a new chat session, create a chat ID when one is not supplied, persist chat state under /tmp/.llm/chat/{chat-id}.json, and provide the current chat ID through the documented LLM_CHAT_ID shell handoff. Subsequent separate llm <prompt> invocations use LLM_CHAT_ID to rehydrate the referenced valid chat JSON and continue that session. Add llm -c --chat-id <chat-id> <prompt> to always start a new session using the supplied identifier as its persistence destination; it must never resume existing state. Preserve the current config-file CLI. The first implementation task must refactor the existing CLI to use /home/michael/.cline/skills/nodejs-cli-pattern/SKILL.md because the current CLI does not use that pattern. No design task is required.",
+    "sha256": "a02d194dbf7ceb63562f3ac7297c3e5cb5d3e54ed8ac69dc8646277f804275c5"
   },
   "scope": [
     {
@@ -38,12 +38,12 @@
     },
     {
       "name": "persistent-chat-mode",
-      "description": "Add llm -c/--chat with local JSON session persistence under /tmp/.llm/chat-sessions/{chat-id}.json and LlmChatSession rehydration.",
+      "description": "Add llm -c/--chat <prompt> as a fresh one-turn chat-session start with local JSON persistence under /tmp/.llm/chat/{chat-id}.json; only subsequent bare llm <prompt> invocations rehydrate the active session.",
       "reason": "Users need multi-command conversation continuity across CLI processes."
     },
     {
       "name": "chat-id-and-environment",
-      "description": "Support explicit --chat-id selection, environment-based continuation, validated JSON rehydration, and an honest shell environment handoff mechanism.",
+      "description": "Support fresh-session chat-ID creation or explicit --chat-id destination selection, environment-based continuation, validated JSON rehydration for subsequent bare prompts, and an honest shell environment handoff mechanism.",
       "reason": "A process cannot mutate its parent shell environment, so the continuation contract must be explicit and testable."
     },
     {
@@ -58,10 +58,10 @@
       "description": "Prompt mode must not create, read, mutate, resume, or depend on chat-session files or LLM_CHAT_ID.",
       "reason": "-p is explicitly a one-off operation and must not break or alter the current chat session.",
       "forbiddenFileWrites": [
-        ".llm/chat-sessions/"
+        ".llm/chat/"
       ],
       "forbiddenFileReads": [
-        ".llm/chat-sessions/"
+        ".llm/chat/"
       ]
     },
     {
@@ -89,6 +89,27 @@
       "name": "history-rewrite",
       "description": "Do not rewrite or amend immutable Git history.",
       "reason": "Repository history remains immutable.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "interactive-repl",
+      "description": "Do not implement a REPL, interactive chat loop, long-lived chat process, TTY requirement, readline prompt, stdin-driven message loop, or slash-command exit interface.",
+      "reason": "Each CLI invocation handles one prompt and exits; persistence and the LLM_CHAT_ID handoff provide continuity across subsequent processes without requiring a terminal session.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "chat-start-resume-confusion",
+      "description": "Do not make llm -c resume an existing session. Every llm -c invocation starts a new session; --chat-id names the new session's persistence destination and does not select prior history.",
+      "reason": "Continuation is deliberately a separate subsequent llm <prompt> invocation using the active LLM_CHAT_ID.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "implicit-session-input",
+      "description": "Do not make llm -c without a prompt wait for input or start an implicit session; the supported chat-start form is llm -c <prompt> or llm -c --chat-id <chat-id> <prompt>.",
+      "reason": "The command boundary is one prompt per process and must remain usable from agents, scripts, pipes, and non-TTY environments.",
       "forbiddenFileWrites": [],
       "forbiddenFileReads": []
     }
@@ -119,7 +140,7 @@
         "acceptanceCriteria": [
           {
             "id": "WI-0010_REQ_002_AC_001",
-            "description": "llm -p <prompt> and llm --prompt <prompt> invoke one completion, return the assistant result, and support a machine-readable response option without creating or reading /tmp/.llm/chat-sessions files."
+            "description": "llm -p <prompt> and llm --prompt <prompt> invoke one completion, return the assistant result, and support a machine-readable response option without creating or reading /tmp/.llm/chat files."
           },
           {
             "id": "WI-0010_REQ_002_AC_002",
@@ -130,7 +151,7 @@
       {
         "id": "WI-0010_REQ_003",
         "name": "chat-session-persistence",
-        "description": "llm -c/--chat creates or resumes a local LlmChatSession and persists validated state under /tmp/.llm/chat-sessions/{chat-id}.json.",
+        "description": "llm -c/--chat <prompt> always starts a new local LlmChatSession, creates or uses a supplied chat ID, ignores any prior contents at that ID, and persists the fresh validated state under /tmp/.llm/chat/{chat-id}.json.",
         "reason": "Separate CLI processes need local conversation continuity.",
         "acceptanceCriteria": [
           {
@@ -150,16 +171,16 @@
       {
         "id": "WI-0010_REQ_004",
         "name": "explicit-chat-id",
-        "description": "llm -c --chat-id <chat-id> <prompt> selects a safe explicit identifier, resumes an existing valid session, or creates a new session with that identifier when absent.",
+        "description": "llm -c --chat-id <chat-id> <prompt> selects a safe explicit identifier for a new session and never resumes existing state at that identifier.",
         "reason": "Users need deterministic session selection independent of the ambient environment.",
         "acceptanceCriteria": [
           {
             "id": "WI-0010_REQ_004_AC_001",
-            "description": "Existing valid --chat-id state is resumed and receives the new user message with complete prior history."
+            "description": "Every -c invocation starts with fresh history; --chat-id is used only as the new session's safe persistence identifier, never causes prior state to be loaded, and replaces the persisted state for that ID after the turn."
           },
           {
             "id": "WI-0010_REQ_004_AC_002",
-            "description": "A missing --chat-id file creates a new session using the supplied identifier, while invalid identifiers such as traversal, separators, control characters, or oversized values are rejected before file access."
+            "description": "A supplied or generated safe identifier creates a new session under /tmp/.llm/chat/, while invalid identifiers such as traversal, separators, control characters, or oversized values are rejected before file access."
           }
         ]
       },
@@ -175,14 +196,14 @@
           },
           {
             "id": "WI-0010_REQ_005_AC_002",
-            "description": "Without the required environment handoff or explicit --chat-id, session continuation fails with a stable actionable error directing the user to start/resume chat explicitly; prompt mode remains unaffected."
+            "description": "Without the required LLM_CHAT_ID handoff, a subsequent bare llm <prompt> continuation fails with a stable actionable error directing the user to start a fresh session with llm -c <prompt> or llm -c --chat-id <chat-id> <prompt>; prompt mode remains unaffected."
           }
         ]
       },
       {
         "id": "WI-0010_REQ_006",
         "name": "backward-compatible-cli-output",
-        "description": "The existing config-file CLI remains compatible while prompt/chat modes provide deterministic human and machine-readable output, debug routing, EOF/Ctrl-C handling, and stable exit codes.",
+        "description": "The existing config-file CLI remains compatible while prompt/chat modes provide deterministic human and machine-readable output, debug routing, one-prompt-per-process behavior, and stable exit codes.",
         "reason": "Existing scripts must not break when new command modes are added.",
         "acceptanceCriteria": [
           {
@@ -191,7 +212,7 @@
           },
           {
             "id": "WI-0010_REQ_006_AC_002",
-            "description": "Chat mode handles EOF and Ctrl-C without corrupting persisted state, while user-facing output and debug diagnostics remain separated between stdout and stderr."
+            "description": "Each prompt/chat invocation exits after one provider turn without requiring a TTY or stdin loop, while user-facing output and debug diagnostics remain separated between stdout and stderr."
           }
         ]
       },

@@ -77,7 +77,7 @@ task:
         required: true
       - id: REQ-004
         kind: requirement
-        statement: Cover WI-0010_REQ_004 and explicit chat-id resume/create/validation behavior.
+        statement: Cover WI-0010_REQ_004 and fresh-session chat-id selection/validation behavior without resume through -c.
         inputRefs: [INPUT-WORK-ITEM]
         required: true
       - id: REQ-005
@@ -87,7 +87,7 @@ task:
         required: true
       - id: REQ-006
         kind: requirement
-        statement: Cover WI-0010_REQ_006 for backward compatibility, output routing, EOF, Ctrl-C, and exit codes.
+        statement: Cover WI-0010_REQ_006 for backward compatibility, output routing, one-prompt-per-process behavior, and exit codes.
         inputRefs: [INPUT-WORK-ITEM, INPUT-CURRENT-CLI]
         required: true
       - id: REQ-007
@@ -101,15 +101,15 @@ task:
         inputRefs: [INPUT-WORK-ITEM]
         required: true
       - id: INV-002
-        statement: Chat mode is the only mode that owns persisted session state and all persisted state is validated provider-neutral LlmChatSession data.
+        statement: Chat mode is the only mode that owns persisted session state; every -c invocation starts fresh, and subsequent bare llm <prompt> invocations alone rehydrate validated provider-neutral LlmChatSession data.
         inputRefs: [INPUT-WORK-ITEM]
         required: true
       - id: INV-003
-        statement: A plain child process cannot mutate its parent shell environment; supported continuation requires explicit shell handoff, export, or --chat-id.
+        statement: A plain child process cannot mutate its parent shell environment; supported continuation requires an explicit LLM_CHAT_ID shell handoff/export and a subsequent bare llm <prompt> process.
         inputRefs: [INPUT-WORK-ITEM, INPUT-CLI-PATTERN]
         required: true
       - id: INV-004
-        statement: Chat-session identifiers are safe single path components and cannot cause traversal, absolute-path access, or writes outside /tmp/.llm/chat-sessions/.
+        statement: Chat-session identifiers are safe single path components and cannot cause traversal, absolute-path access, or writes outside /tmp/.llm/chat/.
         inputRefs: [INPUT-WORK-ITEM]
         required: true
       - id: INV-005
@@ -132,7 +132,7 @@ task:
         requirementRefs: [REQ-002]
         invariantRefs: [INV-001, INV-005]
       - id: OBJ-PERSISTENCE
-        statement: Verify chat persistence, rehydration, explicit chat IDs, safe filesystem behavior, and secret exclusion.
+        statement: Verify fresh chat starts, subsequent-process rehydration, explicit chat IDs, safe filesystem behavior, and secret exclusion.
         inputRefs: [INPUT-WORK-ITEM, INPUT-CURRENT-CLI]
         requirementRefs: [REQ-003, REQ-004]
         invariantRefs: [INV-002, INV-004, INV-006]
@@ -142,7 +142,7 @@ task:
         requirementRefs: [REQ-005]
         invariantRefs: [INV-003]
       - id: OBJ-COMPATIBILITY
-        statement: Verify existing CLI modes, output routing, exit codes, EOF, Ctrl-C, and no regressions.
+        statement: Verify existing CLI modes, output routing, exit codes, one-prompt-per-process behavior, and no regressions.
         inputRefs: [INPUT-WORK-ITEM, INPUT-CURRENT-CLI]
         requirementRefs: [REQ-006]
         invariantRefs: [INV-005]
@@ -157,6 +157,9 @@ task:
       - Do not implement remote/server-side conversation storage or rely on OpenRouter conversation IDs.
       - Do not implement arbitrary shell command execution or credential persistence.
       - Do not claim a child process can mutate its parent shell environment.
+      - Do not implement a REPL, interactive chat loop, long-lived process, TTY/readline requirement, stdin-driven message loop, slash-command exit interface, or promptless implicit chat start.
+      - Do not make -c resume an existing session; every -c invocation starts fresh, and --chat-id only names the new session's persistence destination.
+      - Do not treat EOF, Ctrl-C, or signal handling as a chat UX requirement; each supported invocation receives one prompt argument and exits.
   result:
     status: defined
     testCases:
@@ -191,14 +194,14 @@ task:
         fixtureRefs: [FIX-PROMPT, FIX-SESSION]
         limitations: [Provider-free evidence only.]
       - id: TC-CHAT-PERSISTENCE
-        title: chat mode persists and rehydrates validated session history
+        title: chat start persists and later bare prompts rehydrate validated session history
         type: integration
         requirementLevel: required
         purpose: Prove REQ-003 and INV-002.
         procedure:
           executionMode: executable
           target: chat mode and local session store
-          steps: [Start chat, persist state, launch continuation with the supported environment handoff, verify complete history, corrupt state, and assert actionable failure.]
+          steps: [Start a fresh chat with -c <prompt>, persist state and the LLM_CHAT_ID handoff, launch a subsequent bare llm <prompt> process, verify complete history, corrupt state, and assert actionable failure.]
           command: npm test
         expectedOutcome: Valid session JSON rehydrates and invalid state is rejected without partial mutation.
         passCriteria: Atomic writes, restrictive permissions, bounded schema, and complete history assertions pass.
@@ -206,17 +209,16 @@ task:
         fixtureRefs: [FIX-SESSION]
         limitations: [Local filesystem evidence only.]
       - id: TC-CHAT-ID
-        title: explicit chat-id creates, resumes, and rejects unsafe identifiers
+        title: explicit chat-id creates fresh sessions and rejects unsafe identifiers
         type: component
         requirementLevel: required
         purpose: Prove REQ-004 and INV-004.
         procedure:
           executionMode: executable
           target: --chat-id argument and session path resolver
-          steps: [Create a missing explicit ID, resume an existing ID, and reject traversal, separators, control characters, oversized IDs, and outside-directory paths.]
-          command: npm test
-        expectedOutcome: Explicit identifiers select only safe approved session paths.
-        passCriteria: Create/resume/reject cases pass without outside writes.
+          steps: [Start a new session with an explicit ID, verify existing state is not rehydrated by -c, and reject traversal, separators, control characters, oversized IDs, and outside-directory paths.]
+        expectedOutcome: Explicit identifiers select only safe approved session paths for fresh -c sessions.
+        passCriteria: Fresh-create/no-resume/reject cases pass without outside writes.
         evidenceTier: component
         fixtureRefs: [FIX-SESSION]
         limitations: [Local filesystem evidence only.]
@@ -243,7 +245,7 @@ task:
         procedure:
           executionMode: executable
           target: existing request-file/config/help/version/debug paths and new modes
-          steps: [Run legacy and new invocations, verify stdout/stderr separation, JSON output, exit codes, EOF, and Ctrl-C handling.]
+          steps: [Run legacy and new one-prompt invocations, verify stdout/stderr separation, JSON output, exit codes, and non-TTY operation.]
           command: npm test
         expectedOutcome: Existing behavior remains compatible and new command modes have stable process behavior.
         passCriteria: All command matrix cases pass.
@@ -283,7 +285,7 @@ task:
     fixtures:
       - id: FIX-CLI
         name: cli-process-fixtures
-        purpose: Isolated child-process invocations for legacy, prompt, chat, handoff, output, signal, and exit-code cases.
+        purpose: Isolated child-process invocations for legacy, prompt, fresh-chat, continuation, handoff, output, non-TTY, and exit-code cases.
         setup: Build dist and use temporary HOME/session roots where supported.
         teardown: Remove only test-owned temporary files.
         sourceRefs: ["#artifact/current-cli", "#artifact/nodejs-cli-pattern"]

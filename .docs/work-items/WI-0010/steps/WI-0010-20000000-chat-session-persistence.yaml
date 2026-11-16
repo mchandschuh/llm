@@ -74,7 +74,7 @@ task:
         required: true
     objectives:
       - id: OBJ-STORE
-        statement: Persist and rehydrate session-safe state under /tmp/.llm/chat-sessions/{chat-id}.json using validated schemas, atomic replacement, restrictive permissions, and bounded content.
+        statement: Persist fresh -c session state and rehydrate it only for subsequent bare llm <prompt> invocations under /tmp/.llm/chat/{chat-id}.json using validated schemas, atomic replacement, restrictive permissions, and bounded content.
         inputRefs: [INPUT-WORK-ITEM, INPUT-STRATEGY]
         testCaseRefs: [WI-0010|00000000#test-case/TC-CHAT-PERSISTENCE, WI-0010|00000000#test-case/TC-SECURITY-SCOPE]
       - id: OBJ-ID
@@ -94,7 +94,9 @@ task:
       - Do not add prompt-mode persistence or any -p/--prompt session access.
       - Do not add remote storage, database state, provider conversation IDs, or credentials to persisted JSON.
       - Do not add arbitrary command execution, shell text execution, or unbounded file reads.
-      - Do not implement the complete interactive command parser; later task 30000000 owns command UX.
+      - Do not add a REPL, interactive chat loop, TTY/readline requirement, stdin-driven message loop, slash-command interface, or long-lived process.
+      - Do not make -c resume an existing session; every -c invocation starts fresh, and --chat-id only names the new session's persistence destination.
+      - Do not make -c without a prompt wait for input; chat start requires one prompt argument.
     steps:
       - Read the required CLI pattern skill and completed strategy/refactor results.
       - Define a closed persisted-state shape derived from provider-neutral session history.
@@ -119,4 +121,4 @@ task:
       objectiveRefs: [OBJ-STORE, OBJ-ID, OBJ-HANDOFF, OBJ-PROMPT-BOUNDARY]
       tests: []
     limitations:
-      - Chat command routing and interactive UX are handled by the later command task.
+      - Chat command routing is handled by the later command task; this task defines persistence for one prompt per process and later bare-prompt rehydration only.

@@ -22,10 +22,11 @@ feature implementation tasks.
 
 ## Intent
 
-Expose convenient `llm -p/--prompt` one-shot execution and `llm -c/--chat`
-session execution while preserving the existing request-file CLI. Chat sessions
-are persisted locally under `/tmp/.llm/chat-sessions/{chat-id}.json` and may be
-resumed through an explicit chat identifier.
+Expose convenient `llm -p/--prompt` one-shot execution and process-per-turn
+`llm -c/--chat` session execution while preserving the existing request-file
+CLI. Chat sessions are persisted locally under
+`/tmp/.llm/chat/{chat-id}.json` and are continued only by subsequent separate
+`llm <prompt>` invocations using the active `LLM_CHAT_ID`.
 
 Prompt mode is strictly stateless: it must not create, read, mutate, resume, or
 depend on a chat-session file or chat-session environment variable.
@@ -64,16 +65,26 @@ The new modes are intentionally separate:
 ```text
 llm -p <prompt>                 # one stateless completion
 llm --prompt <prompt>          # one stateless completion
-llm -c <prompt>                # start/resume persisted chat mode
-llm --chat <prompt>            # start/resume persisted chat mode
-llm -c --chat-id <id> <prompt> # explicit chat selection
+llm -c <prompt>                # always start a new persisted chat session
+llm --chat <prompt>            # always start a new persisted chat session
+llm -c --chat-id <id> <prompt> # start a new session at an explicit ID
+llm <prompt>                   # continue the active LLM_CHAT_ID session
 ```
 
-`-p/--prompt` never reads or writes chat state. `-c/--chat` owns session state
-and may persist under `/tmp/.llm/chat-sessions/`. If continuation depends on an
-ambient `LLM_CHAT_ID`, the implementation must provide an explicit shell
-handoff/source mechanism because a child process cannot mutate its parent shell
-environment.
+`-p/--prompt` never reads or writes chat state. Every `-c/--chat <prompt>`
+invocation starts fresh, even if the chosen chat-ID file already exists.
+Without `--chat-id`, the command creates a new safe chat ID; with
+`--chat-id`, the supplied safe ID is the destination for that new session and
+is never used to resume old state; if that ID already exists, the fresh session
+replaces its persisted state. The command persists state under
+`/tmp/.llm/chat/{chat-id}.json` and provides the ID through an explicit shell
+handoff/export mechanism because a child process cannot mutate its parent shell
+environment. Only a subsequent separate bare `llm <prompt>` invocation
+rehydrates and continues the session from `LLM_CHAT_ID`.
+
+Each CLI invocation handles one prompt and exits. This feature does not include
+a REPL, interactive chat loop, TTY requirement, readline prompt, stdin-driven
+message loop, slash-command exit interface, or promptless implicit chat start.
 
 ## Required implementation guidance
 
