@@ -4,7 +4,7 @@ taskUid: WI-0010-20000000
 orderKey: "20000000"
 parentTaskUid: null
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement secure local chat-session persistence and rehydration
 objective: Add the validated local session store, chat-id resolver, rehydration boundary, and explicit environment handoff primitives required by persistent chat mode.
 references:
@@ -48,7 +48,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -106,19 +106,58 @@ task:
       - Add deterministic persistence, corruption, traversal, secret-exclusion, and prompt-isolation tests.
       - Run typecheck/tests and record evidence.
   result:
-    status: blocked
+    status: implemented
     implementation:
-      summary: Not executed; task is planned after the CLI architecture refactor.
+      summary: Added the validated local chat-session store under /tmp/.llm/chat/{chat-id}.json with safe identifiers, bounded provider-neutral state, atomic restrictive writes, secret exclusion, and strict rehydration validation.
       changes:
-        - id: CHANGE-PLANNED-SESSION-STORE
+        - id: CHANGE-SESSION-STORE
           type: production-code
-          summary: Planned validated local session store, safe chat-id resolver, rehydration boundary, and explicit shell handoff primitives.
+          summary: Added safe chat-ID/path resolution, load/save APIs, closed persisted-state validation, atomic replacement, and restrictive permissions.
           objectiveRefs: [OBJ-STORE, OBJ-ID, OBJ-HANDOFF, OBJ-PROMPT-BOUNDARY]
-          paths: [src/chat-session-store.ts, src/cli/, src/types.ts, tests/cli-session-store.test.ts]
-      testImplementations: []
+          paths: [src/chat-session-store.ts]
+        - id: CHANGE-SESSION-TESTS
+          type: test-code
+          summary: Added path, permission, atomicity, overwrite, secret-exclusion, malformed-state, malformed-tool-call, and missing-session tests.
+          objectiveRefs: [OBJ-STORE, OBJ-ID, OBJ-PROMPT-BOUNDARY]
+          paths: [tests/cli-session-store.test.ts]
+      testImplementations:
+        - testCaseRef: WI-0010|00000000#test-case/TC-CHAT-PERSISTENCE
+          path: tests/cli-session-store.test.ts
+          selector: chat session store atomically persists bounded provider-neutral state without credentials
+        - testCaseRef: WI-0010|00000000#test-case/TC-CHAT-ID
+          path: tests/cli-session-store.test.ts
+          selector: chat session store safely validates IDs and contains paths; fresh session saves replace existing state
+        - testCaseRef: WI-0010|00000000#test-case/TC-SECURITY-SCOPE
+          path: tests/cli-session-store.test.ts
+          selector: chat session store rejects malformed or credential-bearing persisted state and malformed embedded tool calls
     verification:
-      status: not-run
+      status: passed
       objectiveRefs: [OBJ-STORE, OBJ-ID, OBJ-HANDOFF, OBJ-PROMPT-BOUNDARY]
-      tests: []
+      tests:
+        - id: EXEC-STORE-TYPECHECK
+          type: component
+          testCaseRefs: [WI-0010|00000000#test-case/TC-CHAT-PERSISTENCE]
+          command: npm run typecheck
+          status: passed
+          result: TypeScript typecheck passed.
+        - id: EXEC-STORE-FOCUSED
+          type: component
+          testCaseRefs: [WI-0010|00000000#test-case/TC-CHAT-PERSISTENCE, WI-0010|00000000#test-case/TC-CHAT-ID, WI-0010|00000000#test-case/TC-SECURITY-SCOPE]
+          command: node --test --import tsx tests/cli-session-store.test.ts
+          status: passed
+          result: Six focused session-store tests passed.
+        - id: EXEC-STORE-FULL
+          type: integration
+          testCaseRefs: [WI-0010|00000000#test-case/TC-PACKAGE-GATES]
+          command: npm test
+          status: passed
+          result: 85 provider-free package tests passed.
+        - id: EXEC-STORE-BUILD
+          type: cli-audit
+          testCaseRefs: [WI-0010|00000000#test-case/TC-PACKAGE-GATES]
+          command: npm run build
+          status: passed
+          result: Compiled package and declarations generated successfully.
     limitations:
-      - Chat command routing is handled by the later command task; this task defines persistence for one prompt per process and later bare-prompt rehydration only.
+      - Command routing and LLM_CHAT_ID environment handoff are handled by the later command task.
+      - Provider-free local filesystem evidence does not establish authenticated provider behavior.
