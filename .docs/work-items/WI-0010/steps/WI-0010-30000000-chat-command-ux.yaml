@@ -1,0 +1,126 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0010
+taskUid: WI-0010-30000000
+orderKey: "30000000"
+parentTaskUid: null
+taskType: implementation
+processingStatus: unprocessed
+title: Add prompt and persistent chat command UX
+objective: Add -p/--prompt, -c/--chat, --chat-id, continuation routing, output modes, help, EOF/Ctrl-C handling, and public CLI documentation while preserving existing config mode.
+references:
+  required:
+    - .docs/work-items/WI-0010/work-item.json
+    - .docs/work-items/WI-0010/README.md
+    - .docs/work-items/WI-0010/steps/WI-0010-00000000-cli-session-test-strategy.yaml
+    - .docs/work-items/WI-0010/steps/WI-0010-10000000-cli-pattern-refactor.yaml
+    - .docs/work-items/WI-0010/steps/WI-0010-20000000-chat-session-persistence.yaml
+    - src/cli/
+    - src/chat.ts
+    - src/complete.ts
+    - tests/cli.test.ts
+    - tests/cli-session-store.test.ts
+    - README.md
+    - SKILL.md
+  informational:
+    - package.json
+    - samples/
+dependsOn: [WI-0010-20000000, WI-0010-10000000, WI-0010-00000000]
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/cli/
+    - src/cli.ts
+    - tests/cli.test.ts
+    - README.md
+    - SKILL.md
+    - samples/
+  commitSubject: "WI-0010: 04: feat(llm): add prompt and chat commands"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments: [run, typecheck]
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments: [run, build]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Add the requested CLI command modes and preserve the existing request-file/config interface.
+    changeTypes: [production-code, test-code, documentation, generated-artifact]
+    changeIntent: feature
+    inputs:
+      - id: INPUT-WORK-ITEM
+        kind: requirement
+        ref: WI-0010|00000000#work-item/WI-0010
+        purpose: Command, persistence, output, and compatibility requirements.
+        required: true
+      - id: INPUT-STRATEGY
+        kind: testStrategy
+        ref: WI-0010|00000000#result/R-001
+        purpose: Command matrix and process behavior test cases.
+        required: true
+      - id: INPUT-PERSISTENCE
+        kind: implementation
+        ref: WI-0010|20000000#result/R-001
+        purpose: Safe session store and environment handoff primitives.
+        required: true
+    objectives:
+      - id: OBJ-PROMPT-COMMAND
+        statement: Implement -p/--prompt as a one-shot completion path that does not touch session state.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-STRATEGY]
+        testCaseRefs: [WI-0010|00000000#test-case/TC-PROMPT-ISOLATION]
+      - id: OBJ-CHAT-COMMAND
+        statement: Implement -c/--chat with initial prompt, continuation routing, persisted history, and explicit --chat-id behavior.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-PERSISTENCE]
+        testCaseRefs: [WI-0010|00000000#test-case/TC-CHAT-PERSISTENCE, WI-0010|00000000#test-case/TC-CHAT-ID]
+      - id: OBJ-SHELL-UX
+        statement: Implement the documented environment handoff, actionable continuation errors, human/machine output, debug routing, EOF, and Ctrl-C behavior.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-STRATEGY]
+        testCaseRefs: [WI-0010|00000000#test-case/TC-SHELL-HANDOFF, WI-0010|00000000#test-case/TC-COMPATIBILITY]
+      - id: OBJ-COMPATIBILITY
+        statement: Preserve positional request-file, --config, --help, --version, --debug, and stable exit-code behavior.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-STRATEGY]
+        testCaseRefs: [WI-0010|00000000#test-case/TC-COMPATIBILITY]
+    ownedPaths: [src/cli/, src/cli.ts, tests/cli.test.ts, README.md, SKILL.md, samples/]
+    nonGoals:
+      - Do not allow -p/--prompt to create, read, mutate, resume, or depend on chat-session state.
+      - Do not add arbitrary shell tools, provider credentials, remote conversation storage, or production deployment.
+      - Do not claim a child process mutates its parent shell environment; document and test the explicit handoff mechanism.
+      - Do not add chat persistence outside /tmp/.llm/chat-sessions/.
+    steps:
+      - Read the required nodejs-cli-pattern skill and all completed task results.
+      - Add mutually exclusive mode parsing and preserve existing positional/config behavior.
+      - Implement prompt output and optional JSON response output.
+      - Implement chat startup, explicit continuation routing, --chat-id, state persistence integration, EOF, and Ctrl-C.
+      - Update help, README, SKILL, and samples without overstating environment behavior.
+      - Add command-process tests for all modes, persistence routing, output streams, and exit codes.
+      - Run typecheck/tests/build and record evidence.
+  result:
+    status: blocked
+    implementation:
+      summary: Not executed; task is planned after persistence primitives are complete.
+      changes:
+        - id: CHANGE-PLANNED-CLI-MODES
+          type: production-code
+          summary: Planned prompt/chat command parsing, continuation routing, chat-id selection, output modes, signal handling, help, and documentation.
+          objectiveRefs: [OBJ-PROMPT-COMMAND, OBJ-CHAT-COMMAND, OBJ-SHELL-UX, OBJ-COMPATIBILITY]
+          paths: [src/cli/, src/cli.ts, tests/cli.test.ts, README.md, SKILL.md, samples/]
+      testImplementations: []
+    verification:
+      status: not-run
+      objectiveRefs: [OBJ-PROMPT-COMMAND, OBJ-CHAT-COMMAND, OBJ-SHELL-UX, OBJ-COMPATIBILITY]
+      tests: []
+    limitations:
+      - Validation, review, and delivery are handled by dependent tasks.

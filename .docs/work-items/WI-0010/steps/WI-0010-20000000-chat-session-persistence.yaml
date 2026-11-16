@@ -1,0 +1,122 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0010
+taskUid: WI-0010-20000000
+orderKey: "20000000"
+parentTaskUid: null
+taskType: implementation
+processingStatus: unprocessed
+title: Implement secure local chat-session persistence and rehydration
+objective: Add the validated local session store, chat-id resolver, rehydration boundary, and explicit environment handoff primitives required by persistent chat mode.
+references:
+  required:
+    - .docs/work-items/WI-0010/work-item.json
+    - .docs/work-items/WI-0010/README.md
+    - .docs/work-items/WI-0010/steps/WI-0010-00000000-cli-session-test-strategy.yaml
+    - .docs/work-items/WI-0010/steps/WI-0010-10000000-cli-pattern-refactor.yaml
+    - src/chat.ts
+    - src/types.ts
+    - src/complete.ts
+    - src/cli/
+    - tests/chat.test.ts
+    - package.json
+  informational:
+    - README.md
+    - SKILL.md
+    - schemas/
+dependsOn: [WI-0010-10000000, WI-0010-00000000]
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/cli/
+    - src/chat-session-store.ts
+    - src/types.ts
+    - tests/cli-session-store.test.ts
+    - tests/chat.test.ts
+    - README.md
+    - SKILL.md
+  commitSubject: "WI-0010: 03: feat(llm): persist local chat sessions"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments: [run, typecheck]
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement local persisted chat-session state and safe rehydration without changing the provider-neutral LlmChatSession contract.
+    changeTypes: [production-code, test-code, documentation]
+    changeIntent: feature
+    inputs:
+      - id: INPUT-WORK-ITEM
+        kind: requirement
+        ref: WI-0010|00000000#work-item/WI-0010
+        purpose: Persistence, chat-id, environment, security, and prompt-isolation requirements.
+        required: true
+      - id: INPUT-STRATEGY
+        kind: testStrategy
+        ref: WI-0010|00000000#result/R-001
+        purpose: Persistence and security test cases.
+        required: true
+      - id: INPUT-CLI-REFACTOR
+        kind: implementation
+        ref: WI-0010|10000000#result/R-001
+        purpose: Refactored CLI mode boundaries and public library seams.
+        required: true
+    objectives:
+      - id: OBJ-STORE
+        statement: Persist and rehydrate session-safe state under /tmp/.llm/chat-sessions/{chat-id}.json using validated schemas, atomic replacement, restrictive permissions, and bounded content.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-STRATEGY]
+        testCaseRefs: [WI-0010|00000000#test-case/TC-CHAT-PERSISTENCE, WI-0010|00000000#test-case/TC-SECURITY-SCOPE]
+      - id: OBJ-ID
+        statement: Resolve explicit and ambient chat identifiers safely and reject unsafe identifiers before filesystem access.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-STRATEGY]
+        testCaseRefs: [WI-0010|00000000#test-case/TC-CHAT-ID]
+      - id: OBJ-HANDOFF
+        statement: Define the explicit LLM_CHAT_ID shell handoff/export contract and actionable missing-handoff behavior without claiming parent-shell mutation.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-STRATEGY]
+        testCaseRefs: [WI-0010|00000000#test-case/TC-SHELL-HANDOFF]
+      - id: OBJ-PROMPT-BOUNDARY
+        statement: Keep persistence APIs unreachable from prompt-only execution paths.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-STRATEGY]
+        testCaseRefs: [WI-0010|00000000#test-case/TC-PROMPT-ISOLATION]
+    ownedPaths: [src/cli/, src/chat-session-store.ts, src/types.ts, tests/cli-session-store.test.ts, tests/chat.test.ts, README.md, SKILL.md]
+    nonGoals:
+      - Do not add prompt-mode persistence or any -p/--prompt session access.
+      - Do not add remote storage, database state, provider conversation IDs, or credentials to persisted JSON.
+      - Do not add arbitrary command execution, shell text execution, or unbounded file reads.
+      - Do not implement the complete interactive command parser; later task 30000000 owns command UX.
+    steps:
+      - Read the required CLI pattern skill and completed strategy/refactor results.
+      - Define a closed persisted-state shape derived from provider-neutral session history.
+      - Validate and sanitize chat IDs before path resolution; enforce approved root containment.
+      - Implement atomic writes and restrictive file permissions with provider/debug secret exclusion.
+      - Implement explicit environment/export handoff primitives and missing-handoff errors.
+      - Add deterministic persistence, corruption, traversal, secret-exclusion, and prompt-isolation tests.
+      - Run typecheck/tests and record evidence.
+  result:
+    status: blocked
+    implementation:
+      summary: Not executed; task is planned after the CLI architecture refactor.
+      changes:
+        - id: CHANGE-PLANNED-SESSION-STORE
+          type: production-code
+          summary: Planned validated local session store, safe chat-id resolver, rehydration boundary, and explicit shell handoff primitives.
+          objectiveRefs: [OBJ-STORE, OBJ-ID, OBJ-HANDOFF, OBJ-PROMPT-BOUNDARY]
+          paths: [src/chat-session-store.ts, src/cli/, src/types.ts, tests/cli-session-store.test.ts]
+      testImplementations: []
+    verification:
+      status: not-run
+      objectiveRefs: [OBJ-STORE, OBJ-ID, OBJ-HANDOFF, OBJ-PROMPT-BOUNDARY]
+      tests: []
+    limitations:
+      - Chat command routing and interactive UX are handled by the later command task.

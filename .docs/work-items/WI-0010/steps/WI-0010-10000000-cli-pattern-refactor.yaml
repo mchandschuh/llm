@@ -1,0 +1,125 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0010
+taskUid: WI-0010-10000000
+orderKey: "10000000"
+parentTaskUid: null
+taskType: implementation
+processingStatus: unprocessed
+title: Refactor the existing CLI into nodejs-cli-pattern module boundaries
+objective: Port the current monolithic CLI entrypoint to the repository-approved nodejs-cli-pattern architecture before adding prompt or persistent chat features.
+references:
+  required:
+    - .docs/work-items/WI-0010/work-item.json
+    - .docs/work-items/WI-0010/README.md
+    - .docs/work-items/WI-0010/steps/WI-0010-00000000-cli-session-test-strategy.yaml
+    - src/cli.ts
+    - src/index.ts
+    - src/complete.ts
+    - src/chat.ts
+    - tests/llm.test.ts
+    - tests/samples.test.ts
+    - package.json
+  informational:
+    - README.md
+    - SKILL.md
+    - samples/
+dependsOn: [WI-0010-00000000]
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - src/cli.ts
+    - src/cli/
+    - tests/cli.test.ts
+    - tests/llm.test.ts
+    - README.md
+    - SKILL.md
+  commitSubject: "WI-0010: 02: refactor(llm): adopt CLI command module pattern"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments: [run, typecheck]
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments: [run, build]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Refactor src/cli.ts into explicit argument parsing, help, output, prompt-execution, and chat-execution boundaries using the required nodejs-cli-pattern skill without changing user-visible behavior.
+    changeTypes: [production-code, test-code, documentation, generated-artifact]
+    changeIntent: refactor
+    inputs:
+      - id: INPUT-WORK-ITEM
+        kind: requirement
+        ref: WI-0010|00000000#work-item/WI-0010
+        purpose: Authoritative CLI scope and compatibility requirements.
+        required: true
+      - id: INPUT-STRATEGY
+        kind: testStrategy
+        ref: WI-0010|00000000#result/R-001
+        purpose: Required architecture and compatibility test cases.
+        required: true
+      - id: INPUT-CLI-PATTERN
+        kind: artifact
+        ref: "#artifact/nodejs-cli-pattern"
+        purpose: Required command architecture, dependency, ESM, and testing conventions.
+        required: true
+      - id: INPUT-CURRENT-CLI
+        kind: artifact
+        ref: "#artifact/current-cli"
+        purpose: Existing behavior and compatibility boundary.
+        required: true
+    objectives:
+      - id: OBJ-MODULES
+        statement: Split argument parsing, help, output serialization, and mode dispatch into explicit TypeScript native-ESM modules with a thin src/cli.ts adapter.
+        inputRefs: [INPUT-CLI-PATTERN, INPUT-CURRENT-CLI]
+        testCaseRefs: [WI-0010|00000000#test-case/TC-CLI-ARCHITECTURE]
+      - id: OBJ-COMPATIBILITY
+        statement: Preserve positional request-file, --config, --help, --version, --debug, JSON output, error output, and exit-code behavior.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-CURRENT-CLI]
+        testCaseRefs: [WI-0010|00000000#test-case/TC-COMPATIBILITY]
+      - id: OBJ-BOUNDARY
+        statement: Establish reusable public-mode seams so later prompt and chat tasks call complete/chatFactory without duplicating provider or session behavior.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-CLI-PATTERN]
+        testCaseRefs: [WI-0010|00000000#test-case/TC-CLI-ARCHITECTURE]
+    ownedPaths: [src/cli.ts, src/cli/, tests/cli.test.ts, tests/llm.test.ts, README.md, SKILL.md]
+    nonGoals:
+      - Do not add -p/--prompt, -c/--chat, --chat-id, persistence, environment handoff, or new chat state in this refactor task.
+      - Do not change complete/chatFactory/provider behavior or add dependencies.
+      - Do not read or write credentials, .env files, arbitrary executable paths, or session files.
+      - Do not silently claim that the refactor supports parent-shell environment mutation.
+    steps:
+      - Read the required skill at /home/michael/.cline/skills/nodejs-cli-pattern/SKILL.md before editing.
+      - Inventory current CLI behavior and write compatibility tests before moving code.
+      - Extract argument/help/output/mode boundaries using native ESM and explicit .js imports.
+      - Keep src/cli.ts thin and delegate to public library boundaries.
+      - Run typecheck, tests, build, CLI help/version/config smoke tests, and declaration inspection.
+      - Record changes, evidence, and limitations in the result.
+  result:
+    status: blocked
+    implementation:
+      summary: Not executed; task is planned after the completed WI-0010 test strategy.
+      changes:
+        - id: CHANGE-PLANNED-CLI-REFACTOR
+          type: production-code
+          summary: Planned refactor of the existing CLI into nodejs-cli-pattern argument, mode, output, and thin-entrypoint modules.
+          objectiveRefs: [OBJ-MODULES, OBJ-COMPATIBILITY, OBJ-BOUNDARY]
+          paths: [src/cli.ts, src/cli/, tests/cli.test.ts]
+      testImplementations: []
+    verification:
+      status: not-run
+      objectiveRefs: [OBJ-MODULES, OBJ-COMPATIBILITY, OBJ-BOUNDARY]
+      tests: []
+    limitations:
+      - Prompt/chat command features and session persistence are handled by later dependent tasks.

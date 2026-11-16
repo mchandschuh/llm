@@ -1,0 +1,217 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0010",
+  "status": "planned",
+  "title": "Add one-shot prompt and persistent chat CLI modes",
+  "type": "feature",
+  "objective": "Expose llm -p/--prompt as a strictly stateless one-shot completion mode and llm -c/--chat as a locally persisted chat-session mode with chat-id selection, validated rehydration, explicit LLM_CHAT_ID shell handoff, and backward-compatible request-file CLI behavior.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0010-cli-prompt-chat-sessions",
+      "created": false,
+      "rationale": "The repository workflow processes this feature as an ordered set of commits on the current branch; the intended work boundary is recorded without requiring a topic branch."
+    }
+  },
+  "baseline": "02a5a6f7ae3042208ecff3687e18558898ca0b92",
+  "request": {
+    "source": "conversation",
+    "text": "Expose features via easy CLI commands. Add llm -p/--prompt for a strictly one-shot prompt that never creates, reads, mutates, resumes, or depends on chat-session history. Add llm -c/--chat to start a chat session, persist chat state under /tmp/.llm/chat-sessions/{chat-id}.json, and support subsequent llm <prompt> continuation only when the session environment handoff is present and the referenced chat JSON exists and validates. Add llm -c --chat-id <chat-id> <prompt> to resume an existing session when present or use the supplied identifier for a new session when absent. Preserve the current config-file CLI. The first implementation task must refactor the existing CLI to use /home/michael/.cline/skills/nodejs-cli-pattern/SKILL.md because the current CLI does not use that pattern. No design task is required.",
+    "sha256": "fc91036a2c986e62554a45deb804d6577d3c311ba36b85b359bae049048bf531"
+  },
+  "scope": [
+    {
+      "name": "cli-command-architecture",
+      "description": "Refactor the existing CLI into explicit argument, help, output, prompt-mode, and chat-mode boundaries following the required nodejs-cli-pattern guidance.",
+      "reason": "The current single-file argument switch must be made extensible before adding multiple modes."
+    },
+    {
+      "name": "stateless-prompt-mode",
+      "description": "Add llm -p/--prompt as one completion invocation that never reads or writes chat-session state.",
+      "reason": "Users need a convenient one-off command without changing the current session or requiring session setup."
+    },
+    {
+      "name": "persistent-chat-mode",
+      "description": "Add llm -c/--chat with local JSON session persistence under /tmp/.llm/chat-sessions/{chat-id}.json and LlmChatSession rehydration.",
+      "reason": "Users need multi-command conversation continuity across CLI processes."
+    },
+    {
+      "name": "chat-id-and-environment",
+      "description": "Support explicit --chat-id selection, environment-based continuation, validated JSON rehydration, and an honest shell environment handoff mechanism.",
+      "reason": "A process cannot mutate its parent shell environment, so the continuation contract must be explicit and testable."
+    },
+    {
+      "name": "compatibility-and-safety",
+      "description": "Preserve positional/config-file behavior, existing help/version/debug behavior, safe exit codes, atomic session writes, restrictive file permissions, and bounded persisted data.",
+      "reason": "CLI additions must not break existing scripts or create an unsafe local state boundary."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "prompt-session-isolation",
+      "description": "Prompt mode must not create, read, mutate, resume, or depend on chat-session files or LLM_CHAT_ID.",
+      "reason": "-p is explicitly a one-off operation and must not break or alter the current chat session.",
+      "forbiddenFileWrites": [
+        ".llm/chat-sessions/"
+      ],
+      "forbiddenFileReads": [
+        ".llm/chat-sessions/"
+      ]
+    },
+    {
+      "name": "remote-conversation-state",
+      "description": "Do not depend on an OpenRouter conversation ID or server-side conversation persistence.",
+      "reason": "OpenRouter is stateless for this use case; local history is authoritative.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "arbitrary-command-execution",
+      "description": "Do not add arbitrary shell tools, executable paths, JavaScript evaluation, or credential persistence to CLI chat state.",
+      "reason": "The CLI must remain a bounded adapter over the existing provider/session library.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "parent-environment-mutation-claim",
+      "description": "Do not claim that a normal child-process invocation can mutate the invoking shell's environment.",
+      "reason": "The implementation must use an explicit shell integration/export/handoff mechanism.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "history-rewrite",
+      "description": "Do not rewrite or amend immutable Git history.",
+      "reason": "Repository history remains immutable.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0010_REQ_001",
+        "name": "cli-pattern-refactor",
+        "description": "The existing CLI is refactored into the repository-approved nodejs-cli-pattern module boundaries before new prompt/chat behavior is added.",
+        "reason": "The current src/cli.ts is a monolithic parser/executor and is not a maintainable base for multiple modes.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0010_REQ_001_AC_001",
+            "description": "The first implementation task reads /home/michael/.cline/skills/nodejs-cli-pattern/SKILL.md and ports argument parsing, help, output, prompt execution, and chat execution into explicit native-ESM TypeScript modules with a thin CLI entrypoint."
+          },
+          {
+            "id": "WI-0010_REQ_001_AC_002",
+            "description": "Existing positional request-file, --config, --help, --version, --debug, exit-code, and JSON response behavior remains covered by automated regression tests."
+          }
+        ]
+      },
+      {
+        "id": "WI-0010_REQ_002",
+        "name": "stateless-prompt-command",
+        "description": "llm -p/--prompt executes exactly one completion and never interacts with chat-session persistence.",
+        "reason": "Prompt mode is a one-off convenience command and must not break or alter an active chat session.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0010_REQ_002_AC_001",
+            "description": "llm -p <prompt> and llm --prompt <prompt> invoke one completion, return the assistant result, and support a machine-readable response option without creating or reading /tmp/.llm/chat-sessions files."
+          },
+          {
+            "id": "WI-0010_REQ_002_AC_002",
+            "description": "A test proves prompt mode does not consume, mutate, or replace LLM_CHAT_ID and does not modify an existing persisted chat session."
+          }
+        ]
+      },
+      {
+        "id": "WI-0010_REQ_003",
+        "name": "chat-session-persistence",
+        "description": "llm -c/--chat creates or resumes a local LlmChatSession and persists validated state under /tmp/.llm/chat-sessions/{chat-id}.json.",
+        "reason": "Separate CLI processes need local conversation continuity.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0010_REQ_003_AC_001",
+            "description": "llm -c <prompt> starts a new chat session, persists the initial context and accumulated provider-neutral history, and produces an identifier handoff for a subsequent invocation."
+          },
+          {
+            "id": "WI-0010_REQ_003_AC_002",
+            "description": "A subsequent session-mode llm <prompt> rehydrates the persisted session only when the environment handoff is present and the referenced JSON exists, is valid, and is within the approved session directory."
+          },
+          {
+            "id": "WI-0010_REQ_003_AC_003",
+            "description": "Session writes are atomic, use restrictive permissions, reject malformed or incompatible state, and do not persist credentials, raw provider diagnostics, or arbitrary executable content."
+          }
+        ]
+      },
+      {
+        "id": "WI-0010_REQ_004",
+        "name": "explicit-chat-id",
+        "description": "llm -c --chat-id <chat-id> <prompt> selects a safe explicit identifier, resumes an existing valid session, or creates a new session with that identifier when absent.",
+        "reason": "Users need deterministic session selection independent of the ambient environment.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0010_REQ_004_AC_001",
+            "description": "Existing valid --chat-id state is resumed and receives the new user message with complete prior history."
+          },
+          {
+            "id": "WI-0010_REQ_004_AC_002",
+            "description": "A missing --chat-id file creates a new session using the supplied identifier, while invalid identifiers such as traversal, separators, control characters, or oversized values are rejected before file access."
+          }
+        ]
+      },
+      {
+        "id": "WI-0010_REQ_005",
+        "name": "environment-handoff",
+        "description": "The CLI provides an explicit, documented, and testable LLM_CHAT_ID shell handoff mechanism without falsely claiming child-process mutation of the parent shell environment.",
+        "reason": "A normal executable cannot set an environment variable in its invoking shell, so the user-facing contract must be honest and usable.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0010_REQ_005_AC_001",
+            "description": "The supported shell integration/export invocation makes the chat identifier available to subsequent llm <prompt> commands and is documented in help and public CLI guidance."
+          },
+          {
+            "id": "WI-0010_REQ_005_AC_002",
+            "description": "Without the required environment handoff or explicit --chat-id, session continuation fails with a stable actionable error directing the user to start/resume chat explicitly; prompt mode remains unaffected."
+          }
+        ]
+      },
+      {
+        "id": "WI-0010_REQ_006",
+        "name": "backward-compatible-cli-output",
+        "description": "The existing config-file CLI remains compatible while prompt/chat modes provide deterministic human and machine-readable output, debug routing, EOF/Ctrl-C handling, and stable exit codes.",
+        "reason": "Existing scripts must not break when new command modes are added.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0010_REQ_006_AC_001",
+            "description": "Existing request-file/config/help/version/debug invocations retain their current behavior and exit-code contract."
+          },
+          {
+            "id": "WI-0010_REQ_006_AC_002",
+            "description": "Chat mode handles EOF and Ctrl-C without corrupting persisted state, while user-facing output and debug diagnostics remain separated between stdout and stderr."
+          }
+        ]
+      },
+      {
+        "id": "WI-0010_REQ_007",
+        "name": "automated-evidence-and-conventions",
+        "description": "The work follows the repository TypeScript/native-ESM/npm conventions and provides automated evidence for every requirement, invariant, security boundary, and non-goal.",
+        "reason": "The feature crosses CLI parsing, filesystem persistence, public session state, docs, and generated declarations.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0010_REQ_007_AC_001",
+            "description": "The ordered validation and review records report passing typecheck, tests, build, CLI command tests, persistence/security tests, declaration inspection, diff checks, conflict scans, and changed-path review."
+          },
+          {
+            "id": "WI-0010_REQ_007_AC_002",
+            "description": "The review task contains a data-driven automated coverage audit that fails if any requirement, acceptance criterion, invariant, test case, or verification obligation lacks executable evidence."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0010/steps/"
+}

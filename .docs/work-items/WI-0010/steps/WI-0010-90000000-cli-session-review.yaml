@@ -1,0 +1,155 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0010
+taskUid: WI-0010-90000000
+orderKey: "90000000"
+parentTaskUid: null
+taskType: review
+processingStatus: unprocessed
+title: Review CLI modes, session persistence, security, and evidence completeness
+objective: Independently review the exact WI-0010 implementation and validation results for stateless prompt isolation, persistent chat correctness, shell handoff honesty, compatibility, security, code quality, and complete automated coverage.
+references:
+  required:
+    - .docs/work-items/WI-0010/work-item.json
+    - .docs/work-items/WI-0010/README.md
+    - .docs/work-items/WI-0010/steps/WI-0010-00000000-cli-session-test-strategy.yaml
+    - .docs/work-items/WI-0010/steps/WI-0010-10000000-cli-pattern-refactor.yaml
+    - .docs/work-items/WI-0010/steps/WI-0010-20000000-chat-session-persistence.yaml
+    - .docs/work-items/WI-0010/steps/WI-0010-30000000-chat-command-ux.yaml
+    - .docs/work-items/WI-0010/steps/WI-0010-80000000-cli-session-validation.yaml
+    - src/
+    - tests/
+    - README.md
+    - SKILL.md
+  informational:
+    - package.json
+    - dist/
+    - samples/
+dependsOn: [WI-0010-80000000]
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0010/steps/
+  commitSubject: "WI-0010: 06: review(llm): assess CLI session implementation"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+    - id: diff-check
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review the exact CLI refactor, prompt/chat modes, persisted session state, environment handoff, compatibility, security, and validation evidence.
+    reviewKind: code
+    target:
+      taskType: implementation
+      taskRef: WI-0010|30000000
+      result:
+        ref: WI-0010|30000000#result/R-001
+        sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    gateId: cli-session-persistence
+    policyRef:
+      ref: .docs/work-items/WI-0010/README.md
+      sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    criteria:
+      - id: CRIT-001
+        statement: Every WI-0010 requirement and acceptance criterion is represented by the strategy, implementation objectives, validation procedures, and review evidence.
+        purpose: Prevent missing CLI, persistence, prompt-isolation, security, and compatibility obligations.
+        required: true
+        evidenceRefs: [WI-0010|00000000#result/R-001, WI-0010|80000000#result/R-001]
+      - id: CRIT-002
+        statement: The CLI follows nodejs-cli-pattern module boundaries and the refactor preserves existing request-file/config/help/version/debug behavior.
+        purpose: Confirm the required architecture refactor did not become an unreviewed rewrite.
+        required: true
+        evidenceRefs: [WI-0010|10000000#result/R-001, WI-0010|80000000#result/R-001]
+      - id: CRIT-003
+        statement: Prompt mode is provably one-shot and cannot read, write, mutate, resume, or depend on chat-session persistence.
+        purpose: Protect the explicit -p isolation requirement.
+        required: true
+        evidenceRefs: [WI-0010|30000000#result/R-001, WI-0010|80000000#result/R-001]
+      - id: CRIT-004
+        statement: Chat persistence and explicit chat-id behavior validate complete history rehydration, atomic/restrictive writes, safe path containment, corrupt-state handling, and secret exclusion.
+        purpose: Review the local session boundary as a security-sensitive feature.
+        required: true
+        evidenceRefs: [WI-0010|20000000#result/R-001, WI-0010|80000000#result/R-001]
+      - id: CRIT-005
+        statement: The environment handoff is honest about child-process limitations, documented, actionable, and does not falsely claim parent-shell mutation.
+        purpose: Prevent an unusable or misleading continuation contract.
+        required: true
+        evidenceRefs: [WI-0010|20000000#result/R-001, WI-0010|30000000#result/R-001, WI-0010|80000000#result/R-001]
+      - id: CRIT-006
+        statement: The implementation follows strict TypeScript/native ESM/npm conventions, uses existing library boundaries, keeps output/error routing stable, and introduces no arbitrary command or credential persistence path.
+        purpose: Review maintainability and security scope.
+        required: true
+        evidenceRefs: [WI-0010|10000000#result/R-001, WI-0010|20000000#result/R-001, WI-0010|30000000#result/R-001, WI-0010|80000000#result/R-001]
+      - id: CRIT-007
+        statement: The review coverage audit is automated and fails if any requirement, acceptance criterion, invariant, test case, or verification obligation lacks executable evidence.
+        purpose: Ensure review completeness is tested rather than asserted in prose.
+        required: true
+        evidenceRefs: [WI-0010|00000000#result/R-001, WI-0010|80000000#result/R-001]
+    evidenceRequirements:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0010|80000000#result/R-001
+        purpose: Independent CLI, persistence, security, and package validation.
+        required: true
+        minimumTier: cli-audit
+      - id: EVID-002
+        kind: test
+        ref: WI-0010|00000000#result/R-001
+        purpose: Strategy-defined command and persistence coverage.
+        required: true
+        minimumTier: component
+      - id: EVID-003
+        kind: diff
+        ref: WI-0010|10000000#result/R-001
+        purpose: Changed-path and architecture review.
+        required: true
+        minimumTier: inspection
+    nonGoals:
+      - id: NON-001
+        statement: Do not approve remote persistence, authenticated provider behavior, production shell installation, or deployment.
+      - id: NON-002
+        statement: Do not accept a prompt-mode implementation that touches session state.
+      - id: NON-003
+        statement: Do not accept a false parent-shell environment mutation claim.
+      - id: NON-004
+        statement: Do not rewrite immutable Git history.
+    context:
+      - id: CTX-001
+        kind: repository-guidance
+        ref: .docs/work-items/WI-0010/README.md
+        purpose: Required CLI architecture and command safety guidance.
+        required: true
+  result:
+    status: blocked
+    decision: null
+    summary: Review is prepared but cannot be completed until implementation and independent validation results exist.
+    actor:
+      id: wi-0010-reviewer
+      role: reviewer
+      authorityRef: WI-0010
+    criteriaEvaluations: []
+    findings: []
+    evidence: []
+    limitations: [Review is planned only.]
+    nonClaims: [No CLI, persistence, security, compatibility, or production review is claimed before implementation and validation.]
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: EXEC-REVIEW-WI-0010
+      status: blocked
+      startedAt: "1970-01-01T00:00:00Z"
+      finishedAt: "1970-01-01T00:00:00Z"

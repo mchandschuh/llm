@@ -1,0 +1,178 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0010
+taskUid: WI-0010-80000000
+orderKey: "80000000"
+parentTaskUid: null
+taskType: validation
+processingStatus: unprocessed
+title: Validate CLI modes, persistence, security, compatibility, and review coverage
+objective: Independently validate every WI-0010 requirement, invariant, implementation result, CLI command matrix, persistence boundary, shell handoff, package gate, and scope limitation.
+references:
+  required:
+    - .docs/work-items/WI-0010/work-item.json
+    - .docs/work-items/WI-0010/README.md
+    - .docs/work-items/WI-0010/classification-result.json
+    - .docs/work-items/WI-0010/steps/WI-0010-00000000-cli-session-test-strategy.yaml
+    - .docs/work-items/WI-0010/steps/WI-0010-10000000-cli-pattern-refactor.yaml
+    - .docs/work-items/WI-0010/steps/WI-0010-20000000-chat-session-persistence.yaml
+    - .docs/work-items/WI-0010/steps/WI-0010-30000000-chat-command-ux.yaml
+    - src/
+    - tests/
+    - README.md
+    - SKILL.md
+    - package.json
+  informational:
+    - dist/
+    - samples/
+    - schemas/
+dependsOn: [WI-0010-30000000, WI-0010-20000000, WI-0010-10000000, WI-0010-00000000]
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0010/steps/
+  commitSubject: "WI-0010: 05: test(llm): validate CLI session modes"
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments: [run, typecheck]
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments: [test]
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments: [run, build]
+      expectedExitCode: 0
+    - id: integrity
+      executable: git
+      arguments: [diff, --check]
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Independently validate all WI-0010 CLI, persistence, stateless-prompt, environment-handoff, security, compatibility, and automated-coverage obligations.
+    inputs:
+      - id: INPUT-WORK-ITEM
+        kind: requirement
+        ref: WI-0010|00000000#work-item/WI-0010
+        purpose: Authoritative requirements, acceptance criteria, and non-goals.
+        required: true
+      - id: INPUT-STRATEGY
+        kind: testStrategy
+        ref: WI-0010|00000000#result/R-001
+        purpose: Required test cases, fixtures, invariants, and evidence ceilings.
+        required: true
+      - id: INPUT-CLI
+        kind: implementation
+        ref: WI-0010|30000000#result/R-001
+        purpose: Command UX and compatibility implementation result.
+        required: true
+      - id: INPUT-PERSISTENCE
+        kind: implementation
+        ref: WI-0010|20000000#result/R-001
+        purpose: Session persistence and handoff implementation result.
+        required: true
+    targets:
+      - id: TARGET-REPOSITORY
+        kind: repositoryState
+        ref: "#repository-state/HEAD"
+        purpose: Exact repository revision, generated declarations, and changed paths.
+        required: true
+      - id: TARGET-CLI
+        kind: taskResult
+        taskType: implementation
+        ref: WI-0010|30000000#result/R-001
+        purpose: Validate command behavior and compatibility.
+        required: true
+      - id: TARGET-PERSISTENCE
+        kind: taskResult
+        taskType: implementation
+        ref: WI-0010|20000000#result/R-001
+        purpose: Validate persisted state and security.
+        required: true
+    objectiveRefs: [WI-0010|10000000#objective/OBJ-MODULES, WI-0010|20000000#objective/OBJ-STORE, WI-0010|20000000#objective/OBJ-ID, WI-0010|20000000#objective/OBJ-HANDOFF, WI-0010|20000000#objective/OBJ-PROMPT-BOUNDARY, WI-0010|30000000#objective/OBJ-PROMPT-COMMAND, WI-0010|30000000#objective/OBJ-CHAT-COMMAND, WI-0010|30000000#objective/OBJ-SHELL-UX, WI-0010|30000000#objective/OBJ-COMPATIBILITY]
+    testCaseRefs: [WI-0010|00000000#test-case/TC-CLI-ARCHITECTURE, WI-0010|00000000#test-case/TC-PROMPT-ISOLATION, WI-0010|00000000#test-case/TC-CHAT-PERSISTENCE, WI-0010|00000000#test-case/TC-CHAT-ID, WI-0010|00000000#test-case/TC-SHELL-HANDOFF, WI-0010|00000000#test-case/TC-COMPATIBILITY, WI-0010|00000000#test-case/TC-SECURITY-SCOPE, WI-0010|00000000#test-case/TC-PACKAGE-GATES]
+    procedures:
+      - id: VAL-CLI-MATRIX
+        sequence: 1
+        name: validate-cli-command-matrix
+        description: Run legacy request-file/config/help/version/debug commands and new prompt/chat/chat-id modes in isolated child processes.
+        reason: Confirm compatibility and requested CLI behavior.
+        targetRefs: ["#target/TARGET-REPOSITORY", "#target/TARGET-CLI"]
+        objectiveRefs: [WI-0010|10000000#objective/OBJ-MODULES, WI-0010|30000000#objective/OBJ-PROMPT-COMMAND, WI-0010|30000000#objective/OBJ-CHAT-COMMAND, WI-0010|30000000#objective/OBJ-COMPATIBILITY]
+        testCaseRefs: [WI-0010|00000000#test-case/TC-CLI-ARCHITECTURE, WI-0010|00000000#test-case/TC-PROMPT-ISOLATION, WI-0010|00000000#test-case/TC-CHAT-PERSISTENCE, WI-0010|00000000#test-case/TC-CHAT-ID, WI-0010|00000000#test-case/TC-COMPATIBILITY]
+        method:
+          executionMode: executable
+          target: isolated CLI child-process command matrix
+          steps: [Run command matrix, inspect stdout/stderr/exit codes, and inspect sentinel session state before and after prompt mode.]
+          command: npm test
+        expected:
+          outcome: passed
+          exitCode: 0
+        evidenceTier: integration
+        required: true
+      - id: VAL-PERSISTENCE-SECURITY
+        sequence: 2
+        name: validate-persisted-session-boundary
+        description: Validate session JSON, atomic writes, permissions, identifier containment, corruption handling, secret exclusion, and prompt isolation.
+        reason: Local persistence is a security and integrity boundary.
+        targetRefs: ["#target/TARGET-PERSISTENCE", "#target/TARGET-REPOSITORY"]
+        objectiveRefs: [WI-0010|20000000#objective/OBJ-STORE, WI-0010|20000000#objective/OBJ-ID, WI-0010|20000000#objective/OBJ-PROMPT-BOUNDARY]
+        testCaseRefs: [WI-0010|00000000#test-case/TC-CHAT-PERSISTENCE, WI-0010|00000000#test-case/TC-CHAT-ID, WI-0010|00000000#test-case/TC-SECURITY-SCOPE, WI-0010|00000000#test-case/TC-PROMPT-ISOLATION]
+        method:
+          executionMode: executable
+          target: local session store and persisted JSON fixtures
+          steps: [Run valid/corrupt/unsafe session fixtures, inspect permissions and paths, and assert no credentials or arbitrary executable content is persisted.]
+          command: npm test
+        expected:
+          outcome: passed
+          exitCode: 0
+        evidenceTier: component
+        required: true
+      - id: VAL-PACKAGE-SCOPE
+        sequence: 3
+        name: validate-package-declarations-and-scope
+        description: Run package gates, generated declaration inspection, coverage audit, conflict/whitespace scans, and changed-path review.
+        reason: The feature crosses CLI source, session state, tests, docs, generated output, and local records.
+        targetRefs: ["#target/TARGET-REPOSITORY"]
+        objectiveRefs: [WI-0010|10000000#objective/OBJ-MODULES, WI-0010|30000000#objective/OBJ-COMPATIBILITY]
+        testCaseRefs: [WI-0010|00000000#test-case/TC-PACKAGE-GATES]
+        method:
+          executionMode: executable
+          target: package, generated declarations, review audit, and Git scope
+          steps: [Run gates, inspect declarations, run coverage audit, scan conflict markers and whitespace, and audit changed paths.]
+          command: npm run typecheck && npm test && npm run build
+        expected:
+          outcome: passed
+          exitCode: 0
+        evidenceTier: cli-audit
+        required: true
+    nonGoals:
+      - Do not make authenticated provider calls or execute real external tools.
+      - Do not claim production shell installation, remote persistence, deployment, or parent-shell mutation.
+  result:
+    status: implemented-unproven
+    summary: Validation task is prepared but not executed.
+    executions:
+      - id: EXEC-PLANNED
+        procedureRef: "#procedure/VAL-CLI-MATRIX"
+        status: inconclusive
+        observed:
+          outcome: not-run
+          summary: Validation is declared but has not been executed.
+        evidenceTier: static
+        evidence:
+          - kind: record
+            source: validation task
+            claim: The procedure is declared but was not executed in the planned result.
+    findings: []
+    evidenceTier: static
+    limitations: [Validation is planned only; no implementation or runtime execution evidence is claimed.]
+    nonClaims: [No requirement, persistence, CLI, production, or shell-integration behavior is claimed validated until required procedures pass.]
