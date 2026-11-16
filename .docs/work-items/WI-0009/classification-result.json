@@ -2,7 +2,7 @@
   "schema": "https://schemas.handschuh.dev/sdlc/classification-result/v1",
   "status": "classified",
   "workItemRef": "sdlc://repo/local%2Fllm/WI-0009#work-item.json%23work-item/WI-0009",
-  "workItemSha256": "sha256:9bf56cf385ebc406a29863f063a7559b3712b5448feac6db9ebb399bdeb7dcc9",
+  "workItemSha256": "sha256:20f9060475f273e3dc345c6e7b2576044a750842bca40ecff69eb8ea5e52ee01",
   "classification": {
     "workKind": "feature",
     "scopeClass": "composite",

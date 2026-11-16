@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0009",
-  "status": "planned",
+  "status": "complete",
   "title": "Add session-scoped chat history and multi-round tool conversation support",
   "type": "feature",
   "objective": "Add a session-scoped chat API that accumulates user, assistant, and tool messages, replays complete provider history across additional tool rounds, supports configurable user-message interruption while tools run, preserves the initial task and taskSchema separately from provider messages, and documents and validates the XML prompt and HTTP projection contracts.",
