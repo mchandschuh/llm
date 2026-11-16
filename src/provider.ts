@@ -75,8 +75,8 @@ export class OpenRouterProvider implements LlmProvider {
         signal: request.signal,
         body: JSON.stringify(this.projection.project(request)),
       });
-    } catch {
-      throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider request failed before a usable response was returned.');
+    } catch (error) {
+      throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider request failed before a usable response was returned.', error);
     }
     if (!response.ok) throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', `The provider request failed with HTTP ${response.status}.`);
     try {
@@ -84,7 +84,7 @@ export class OpenRouterProvider implements LlmProvider {
       return contentFromMessage(body.choices?.[0]?.message?.content);
     } catch (error) {
       if (error instanceof LlmFailure) throw error;
-      throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', boundedMessage('The provider returned an invalid response envelope.'));
+      throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', boundedMessage('The provider returned an invalid response envelope.'), error);
     }
   }
 
@@ -100,8 +100,8 @@ export class OpenRouterProvider implements LlmProvider {
         signal: request.signal,
         body: JSON.stringify(body),
       });
-    } catch {
-      throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider request failed before a usable response was returned.');
+    } catch (error) {
+      throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider request failed before a usable response was returned.', error);
     }
     if (!response.ok) throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', `The provider request failed with HTTP ${response.status}.`);
     try {
@@ -113,7 +113,7 @@ export class OpenRouterProvider implements LlmProvider {
       return { content, toolCalls: calls, decision: completionDecision(bodyValue.choices?.[0]?.finish_reason, calls) };
     } catch (error) {
       if (error instanceof LlmFailure) throw error;
-      throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', boundedMessage('The provider returned an invalid response envelope.'));
+      throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', boundedMessage('The provider returned an invalid response envelope.'), error);
     }
   }
 }

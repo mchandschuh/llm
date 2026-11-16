@@ -1,4 +1,5 @@
 import type { AnyLlmRequest, AnyLlmResponse, ProviderCompletionRequest, ProviderCompletionResponse } from './types.js';
+import type { LlmFailure } from './errors.js';
 
 export interface DebugEvent {
   readonly event: string;
@@ -58,6 +59,21 @@ export function debugProviderResponse(response: string | ProviderCompletionRespo
 
 export function debugResponse(response: AnyLlmResponse): unknown {
   return response;
+}
+
+export function debugException(error: unknown, depth = 0): unknown {
+  const value = error as { readonly name?: unknown; readonly message?: unknown; readonly stack?: unknown; readonly code?: unknown; readonly phase?: unknown };
+  const message = typeof value.message === 'string' ? value.message : String(error);
+  const stack = typeof value.stack === 'string' ? value.stack.replace(message, message.replace(/(?:api[_-]?key|access[_-]?token|authorization|password|secret)\s*[:=]\s*[^\s,;]+/gi, '[redacted]')) : undefined;
+  const cause = (error as { readonly cause?: unknown }).cause;
+  return {
+    name: typeof value.name === 'string' ? value.name : typeof error,
+    message: message.replace(/(?:api[_-]?key|access[_-]?token|authorization|password|secret)\s*[:=]\s*[^\s,;]+/gi, '[redacted]'),
+    ...(stack ? { stack } : {}),
+    ...(typeof value.code === 'string' ? { code: value.code } : {}),
+    ...(typeof value.phase === 'string' ? { phase: value.phase } : {}),
+    ...(cause !== undefined && depth < 2 ? { cause: debugException(cause, depth + 1) } : {}),
+  };
 }
 
 export function stderrDebugSink(write: (line: string) => void = (line) => process.stderr.write(`${line}\n`)): DebugSink {

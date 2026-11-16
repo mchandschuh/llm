@@ -10,6 +10,7 @@ import { main as cliMain } from '../src/cli.js';
 import { composePrompt } from '../src/prompt.js';
 import { normalizeRequest } from '../src/normalize.js';
 import { OpenRouterProvider } from '../src/provider.js';
+import { LlmFailure } from '../src/errors.js';
 import type { ILlmProvider, LlmProvider, ProviderCompletionRequest, ProviderCompletionResponse } from '../src/types.js';
 
 const addFormats = addFormatsModule as unknown as (ajv: Ajv2020) => Ajv2020;
@@ -706,6 +707,63 @@ test('returns bounded output-invalid and attempts-exhausted responses', async ()
   assert.equal(exhausted.failedAttempts, 1);
   assert.equal(exhausted.iterations, 0);
   assert.ok(!JSON.stringify(exhausted).includes('secret=hidden'));
+});
+
+test('debug emits sanitized provider exceptions while preserving retry response behavior', async () => {
+  const events: Array<{ event: string; data?: unknown }> = [];
+  const provider: LlmProvider = {
+    async complete() {
+      throw new Error('network secret=hidden');
+    },
+  };
+  const result = await complete({ ...request(), maxFailedAttempts: 1 }, { provider, debug: (event) => events.push(event) });
+  assert.equal(result.status, 'attempts_exhausted');
+  const errorEvent = events.find((event) => event.event === 'llm.error');
+  assert.ok(errorEvent);
+  const data = errorEvent.data as { phase?: string; attempt?: number; error?: { name?: string; message?: string; stack?: string } };
+  assert.equal(data.phase, 'provider');
+  assert.equal(data.attempt, 1);
+  assert.equal(data.error?.name, 'Error');
+  assert.equal(data.error?.message, 'network [redacted]');
+  assert.match(data.error?.stack ?? '', /Error: network \[redacted\]/u);
+  assert.equal(JSON.stringify(errorEvent).includes('network secret=hidden'), false);
+});
+
+test('debug emits LlmFailure metadata for provider configuration exceptions', async () => {
+  const events: Array<{ event: string; data?: unknown }> = [];
+  const provider: LlmProvider = {
+    async complete() {
+      throw new LlmFailure('CONFIGURATION_INVALID', 'configuration', 'No credential secret=hidden');
+    },
+  };
+  const result = await complete({ ...request(), maxFailedAttempts: 1 }, { provider, debug: (event) => events.push(event) });
+  assert.equal(result.status, 'attempts_exhausted');
+  const errorEvent = events.find((event) => event.event === 'llm.error');
+  assert.ok(errorEvent);
+  const data = errorEvent.data as { error?: { code?: string; phase?: string; message?: string } };
+  assert.equal(data.error?.code, 'CONFIGURATION_INVALID');
+  assert.equal(data.error?.phase, 'configuration');
+  assert.equal(data.error?.message, 'No credential [redacted]');
+  assert.equal(JSON.stringify(errorEvent).includes('secret=hidden'), false);
+});
+
+test('debug preserves wrapped provider transport exceptions', async () => {
+  const originalFetch = globalThis.fetch;
+  const events: Array<{ event: string; data?: unknown }> = [];
+  globalThis.fetch = async () => {
+    throw new Error('socket secret=hidden');
+  };
+  try {
+    const result = await complete({ ...request(), credentials: { apiKey: 'test-key' }, maxFailedAttempts: 1 }, { debug: (event) => events.push(event) });
+    assert.equal(result.status, 'attempts_exhausted');
+    const errorEvent = events.find((event) => event.event === 'llm.error');
+    assert.ok(errorEvent);
+    const data = errorEvent.data as { error?: { cause?: { message?: string } } };
+    assert.equal(data.error?.cause?.message, 'socket [redacted]');
+    assert.equal(JSON.stringify(errorEvent).includes('socket secret=hidden'), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test('OpenRouterProvider sends base64 images as image_url content parts', async () => {

@@ -6,7 +6,7 @@ import { normalizeRequest } from './normalize.js';
 import type { CompletionOptions, LlmAssistantMessage, LlmError, LlmOutput, LlmRequest, LlmResponse, LlmProvider, LlmToolMessage, LlmChatMessage, NormalizedRequest, ProviderCompletionResponse, ToolCall, ToolCalls, ToolResult } from './types.js';
 import { RESPONSE_SCHEMA } from './types.js';
 import { LlmFailure as Failure } from './errors.js';
-import { emitDebug } from './debug.js';
+import { debugException, emitDebug } from './debug.js';
 
 function response(status: LlmResponse['status'], output: LlmOutput | null, failedAttempts: number, iterations: number, errors: readonly LlmError[]): LlmResponse {
   const result: LlmResponse = { schema: RESPONSE_SCHEMA, status, output, failedAttempts, iterations, toolRounds: 0, toolCalls: 0, toolResults: [], errors: errors.slice(0, 10) };
@@ -164,6 +164,7 @@ async function completeToolInternalImpl(request: LlmRequest | unknown, options: 
     }
     if (normalized.outputSchema) parseSchema(normalized.outputSchema);
   } catch (error) {
+    emitDebug(options.debug, 'llm.error', { phase: 'request', error: debugException(error) });
     const failure = error instanceof Failure ? error : new Failure('REQUEST_INVALID', 'request', 'Request preparation failed.');
     return toolResponse(failureStatus(failure), null, 0, 0, 0, 0, [], [errorFromFailure(failure)]);
   }
@@ -207,6 +208,7 @@ async function completeToolInternalImpl(request: LlmRequest | unknown, options: 
         completeCancellation(options, 'provider-abort', iterations, toolRounds, totalToolCalls);
         return result;
       }
+      emitDebug(options.debug, 'llm.error', { phase: 'provider', attempt: failedAttempts + 1, error: debugException(error) });
       const failure = error instanceof Failure ? error : new Failure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider request failed before a usable response was returned.');
       failedAttempts += 1;
       if (failedAttempts >= normalized.maxFailedAttempts) return toolResponse('attempts_exhausted', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [errorFromFailure(new Failure('ATTEMPTS_EXHAUSTED', 'retry', 'The provider failure-attempt limit was exhausted.'))]);
@@ -302,6 +304,7 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
     }
     if (normalized.outputSchema) parseSchema(normalized.outputSchema);
   } catch (error) {
+    emitDebug(options.debug, 'llm.error', { phase: 'request', error: debugException(error) });
     const failure = error instanceof LlmFailure ? error : new LlmFailure('REQUEST_INVALID', 'request', 'Request preparation failed.');
     const result = response(failureStatus(failure), null, 0, 0, [errorFromFailure(failure)]);
     emitDebug(options.debug, 'llm.response', result);
@@ -330,6 +333,7 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
       emitDebug(options.debug, 'llm.provider.response', raw);
       iterations += 1;
     } catch (error) {
+      emitDebug(options.debug, 'llm.error', { phase: 'provider', attempt: failedAttempts + 1, error: debugException(error) });
       const failure = error instanceof LlmFailure ? error : new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider request failed before a usable response was returned.');
       failedAttempts += 1;
       if (failedAttempts >= normalized.maxFailedAttempts) {

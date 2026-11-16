@@ -3,12 +3,14 @@ import type { ErrorCode, ErrorPhase, LlmError } from './types.js';
 export class LlmFailure extends Error {
   readonly code: ErrorCode;
   readonly phase: ErrorPhase;
+  readonly cause?: unknown;
 
-  constructor(code: ErrorCode, phase: ErrorPhase, message: string) {
+  constructor(code: ErrorCode, phase: ErrorPhase, message: string, cause?: unknown) {
     super(message);
     this.name = 'LlmFailure';
     this.code = code;
     this.phase = phase;
+    this.cause = cause;
   }
 }
 
