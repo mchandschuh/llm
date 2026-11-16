@@ -2,6 +2,7 @@ export { complete } from './complete.js';
 export { composePrompt, composeCorrectionPrompt, composeRequestPrompt } from './prompt.js';
 export { normalizeRequest } from './normalize.js';
 export { OpenRouterProvider } from './provider.js';
+export { OpenRouterHttpProjection } from './openrouter-projection.js';
 export { chatFactory } from './chat.js';
 export { LlmFailure } from './errors.js';
 export { stderrDebugSink } from './debug.js';
@@ -49,4 +50,5 @@ export type {
   StructuredOutput,
   Thinking,
 } from './types.js';
+export type { OpenRouterChatRequest, OpenRouterFunctionTool, OpenRouterMessage } from './openrouter-projection.js';
 export type { DebugEvent, DebugSink } from './debug.js';

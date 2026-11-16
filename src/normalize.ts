@@ -37,12 +37,7 @@ function inlineSchema(value: unknown, name: string): Record<string, unknown> | u
 }
 
 export async function normalizeRequest(value: unknown, options: { readonly configurationFilePath?: string; readonly configurationRoot?: string } = {}): Promise<NormalizedRequest> {
-  if (value && typeof value === 'object' && 'messages' in value) {
-    const { messages: _messages, ...requestWithoutMessages } = value as Record<string, unknown>;
-    assertRequestShape(requestWithoutMessages);
-  } else {
-    assertRequestShape(value);
-  }
+  assertRequestShape(value);
   const request = value as unknown as LlmRequest;
   validateMessages(request.messages ?? []);
   const root = resolve(options.configurationRoot ?? (options.configurationFilePath ? resolve(options.configurationFilePath, '..') : process.cwd()));

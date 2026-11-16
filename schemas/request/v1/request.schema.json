@@ -166,32 +166,74 @@
         }
       ]
     },
+    "messages": {
+      "type": "array",
+      "description": "Optional ordered provider-neutral continuation history. The initial task, taskSchema, and generated prompt remain separate request context.",
+      "items": {
+        "$ref": "#/$defs/ChatMessage"
+      },
+      "examples": [
+        [],
+        [
+          {
+            "role": "user",
+            "content": "Continue the conversation."
+          }
+        ]
+      ],
+      "default": []
+    },
     "toolOptions": {
       "type": "object",
       "additionalProperties": false,
       "description": "Optional tool-capable completion settings. Its presence selects tool-capable behavior.",
+      "required": [],
+      "examples": [
+        {
+          "tools": [],
+          "autoInvoke": false,
+          "maxRounds": 3,
+          "maxCalls": 128
+        }
+      ],
       "properties": {
         "tools": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/ToolDefinition"
           },
+          "description": "Ordered declarations of tools the model may request.",
+          "examples": [
+            []
+          ],
           "default": []
         },
         "autoInvoke": {
           "type": "boolean",
+          "description": "Whether the runtime invokes validated tool calls automatically.",
+          "examples": [
+            false
+          ],
           "default": false
         },
         "maxRounds": {
           "type": "integer",
           "minimum": 0,
           "maximum": 10,
+          "description": "Maximum number of ordered tool-call batches.",
+          "examples": [
+            3
+          ],
           "default": 3
         },
         "maxCalls": {
           "type": "integer",
           "minimum": 0,
           "maximum": 128,
+          "description": "Maximum number of individual tool calls across the completion.",
+          "examples": [
+            128
+          ],
           "default": 128
         }
       }
@@ -338,6 +380,75 @@
           "name": "read_record",
           "description": "Read one record.",
           "inputSchema": "{\"type\":\"object\",\"properties\":{\"logicalId\":{\"type\":\"string\"}}}"
+        }
+      ]
+    },
+    "ChatMessage": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["role", "content"],
+          "properties": {
+            "role": { "const": "system", "description": "System instruction role.", "examples": ["system"] },
+            "content": { "type": "string", "description": "System instruction content.", "examples": ["Be concise."] }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["role", "content"],
+          "properties": {
+            "role": { "const": "user", "description": "User conversation role.", "examples": ["user"] },
+            "content": { "type": "string", "description": "User message content.", "examples": ["Continue."] }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["role", "content", "toolCalls"],
+          "properties": {
+            "role": { "const": "assistant", "description": "Assistant conversation role.", "examples": ["assistant"] },
+            "content": { "type": ["string", "null"], "description": "Assistant text, or null when the assistant emitted tool calls.", "examples": [null] },
+            "toolCalls": { "type": "array", "items": { "$ref": "#/$defs/ToolCall" }, "description": "Tool calls emitted by this assistant message.", "examples": [[]] }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["role", "toolCallId", "content"],
+          "properties": {
+            "role": { "const": "tool", "description": "Tool result role.", "examples": ["tool"] },
+            "toolCallId": { "type": "string", "description": "Assistant tool-call identifier receiving this result.", "examples": ["call-read-1"] },
+            "content": { "type": "string", "description": "Serialized bounded tool result content.", "examples": ["{\"ok\":true}"] }
+          }
+        }
+      ],
+      "description": "One ordered provider-neutral system, user, assistant, or tool message.",
+      "examples": [
+        {
+          "role": "user",
+          "content": "Continue."
+        }
+      ]
+    },
+    "ToolCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "arguments"],
+      "properties": {
+        "id": { "type": "string", "description": "Stable provider or runtime call identifier.", "examples": ["call-read-1"] },
+        "name": { "type": "string", "description": "Declared tool name.", "examples": ["read_record"] },
+        "arguments": { "type": "object", "description": "Parsed JSON object of tool arguments.", "examples": [{ "recordId": "A" }] }
+      },
+      "description": "A normalized assistant tool call retained in canonical history.",
+      "examples": [
+        {
+          "id": "call-read-1",
+          "name": "read_record",
+          "arguments": {
+            "recordId": "A"
+          }
         }
       ]
     }

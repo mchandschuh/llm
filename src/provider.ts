@@ -1,5 +1,6 @@
-import type { LlmAssistantMessage, LlmChatMessage, LlmProvider, ProviderCompletionRequest, ProviderCompletionResponse, ToolCall, ToolCalls, ToolDefinition } from './types.js';
+import type { LlmProvider, ProviderCompletionRequest, ProviderCompletionResponse, ToolCall, ToolCalls } from './types.js';
 import { boundedMessage, LlmFailure } from './errors.js';
+import { OpenRouterHttpProjection, type OpenRouterChatRequest } from './openrouter-projection.js';
 
 function credential(request: ProviderCompletionRequest): string | undefined {
   return request.credentials?.apiKey ?? request.credentials?.accessToken ?? process.env.OPENROUTER_API_KEY;
@@ -15,65 +16,6 @@ function contentFromMessage(message: unknown): string {
     }).join('');
   }
   throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider returned no usable completion content.');
-}
-
-function userContent(request: ProviderCompletionRequest): string | Array<Record<string, unknown>> {
-  const images = request.files.filter((file) => file.encoding === 'base64' && file.type.startsWith('image/'));
-  if (images.length === 0) return request.llmPrompt;
-  return [
-    { type: 'text', text: request.llmPrompt },
-    ...images.map((file) => ({
-      type: 'image_url',
-      image_url: {
-        url: `data:${file.type};base64,${file.content}`,
-        detail: 'high',
-      },
-    })),
-  ];
-}
-
-function toolParameters(tool: ToolDefinition): Record<string, unknown> {
-  let parsed: unknown;
-  try { parsed = JSON.parse(tool.inputSchema); } catch { throw new LlmFailure('TOOL_SCHEMA_INVALID', 'configuration', `Tool '${tool.name}' inputSchema must be valid JSON.`); }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new LlmFailure('TOOL_SCHEMA_INVALID', 'configuration', `Tool '${tool.name}' inputSchema must be a JSON Schema object.`);
-  return parsed as Record<string, unknown>;
-}
-
-function projectMessage(message: LlmChatMessage): Record<string, unknown> {
-  if (message.role === 'system' || message.role === 'user') return { role: message.role, content: message.content };
-  if (message.role === 'tool') return { role: 'tool', tool_call_id: message.toolCallId, content: message.content };
-  const assistant: LlmAssistantMessage = message;
-  return {
-    role: 'assistant',
-    content: assistant.content,
-    tool_calls: assistant.toolCalls.map((call) => ({
-      id: call.id,
-      type: 'function',
-      function: { name: call.name, arguments: JSON.stringify(call.arguments) },
-    })),
-  };
-}
-
-function projectedMessages(request: ProviderCompletionRequest): Array<Record<string, unknown>> {
-  return (request.messages ?? []).map(projectMessage);
-}
-
-function legacyToolMessages(request: ProviderCompletionRequest): Array<Record<string, unknown>> {
-  return (request.toolResults ?? []).map((result) => ({
-    role: 'tool',
-    tool_call_id: result.callId,
-    content: JSON.stringify(result.status === 'success' ? result.value : { error: result.error }),
-  }));
-}
-
-function requestMessages(request: ProviderCompletionRequest): Array<Record<string, unknown>> {
-  const messages = projectedMessages(request);
-  if (messages.length > 0) return messages;
-  return [
-    { role: 'system', content: request.systemPrompt },
-    { role: 'user', content: userContent(request) },
-    ...legacyToolMessages(request),
-  ];
 }
 
 function normalizedToolCalls(message: unknown): ToolCall[] {
@@ -114,6 +56,8 @@ function completionDecision(finishReason: unknown, toolCalls: ToolCalls): 'conti
 }
 
 export class OpenRouterProvider implements LlmProvider {
+  private readonly projection = new OpenRouterHttpProjection();
+
   async complete(request: ProviderCompletionRequest): Promise<ProviderCompletionResponse> {
     if (request.toolOptions) return this.completeWithTools(request);
     const content = await this.completeText(request);
@@ -129,11 +73,7 @@ export class OpenRouterProvider implements LlmProvider {
         method: 'POST',
         headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
         signal: request.signal,
-        body: JSON.stringify({
-          model: request.model,
-          messages: requestMessages(request),
-          reasoning: { effort: request.thinking },
-        }),
+        body: JSON.stringify(this.projection.project(request)),
       });
     } catch {
       throw new LlmFailure('PROVIDER_REQUEST_FAILED', 'provider', 'The provider request failed before a usable response was returned.');
@@ -151,13 +91,7 @@ export class OpenRouterProvider implements LlmProvider {
   private async completeWithTools(request: ProviderCompletionRequest): Promise<ProviderCompletionResponse> {
     const apiKey = credential(request);
     if (!apiKey) throw new LlmFailure('CONFIGURATION_INVALID', 'configuration', 'No in-memory provider credential or OPENROUTER_API_KEY is configured.');
-    const messages = requestMessages(request);
-    const body: Record<string, unknown> = {
-      model: request.model,
-      messages,
-      reasoning: { effort: request.thinking },
-      ...(request.toolOptions!.tools.length > 0 ? { tools: request.toolOptions!.tools.map((tool) => ({ type: 'function', function: { name: tool.name, description: tool.description, parameters: toolParameters(tool) } })) } : {}),
-    };
+    const body: OpenRouterChatRequest = this.projection.project(request);
     let response: Response;
     try {
       response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
