@@ -1,4 +1,4 @@
 <llmPrompt>
-  <task instruction="missing version">wrong</task>
+  <task>wrong</task>
   <files></files>
 </llmPrompt>

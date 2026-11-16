@@ -16,7 +16,7 @@ prompt currently has this structure:
 
 ```xml
 <llmPrompt version="1">
-  <task instruction="..." taskSchema="...">...</task>
+  <task taskSchema="...">...</task>
   <taskSchema><![CDATA[{...}]]></taskSchema>
   <files>
     <file name="..." path="..." type="..." encoding="utf8" purpose="...">...</file>
@@ -31,9 +31,9 @@ The XSD must define and document:
 
 - `llmPrompt` as the root element;
 - required `version` attribute with value `1`;
-- required `task` element with an instruction attribute and escaped/CDATA text;
+- required `task` element with escaped/CDATA text and an optional `taskSchema` attribute;
 - optional `taskSchema` element;
-- required `files` container, including an empty container;
+- optional `files` container, emitted only when reference files are present;
 - repeated `file` elements with `name`, `path`, `type`, `encoding`, and `purpose`;
 - `encoding` values `utf8` and `base64`;
 - optional `outputSchema` element with its instruction attribute;
@@ -49,7 +49,7 @@ validator and completion lifecycle.
 
 The implementation task must add representative XML fixtures for:
 
-1. task plus empty files;
+1. task without optional sections;
 2. taskSchema, one text file, and outputSchema;
 3. a base64/binary file placeholder;
 4. invalid ordering, missing version, invalid encoding, and missing required

@@ -54,7 +54,7 @@ try {
   const ok = blocked.blocked === true
     && blocked.response.status === 'tool_calls_pending'
     && blockedElapsedMs < 1500
-    && !session.history.some((message) => message.role === 'user' && message.content === 'This must wait until the tool completes.')
+    && !session.history.some((message) => message.role === 'user' && message.content.includes('This must wait until the tool completes.'))
     && completed.response.status === 'success';
   emit({
     sample,
@@ -65,7 +65,7 @@ try {
       blockedStatus: blocked.response.status,
       blockedElapsedMs,
       providerTurns,
-      processedEarly: session.history.some((message) => message.role === 'user' && message.content === 'This must wait until the tool completes.'),
+      processedEarly: session.history.some((message) => message.role === 'user' && message.content.includes('This must wait until the tool completes.')),
       completedStatus: completed.response.status,
     },
   });

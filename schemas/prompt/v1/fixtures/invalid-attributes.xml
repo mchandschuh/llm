@@ -1,4 +1,4 @@
 <llmPrompt version="1">
-  <task>missing instruction</task>
+  <task unexpected="not allowed">invalid task</task>
   <files></files>
 </llmPrompt>

@@ -30,9 +30,8 @@ function handoff(chatId: string, printChatId: boolean): void {
   if (printChatId) console.log(`export LLM_CHAT_ID=${JSON.stringify(chatId)}`);
 }
 
-const DEFAULT_CHAT_REQUEST: LlmRequest = {
+const DEFAULT_CHAT_REQUEST: Omit<LlmRequest, 'task'> = {
   schema: 'https://schemas.handschuh.dev/llm/request/v1',
-  task: 'Continue the conversation.',
   systemPrompt: 'Respond helpfully and concisely.',
 };
 
@@ -43,7 +42,7 @@ export async function runChatCommand(options: ChatCommandOptions): Promise<numbe
       return 1;
     }
     const chatId = validateChatId(options.chatId ?? (options.continuation ? process.env.LLM_CHAT_ID! : newChatId()));
-    let request = DEFAULT_CHAT_REQUEST;
+    let request: LlmRequest;
     let initialHistory;
     if (options.continuation) {
       const persisted = await loadChatSession(chatId, { rootDirectory: options.rootDirectory });
@@ -53,6 +52,8 @@ export async function runChatCommand(options: ChatCommandOptions): Promise<numbe
       }
       request = persisted.request;
       initialHistory = persisted.history;
+    } else {
+      request = { ...DEFAULT_CHAT_REQUEST, task: options.prompt };
     }
     const session = chatFactory.createSession({
       request,
@@ -60,7 +61,7 @@ export async function runChatCommand(options: ChatCommandOptions): Promise<numbe
       provider: options.provider,
       eventSink: options.debug ? stderrDebugSink() : undefined,
     });
-    const turn = await session.sendUserMessage(options.prompt);
+    const turn = options.continuation ? await session.sendUserMessage(options.prompt) : await session.complete();
     printTurn(turn.response, options);
     await saveChatSession({ chatId, request, history: session.history }, { rootDirectory: options.rootDirectory });
     handoff(chatId, options.printChatId);

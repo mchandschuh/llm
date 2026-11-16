@@ -76,19 +76,39 @@ test('fresh chat start replaces explicit-ID state and emits export-only handoff'
   const originalError = console.error;
   const output: string[] = [];
   const errors: string[] = [];
+  const providerRequests: Array<{ readonly messages?: readonly { readonly role: string; readonly content: unknown }[] }> = [];
   console.log = (...values: unknown[]) => output.push(values.join(' '));
   console.error = (...values: unknown[]) => errors.push(values.join(' '));
   try {
-    assert.equal(await runChatCommand({ chatId: 'chat-1', prompt: 'fresh prompt', continuation: false, debug: false, json: false, printChatId: true, rootDirectory: root, provider: fakeProvider('fresh answer') }), 0);
+    assert.equal(await runChatCommand({
+      chatId: 'chat-1',
+      prompt: 'fresh prompt',
+      continuation: false,
+      debug: false,
+      json: false,
+      printChatId: true,
+      rootDirectory: root,
+      provider: {
+        async complete(request) {
+          providerRequests.push(request);
+          return { content: 'fresh answer', toolCalls: [], decision: 'stop' };
+        },
+      },
+    }), 0);
   } finally {
     console.log = originalLog;
     console.error = originalError;
   }
   assert.deepEqual(output, ['export LLM_CHAT_ID="chat-1"']);
   assert.deepEqual(errors, ['fresh answer']);
+  assert.deepEqual(providerRequests[0]?.messages?.map((message) => message.role), ['system', 'user']);
+  assert.equal(providerRequests[0]?.messages?.filter((message) => message.role === 'user').length, 1);
+  assert.match(String(providerRequests[0]?.messages?.[1]?.content), /^<llmPrompt version="1">/u);
+  assert.match(String(providerRequests[0]?.messages?.[1]?.content), /fresh prompt/u);
   const persisted = await loadChatSession('chat-1', { rootDirectory: root });
   assert.equal(persisted?.history.some((message) => message.role === 'user' && message.content === 'old history'), false);
-  assert.equal(persisted?.history.some((message) => message.role === 'user' && message.content === 'fresh prompt'), true);
+  assert.equal(persisted?.history.some((message) => message.role === 'user' && message.content.includes('fresh prompt')), true);
+  assert.equal(persisted?.history.some((message) => message.role === 'user' && message.content.startsWith('<llmPrompt version="1">')), true);
 });
 
 test('subsequent bare continuation rehydrates history through LLM_CHAT_ID', async () => {
@@ -101,6 +121,7 @@ test('subsequent bare continuation rehydrates history through LLM_CHAT_ID', asyn
     const provider: LlmProvider = { async complete(request) { calls.push(request); return { content: 'second answer', toolCalls: [], decision: 'stop' }; } };
     assert.equal(await runChatCommand({ prompt: 'second', continuation: true, debug: false, json: false, printChatId: false, rootDirectory: root, provider }), 0);
     assert.equal(JSON.stringify(calls[0]?.messages).includes('first'), true);
+    assert.equal(calls[0]?.messages?.filter((message) => message.role === 'user').every((message) => message.content.includes('<llmPrompt version="1">')), true);
   } finally {
     if (originalChatId === undefined) delete process.env.LLM_CHAT_ID;
     else process.env.LLM_CHAT_ID = originalChatId;

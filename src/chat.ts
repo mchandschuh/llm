@@ -1,5 +1,5 @@
 import { complete } from './complete.js';
-import { composeRequestPrompt } from './prompt.js';
+import { composePrompt, composeRequestPrompt } from './prompt.js';
 import { normalizeRequest } from './normalize.js';
 import { RESPONSE_SCHEMA } from './types.js';
 import type {
@@ -39,6 +39,7 @@ class ChatSession implements LlmChatSession {
   private readonly messages: LlmChatMessage[] = [];
   private initialized = false;
   private activeTurn: Promise<LlmChatTurn> | undefined;
+  private normalizedRequest: Awaited<ReturnType<typeof normalizeRequest>> | undefined;
 
   constructor(options: ChatFactoryCreateSessionOptions) {
     this.options = options;
@@ -67,7 +68,13 @@ class ChatSession implements LlmChatSession {
       return this.interrupt(message);
     }
     await this.initialize();
-    this.messages.push({ role: 'user', content: message });
+    const normalized = await this.normalized();
+    this.messages.push({ role: 'user', content: composePrompt({
+      task: message,
+      taskSchema: normalized.taskSchema ? JSON.stringify(normalized.taskSchema) : undefined,
+      files: normalized.files,
+      outputSchema: normalized.outputSchema ? JSON.stringify(normalized.outputSchema) : undefined,
+    }) });
     return this.runCanonicalTurn();
   }
 
@@ -79,7 +86,7 @@ class ChatSession implements LlmChatSession {
 
   private async initialize(): Promise<void> {
     if (this.initialized) return;
-    const normalized = await normalizeRequest(this.request, { configurationRoot: this.options.configurationRoot });
+    const normalized = await this.normalized();
     const prompt = composeRequestPrompt(normalized);
     this.messages.push(
       { role: 'system', content: normalized.systemPrompt.value },
@@ -87,6 +94,11 @@ class ChatSession implements LlmChatSession {
       ...normalized.messages,
     );
     this.initialized = true;
+  }
+
+  private async normalized(): Promise<Awaited<ReturnType<typeof normalizeRequest>>> {
+    if (!this.normalizedRequest) this.normalizedRequest = await normalizeRequest(this.request, { configurationRoot: this.options.configurationRoot });
+    return this.normalizedRequest;
   }
 
   private runCanonicalTurn(): Promise<LlmChatTurn> {
@@ -98,8 +110,9 @@ class ChatSession implements LlmChatSession {
       debug: this.options.eventSink,
       configurationRoot: this.options.configurationRoot,
       messageSink: (message) => pending.push(message),
+      conversationHistory: this.messages,
     };
-    const request = { ...this.request, messages: this.messages.slice(2) };
+    const request = { ...this.request, messages: this.messages };
     const turn = complete(request, completionOptions).then((response) => {
       if (response.status === 'success') this.messages.push(...pending);
       return { response, history: this.history };
@@ -112,10 +125,17 @@ class ChatSession implements LlmChatSession {
 
   private async interrupt(message: string): Promise<LlmChatTurn> {
     await this.initialize();
+    const normalized = await this.normalized();
     const snapshot = this.messages.slice();
+    const projectedMessage = composePrompt({
+      task: message,
+      taskSchema: normalized.taskSchema ? JSON.stringify(normalized.taskSchema) : undefined,
+      files: normalized.files,
+      outputSchema: normalized.outputSchema ? JSON.stringify(normalized.outputSchema) : undefined,
+    });
     const interruptRequest: LlmRequest = {
       ...this.request,
-      messages: [...snapshot.slice(2), { role: 'user', content: message }],
+      messages: [...snapshot, { role: 'user', content: projectedMessage }],
       toolOptions: undefined,
     };
     const response = await complete(interruptRequest, {
@@ -123,6 +143,7 @@ class ChatSession implements LlmChatSession {
       signal: this.options.signal,
       debug: this.options.eventSink,
       configurationRoot: this.options.configurationRoot,
+      conversationHistory: interruptRequest.messages,
     });
     return { response, interrupted: true, history: this.history };
   }

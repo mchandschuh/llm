@@ -4,13 +4,13 @@ import { OpenRouterHttpProjection } from '../src/openrouter-projection.js';
 import { OpenRouterProvider } from '../src/provider.js';
 import type { LlmChatMessage, ProviderCompletionRequest } from '../src/types.js';
 
-function request(messages: readonly LlmChatMessage[]): ProviderCompletionRequest {
+function request(messages: readonly LlmChatMessage[], llmPrompt = '<llmPrompt version="1" />'): ProviderCompletionRequest {
   return {
     provider: 'openrouter',
     model: 'openai/gpt-5.6-luna',
     thinking: 'medium',
     systemPrompt: 'System instruction.',
-    llmPrompt: '<llmPrompt version="1" />',
+    llmPrompt,
     task: { operation: 'inspect' },
     taskSchema: { type: 'object' },
     messages,
@@ -47,6 +47,23 @@ test('OpenRouterHttpProjection maps complete request-3 history and excludes cred
     { type: 'text', text: '<llmPrompt version="1" />' },
     { type: 'image_url', image_url: { url: 'data:image/png;base64,AQI=', detail: 'high' } },
   ]);
+});
+
+test('OpenRouterHttpProjection treats only the first user message as the initial attachment-bearing prompt', () => {
+  const initial = '<llmPrompt version="1"><task><![CDATA[first]]></task></llmPrompt>';
+  const repeated = '<llmPrompt version="1"><task><![CDATA[first]]></task></llmPrompt>';
+  const body = new OpenRouterHttpProjection().project(request([
+    { role: 'system', content: 'System instruction.' },
+    { role: 'user', content: initial },
+    { role: 'assistant', content: 'first answer', toolCalls: [] },
+    { role: 'user', content: repeated },
+  ], initial));
+
+  assert.deepEqual(body.messages[1]!.content, [
+    { type: 'text', text: initial },
+    { type: 'image_url', image_url: { url: 'data:image/png;base64,AQI=', detail: 'high' } },
+  ]);
+  assert.equal(body.messages[3]!.content, repeated);
 });
 
 test('OpenRouterProvider serializes the projection and keeps credentials in authorization only', async () => {

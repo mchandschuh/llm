@@ -67,7 +67,7 @@ try {
     && interrupt.response.status === 'success'
     && interrupt.response.output?.value === 'Interrupt response while the tool remains pending.'
     && completed.response.status === 'success'
-    && historyDuringTool.some((message) => message.role === 'user' && message.content === 'Start the long-running work.')
+    && historyDuringTool.some((message) => message.role === 'user' && message.content.includes('<llmPrompt version="1">') && message.content.includes('Start the long-running work.'))
     && !historyDuringTool.some((message) => message.role === 'user' && message.content === 'Can I get an update while it runs?')
     && events.includes('llm.tool.call')
     && events.includes('llm.tool.result');

@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<llmPrompt version="1">
-  <task instruction="Provide task data to the model."><![CDATA[Summarize this record.]]></task>
-  <files>
-  </files>
-</llmPrompt>

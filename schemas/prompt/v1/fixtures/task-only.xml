@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<llmPrompt version="1">
+  <task><![CDATA[Summarize this record.]]></task>
+</llmPrompt>

@@ -64,6 +64,10 @@ function initialMessages(request: NormalizedRequest, prompt: string): LlmChatMes
   ];
 }
 
+function conversationMessages(request: NormalizedRequest, prompt: string, history: readonly LlmChatMessage[] | undefined): LlmChatMessage[] {
+  return history ? [...history] : initialMessages(request, prompt);
+}
+
 function assistantMessage(providerResult: ProviderCompletionResponse): LlmAssistantMessage {
   return {
     role: 'assistant',
@@ -171,7 +175,7 @@ async function completeToolInternalImpl(request: LlmRequest | unknown, options: 
   let toolRounds = 0;
   let totalToolCalls = 0;
   let prompt = composeRequestPrompt(normalized as unknown as NormalizedRequest);
-  const messages = initialMessages(normalized, prompt);
+  const messages = conversationMessages(normalized, prompt, options.conversationHistory);
   let toolResults: ToolResult[] = [];
   const completedToolResults: ToolResult[] = [];
   const outputSchema = normalized.outputSchema ? parseSchema(normalized.outputSchema) : undefined;
@@ -319,7 +323,7 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
   while (iterations < normalized.maxIterations) {
     let raw: string;
     try {
-      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, task: normalized.task, taskSchema: normalized.taskSchema, messages: initialMessages(normalized, prompt), files: normalized.files, credentials: normalized.credentials, signal: options.signal };
+      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, task: normalized.task, taskSchema: normalized.taskSchema, messages: conversationMessages(normalized, prompt, options.conversationHistory), files: normalized.files, credentials: normalized.credentials, signal: options.signal };
       emitDebug(options.debug, 'llm.request', request);
       emitDebug(options.debug, 'llm.provider.request', providerRequest);
       raw = (await provider.complete(providerRequest)).content ?? '';

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <llmPrompt version="1">
-  <task taskSchema="https://example.test/task" instruction="Provide task data to the model."><![CDATA[{"operation":"inspect"}]]></task>
+  <task taskSchema="https://example.test/task"><![CDATA[{"operation":"inspect"}]]></task>
   <taskSchema><![CDATA[{"type":"object"}]]></taskSchema>
   <files>
     <file name="notes" path="notes.txt" type="text/plain" encoding="utf8" purpose="Inspection notes"><![CDATA[hello]]></file>

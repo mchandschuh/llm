@@ -127,7 +127,31 @@ test('a later user turn follows the retained assistant in complete provider hist
   assert.equal(provider.calls[1]!.messages.at(-2)?.role, 'assistant');
   assert.equal(provider.calls[1]!.messages.at(-2)?.content, 'first answer');
   assert.equal(provider.calls[1]!.messages.at(-1)?.role, 'user');
-  assert.equal(provider.calls[1]!.messages.at(-1)?.content, 'second question');
+  assert.match(String(provider.calls[1]!.messages.at(-1)?.content), /<llmPrompt version="1">/u);
+  assert.match(String(provider.calls[1]!.messages.at(-1)?.content), /second question/u);
+  assert.doesNotMatch(String(provider.calls[1]!.messages.at(-1)?.content), /first question/u);
+});
+
+test('every chat user turn is projected through llmPrompt XML without empty optional sections', async () => {
+  const provider = new SequenceProvider([finalResponse('first answer'), finalResponse('second answer')]);
+  const session = chatFactory.createSession({
+    request: { schema, task: 'initial task', systemPrompt: 'Answer briefly.' },
+    provider,
+  });
+
+  await session.complete();
+  await session.sendUserMessage('follow up');
+
+  const firstUsers = provider.calls[0]!.messages.filter((message) => message.role === 'user');
+  const secondUsers = provider.calls[1]!.messages.filter((message) => message.role === 'user');
+  assert.equal(firstUsers.length, 1);
+  assert.equal(secondUsers.length, 2);
+  for (const message of secondUsers) {
+    assert.match(String(message.content), /^<llmPrompt version="1">/u);
+    assert.doesNotMatch(String(message.content), /<taskSchema|<files|<outputSchema|instruction=/u);
+  }
+  assert.match(String(secondUsers[0]!.content), /initial task/u);
+  assert.match(String(secondUsers[1]!.content), /follow up/u);
 });
 
 test('parallel calls produce one assistant message and one matching tool result per call', async () => {

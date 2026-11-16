@@ -21,16 +21,17 @@ function fileXml(file: ReferenceFile & { readonly content: string }): string {
 
 export function composePrompt(parts: PromptParts): string {
   const taskSchemaAttribute = parts.taskSchema ? ` taskSchema="${attribute(parts.taskSchema)}"` : '';
-  const taskInstruction = parts.taskSchema ? ' The task data must satisfy the referenced taskSchema.' : '';
   const outputInstruction = parts.outputSchema ? ' The generated output must satisfy the referenced outputSchema.' : '';
   const sections = [
     '<llmPrompt version="1">',
-    `  <task${taskSchemaAttribute} instruction="${attribute(`Provide task data to the model.${taskInstruction}`)}">${cdata(parts.task)}</task>`,
+    `  <task${taskSchemaAttribute}>${cdata(parts.task)}</task>`,
   ];
   if (parts.taskSchema) sections.push(`  <taskSchema>${cdata(parts.taskSchema)}</taskSchema>`);
-  sections.push('  <files>');
-  for (const file of parts.files) sections.push(fileXml(file));
-  sections.push('  </files>');
+  if (parts.files.length > 0) {
+    sections.push('  <files>');
+    for (const file of parts.files) sections.push(fileXml(file));
+    sections.push('  </files>');
+  }
   if (parts.outputSchema) {
     sections.push(`  <outputSchema instruction="${attribute(`The output must be JSON and satisfy the referenced outputSchema.${outputInstruction}`)}">${cdata(parts.outputSchema)}</outputSchema>`);
   }

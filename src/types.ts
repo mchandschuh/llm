@@ -352,6 +352,7 @@ export interface CompletionOptions {
   readonly toolInvoker?: ToolInvoker;
   readonly signal?: AbortSignal;
   readonly messageSink?: (message: LlmChatMessage) => void;
+  readonly conversationHistory?: readonly LlmChatMessage[];
 }
 
 /** @see schemas/request/v1/request.schema.json */

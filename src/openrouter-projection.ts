@@ -64,10 +64,10 @@ function initialUserContent(request: ProviderCompletionRequest): string | Array<
   return [{ type: 'text', text: request.llmPrompt }, ...images];
 }
 
-function projectMessage(message: LlmChatMessage, request: ProviderCompletionRequest): OpenRouterMessage {
+function projectMessage(message: LlmChatMessage, request: ProviderCompletionRequest, isInitialUserMessage: boolean): OpenRouterMessage {
   if (message.role === 'system') return { role: 'system', content: message.content };
   if (message.role === 'user') {
-    const content = message.content === request.llmPrompt ? initialUserContent(request) : message.content;
+    const content = isInitialUserMessage ? initialUserContent(request) : message.content;
     return { role: 'user', content };
   }
   if (message.role === 'tool') return { role: 'tool', content: message.content, tool_call_id: message.toolCallId };
@@ -112,7 +112,7 @@ export class OpenRouterHttpProjection {
   project(request: ProviderCompletionRequest): OpenRouterChatRequest {
     const sourceMessages = request.messages ?? [];
     const messages = sourceMessages.length > 0
-      ? sourceMessages.map((message) => projectMessage(message, request))
+      ? sourceMessages.map((message, index) => projectMessage(message, request, index === sourceMessages.findIndex((candidate) => candidate.role === 'user')))
       : legacyMessages(request);
     const tools = projectTools(request);
     return {
