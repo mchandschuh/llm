@@ -6,15 +6,19 @@ export const PARALLEL_TOOL_CALL_BATCH_SCHEMA = 'https://schemas.handschuh.dev/ll
 export const TOOL_CALLS_SCHEMA = 'https://schemas.handschuh.dev/llm/tool-calls/v1' as const;
 export const TOOL_RESULT_SCHEMA = 'https://schemas.handschuh.dev/llm/tool-result/v1' as const;
 
+/** @see schemas/request/v1/request.schema.json */
 export type Thinking = 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
 
+/** @see schemas/request/v1/request.schema.json */
 export type FileEncoding = 'utf8' | 'base64';
 
+/** @see schemas/request/v1/request.schema.json */
 export interface Credentials {
   readonly apiKey?: string;
   readonly accessToken?: string;
 }
 
+/** @see schemas/request/v1/request.schema.json */
 export interface ReferenceFile {
   readonly name: string;
   readonly path: string;
@@ -24,9 +28,14 @@ export interface ReferenceFile {
 }
 
 export type JsonObject = Readonly<Record<string, unknown>>;
+
+/** @see schemas/request/v1/request.schema.json */
 export type TaskValue = string | JsonObject;
+
+/** @see schemas/request/v1/request.schema.json */
 export type InlineJsonSchema = JsonObject;
 
+/** @see schemas/request/v1/request.schema.json */
 export interface LlmRequest {
   readonly schema: typeof REQUEST_SCHEMA;
   readonly provider?: string;
@@ -43,21 +52,44 @@ export interface LlmRequest {
   readonly toolOptions?: ToolOptions;
 }
 
+/**
+ * @see schemas/tool-definition/v1/tool-definition.schema.json
+ * @see schemas/request/v1/request.schema.json
+ */
 export interface ToolDefinition {
   readonly name: string;
   readonly description: string;
   readonly inputSchema: string;
 }
 
+/**
+ * @see schemas/tool-call/v1/tool-call.schema.json
+ * @see schemas/parallel-tool-call-batch/v1/parallel-tool-call-batch.schema.json
+ * @see schemas/tool-calls/v1/tool-calls.schema.json
+ * @see schemas/response/v1/response.schema.json
+ */
 export interface ToolCall {
   readonly id: string;
   readonly name: string;
   readonly arguments: Readonly<Record<string, unknown>>;
 }
 
+/**
+ * @see schemas/parallel-tool-call-batch/v1/parallel-tool-call-batch.schema.json
+ * @see schemas/tool-calls/v1/tool-calls.schema.json
+ */
 export type ParallelToolCallBatch = readonly ToolCall[];
+
+/**
+ * @see schemas/tool-calls/v1/tool-calls.schema.json
+ * @see schemas/response/v1/response.schema.json
+ */
 export type ToolCalls = readonly ParallelToolCallBatch[];
 
+/**
+ * @see schemas/tool-result/v1/tool-result.schema.json
+ * @see schemas/response/v1/response.schema.json
+ */
 export interface ToolResult {
   readonly callId: string;
   readonly name: string;
@@ -69,6 +101,7 @@ export interface ToolResult {
   };
 }
 
+/** @see schemas/request/v1/request.schema.json */
 export interface ToolOptions {
   readonly tools?: readonly ToolDefinition[];
   readonly autoInvoke?: boolean;
@@ -145,25 +178,30 @@ export interface ToolInvoker {
   invoke(call: ToolCall, context: ToolInvocationContext): Promise<unknown>;
 }
 
+/** @see schemas/response/v1/response.schema.json */
 export interface SchemaMetadata {
   readonly name: string;
   readonly path?: string;
 }
 
+/** @see schemas/response/v1/response.schema.json */
 export interface StructuredOutput {
   readonly $type: string;
   readonly schema: SchemaMetadata;
   readonly value: unknown;
 }
 
+/** @see schemas/response/v1/response.schema.json */
 export interface RawOutput {
   readonly $type: 'string';
   readonly schema: null | string;
   readonly value: string;
 }
 
+/** @see schemas/response/v1/response.schema.json */
 export type LlmOutput = StructuredOutput | RawOutput;
 
+/** @see schemas/response/v1/response.schema.json */
 export interface ToolAwareOutput {
   readonly $type: 'object';
   readonly schema: SchemaMetadata;
@@ -173,6 +211,7 @@ export interface ToolAwareOutput {
   };
 }
 
+/** @see schemas/response/v1/response.schema.json */
 export type ResponseStatus =
   | 'success'
   | 'cancelled'
@@ -186,6 +225,7 @@ export type ResponseStatus =
   | 'attempts_exhausted'
   | 'unvalidated';
 
+/** @see schemas/response/v1/response.schema.json */
 export type ErrorCode =
   | 'REQUEST_INVALID'
   | 'TASK_SCHEMA_VALIDATION_FAILED'
@@ -202,6 +242,7 @@ export type ErrorCode =
   | 'TOOL_RESULT_INVALID'
   | 'CANCELLED';
 
+/** @see schemas/response/v1/response.schema.json */
 export type ErrorPhase =
   | 'request'
   | 'configuration'
@@ -214,12 +255,14 @@ export type ErrorPhase =
   | 'cancellation'
   | 'retry';
 
+/** @see schemas/response/v1/response.schema.json */
 export interface LlmError {
   readonly code: ErrorCode;
   readonly message: string;
   readonly phase: ErrorPhase;
 }
 
+/** @see schemas/response/v1/response.schema.json */
 export interface LlmResponse {
   readonly schema: typeof RESPONSE_SCHEMA;
   readonly status: ResponseStatus;
@@ -252,7 +295,10 @@ export interface CompletionOptions {
   readonly signal?: AbortSignal;
 }
 
+/** @see schemas/request/v1/request.schema.json */
 export type AnyLlmRequest = LlmRequest;
+
+/** @see schemas/response/v1/response.schema.json */
 export type AnyLlmResponse = LlmResponse;
 export type AnyCompletionOptions = CompletionOptions;
 
