@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0010",
-  "status": "planned",
+  "status": "complete",
   "title": "Add one-shot prompt and persistent chat CLI modes",
   "type": "feature",
   "objective": "Expose llm -p/--prompt as a strictly stateless one-shot completion mode and llm -c/--chat as a locally persisted chat-session mode with chat-id selection, validated rehydration, explicit LLM_CHAT_ID shell handoff, and backward-compatible request-file CLI behavior.",

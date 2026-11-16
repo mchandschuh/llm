@@ -4,7 +4,7 @@ taskUid: WI-0010-91000000
 orderKey: "91000000"
 parentTaskUid: null
 taskType: delivery
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Record local delivery of prompt and persistent chat CLI modes
 objective: Record local delivery of the validated and reviewed CLI refactor, prompt mode, persistent chat mode, documentation, generated package, and complete WI-0010 records without publication or deployment claims.
 references:
@@ -44,7 +44,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/result
@@ -98,26 +98,34 @@ task:
       - Do not make authenticated provider calls or execute real external tools.
       - Do not claim remote persistence, production shell installation, parent-shell mutation, or downstream integration.
   result:
-    status: blocked
-    summary: Delivery is prepared but blocked until implementation, validation, and review complete.
+    status: delivered
+    summary: Locally delivered the validated and accepted WI-0010 CLI refactor, stateless prompt mode, fresh process-per-turn chat mode, secure session boundary, explicit shell handoff, documentation, generated declarations, and complete work-item records. No publication or deployment was performed.
     artifacts:
       - id: ART-PACKAGE-001
         kind: package
         path: dist/
-        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+        checksum: sha256:06ccefeecb07b3f92b10b28a258074a7c00b3033755a8a701a5c2f2ee405c938
       - id: ART-CLI-DOCS-001
         kind: manifest
         path: README.md
-        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+        checksum: sha256:ce0b377cd328dd74b4fe512f328a7256ebd2db48615820138b3c25aa8deb7e4f
       - id: ART-RECORDS-001
         kind: releaseRecord
         path: .docs/work-items/WI-0010/
-        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+        checksum: sha256:15c7547e58eafdb7524a35d535c4a3e211eb80baa11d36667e92190341dfa340
     executions:
-      - id: EXEC-PLANNED
+      - id: EXEC-FINAL-VERIFY
         procedureRef: "#procedure/PROC-FINAL-VERIFY"
         result:
-          status: blocked
-          summary: Final delivery procedure is declared but not yet executed.
+          status: passed
+          summary: Final typecheck, 92-test package suite, build, 16 focused CLI/session/coverage tests, generated declaration inspection, task-record validation, conflict scan, whitespace scan, and changed-path review passed.
         command: npm run typecheck && npm test && npm run build
-    limitations: [Delivery is planned only; no package, release, publication, deployment, or production evidence exists yet.]
+      - id: EXEC-FINAL-COVERAGE
+        procedureRef: "#procedure/PROC-FINAL-VERIFY"
+        result:
+          status: passed
+          summary: The data-driven coverage audit passed for every WI-0010 requirement, acceptance criterion, invariant, objective, test case, validation procedure, review criterion, evidence requirement, and clarified non-goal.
+        command: node --test --import tsx tests/wi-0010-coverage.test.ts
+    limitations:
+      - Local delivery does not publish, deploy, or establish production readiness, authenticated provider behavior, remote persistence, production shell installation, parent-shell mutation, or downstream integration.
+      - The record-directory checksum is a bounded pre-self-reference manifest checksum excluding this delivery record itself; the immutable delivery commit identifies the complete record set.

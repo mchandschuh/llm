@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 workItemId: WI-0010
 recordType: work-item-summary
 ---
@@ -8,7 +8,7 @@ recordType: work-item-summary
 
 ## Status
 
-`planned`. This work item has no design task. The test-strategy task is the
+`complete`. This work item has no design task. The test-strategy task was the
 first ordered task, followed by the required CLI architecture refactor and the
 feature implementation tasks.
 
@@ -43,13 +43,13 @@ supported mechanism and its exact invocation must be documented and tested.
 
 | Order | Task | Status | Dependency |
 | --- | --- | --- | --- |
-| `00000000` | Define CLI/session persistence evidence strategy | `planned` | none |
-| `10000000` | Refactor CLI into nodejs-cli-pattern modules | `planned` | `00000000` |
-| `20000000` | Implement secure local chat-session persistence and rehydration | `planned` | `10000000` |
-| `30000000` | Add prompt/chat commands and shell/session UX | `planned` | `20000000` |
-| `80000000` | Independently validate CLI modes, persistence, security, and compatibility | `planned` | `30000000` |
-| `90000000` | Review implementation and automated coverage | `planned` | `80000000` |
-| `91000000` | Record local delivery and final audit | `planned` | `90000000` |
+| `00000000` | Define CLI/session persistence evidence strategy | `complete` | none |
+| `10000000` | Refactor CLI into nodejs-cli-pattern modules | `complete` | `00000000` |
+| `20000000` | Implement secure local chat-session persistence and rehydration | `complete` | `10000000` |
+| `30000000` | Add prompt/chat commands and shell/session UX | `complete` | `20000000` |
+| `80000000` | Independently validate CLI modes, persistence, security, and compatibility | `complete` | `30000000` |
+| `90000000` | Review implementation and automated coverage | `complete` | `80000000` |
+| `91000000` | Record local delivery and final audit | `complete` | `90000000` |
 
 ## CLI contract boundary
 
