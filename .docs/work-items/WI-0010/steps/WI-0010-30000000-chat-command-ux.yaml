@@ -4,7 +4,7 @@ taskUid: WI-0010-30000000
 orderKey: "30000000"
 parentTaskUid: null
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Add prompt and persistent chat command UX
 objective: Add -p/--prompt, fresh process-per-turn -c/--chat, --chat-id destination selection, subsequent bare-prompt continuation routing, output modes, help, and public CLI documentation while preserving existing config mode.
 references:
@@ -52,7 +52,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -110,19 +110,66 @@ task:
       - Add command-process tests for all modes, persistence routing, output streams, and exit codes.
       - Run typecheck/tests/build and record evidence.
   result:
-    status: blocked
+    status: implemented
     implementation:
-      summary: Not executed; task is planned after persistence primitives are complete.
+      summary: Added process-per-turn stateless prompt, fresh chat-start, explicit fresh-session chat-ID, subsequent LLM_CHAT_ID continuation, output modes, export-only handoff, help, and public documentation without interactive UX.
       changes:
-        - id: CHANGE-PLANNED-CLI-MODES
+        - id: CHANGE-CLI-PROMPT
           type: production-code
-          summary: Planned prompt/chat command parsing, continuation routing, fresh-session chat-id selection, output modes, help, and documentation without interactive signal-driven UX.
-          objectiveRefs: [OBJ-PROMPT-COMMAND, OBJ-CHAT-COMMAND, OBJ-SHELL-UX, OBJ-COMPATIBILITY]
-          paths: [src/cli/, src/cli.ts, tests/cli.test.ts, README.md, SKILL.md, samples/]
-      testImplementations: []
+          summary: Added -p/--prompt one-shot execution and --json output without session access.
+          objectiveRefs: [OBJ-PROMPT-COMMAND, OBJ-COMPATIBILITY]
+          paths: [src/cli/arguments.ts, src/cli/prompt-command.ts, src/cli.ts]
+        - id: CHANGE-CLI-CHAT
+          type: production-code
+          summary: Added fresh -c command routing, explicit fresh-session IDs, bare continuation rehydration, validated persistence, and export-only handoff.
+          objectiveRefs: [OBJ-CHAT-COMMAND, OBJ-SHELL-UX]
+          paths: [src/cli/arguments.ts, src/cli/chat-command.ts, src/cli.ts]
+        - id: CHANGE-CLI-DOCS-TESTS
+          type: documentation
+          summary: Documented the corrected process-per-turn contract and added parser, prompt, chat, handoff, and no-REPL regression coverage.
+          objectiveRefs: [OBJ-SHELL-UX, OBJ-COMPATIBILITY]
+          paths: [tests/cli.test.ts, README.md, SKILL.md]
+      testImplementations:
+        - testCaseRef: WI-0010|00000000#test-case/TC-PROMPT-ISOLATION
+          path: tests/cli.test.ts
+          selector: prompt command performs one completion and supports JSON output without session access
+        - testCaseRef: WI-0010|00000000#test-case/TC-CHAT-PERSISTENCE
+          path: tests/cli.test.ts
+          selector: subsequent bare continuation rehydrates history through LLM_CHAT_ID
+        - testCaseRef: WI-0010|00000000#test-case/TC-CHAT-ID
+          path: tests/cli.test.ts
+          selector: fresh chat start replaces explicit-ID state and emits export-only handoff
+        - testCaseRef: WI-0010|00000000#test-case/TC-SHELL-HANDOFF
+          path: tests/cli.test.ts
+          selector: continuation without an ambient handoff fails before any provider call
     verification:
-      status: not-run
+      status: passed
       objectiveRefs: [OBJ-PROMPT-COMMAND, OBJ-CHAT-COMMAND, OBJ-SHELL-UX, OBJ-COMPATIBILITY]
-      tests: []
+      tests:
+        - id: EXEC-CLI-FOCUSED
+          type: integration
+          testCaseRefs: [WI-0010|00000000#test-case/TC-PROMPT-ISOLATION, WI-0010|00000000#test-case/TC-CHAT-PERSISTENCE, WI-0010|00000000#test-case/TC-CHAT-ID, WI-0010|00000000#test-case/TC-SHELL-HANDOFF]
+          command: node --test --import tsx tests/cli.test.ts tests/cli-session-store.test.ts
+          status: passed
+          result: 15 focused CLI/session tests passed.
+        - id: EXEC-CLI-TYPECHECK
+          type: cli-audit
+          testCaseRefs: [WI-0010|00000000#test-case/TC-COMPATIBILITY]
+          command: npm run typecheck
+          status: passed
+          result: TypeScript typecheck passed.
+        - id: EXEC-CLI-TESTS
+          type: integration
+          testCaseRefs: [WI-0010|00000000#test-case/TC-PACKAGE-GATES]
+          command: npm test
+          status: passed
+          result: 91 provider-free package tests passed.
+        - id: EXEC-CLI-BUILD
+          type: cli-audit
+          testCaseRefs: [WI-0010|00000000#test-case/TC-PACKAGE-GATES]
+          command: npm run build
+          status: passed
+          result: Compiled package and declarations generated successfully.
     limitations:
       - Validation, review, and delivery are handled by dependent tasks.
+      - Provider-free local evidence does not establish authenticated provider behavior or parent-shell mutation.
