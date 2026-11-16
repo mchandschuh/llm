@@ -43,6 +43,10 @@ class ChatSession implements LlmChatSession {
   constructor(options: ChatFactoryCreateSessionOptions) {
     this.options = options;
     this.request = { ...DEFAULT_REQUEST, ...(options.request ?? {}) };
+    if (options.initialHistory) {
+      this.messages.push(...options.initialHistory);
+      this.initialized = true;
+    }
   }
 
   get history(): readonly LlmChatMessage[] {

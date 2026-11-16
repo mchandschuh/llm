@@ -209,6 +209,7 @@ export interface ToolInvoker {
 
 export interface ChatFactoryCreateSessionOptions {
   readonly request?: LlmRequest;
+  readonly initialHistory?: readonly LlmChatMessage[];
   readonly provider?: LlmProvider;
   readonly toolInvoker?: ToolInvoker;
   readonly signal?: AbortSignal;

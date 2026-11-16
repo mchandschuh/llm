@@ -16,6 +16,6 @@ export function printInputError(): number {
 }
 
 export function printUsageError(): number {
-  console.error('Usage: llm <request.json>');
+  console.error('Usage: llm <request.json> | llm -p <prompt> | llm -c <prompt> | llm <prompt>');
   return 2;
 }
