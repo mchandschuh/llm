@@ -4,9 +4,9 @@ taskUid: WI-0009-70000000
 orderKey: "70000000"
 parentTaskUid: WI-0009-00000000
 taskType: test-strategy
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Define deterministic chat-session evidence strategy
-objective: Define provider-free tests, fixtures, samples, coverage mappings, evidence ceilings, and implementation gates for every WI-0009 requirement and completed design obligation.
+objective: Define deterministic provider-free tests, fixtures, samples, coverage mappings, evidence ceilings, and implementation gates for every WI-0009 requirement, acceptance criterion, design invariant, design constraint, non-goal, and verification obligation.
 references:
   required:
     - .docs/work-items/WI-0009/work-item.json
@@ -47,96 +47,144 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/result
   intent:
-    summary: Define deterministic evidence for session factory contracts, complete multi-round history replay, interruptible and blocked tool rounds, provider projection, prompt XML, samples, documentation, and package gates.
+    summary: Define complete deterministic evidence for session contracts, history replay, user-message policies, provider projection, prompt XML, samples, documentation, package gates, design correlation, and all declared non-goals.
     inputs:
       - id: INPUT-WORK-ITEM
         kind: requirement
         ref: WI-0009|00000000#work-item/WI-0009
-        purpose: Authoritative WI-0009 requirements, acceptance criteria, non-goals, and scope.
+        purpose: Authoritative requirements, acceptance criteria, scope, and non-goals.
         required: true
       - id: INPUT-DESIGN
         kind: design
         ref: WI-0009|00000000#result/R-001
-        purpose: Completed design result with output, artifact, and verification-obligation correlations.
+        purpose: Completed design result, elements, outputs, artifacts, constraints, and verification obligations.
         required: true
-      - id: INPUT-DESIGN-ARTIFACTS
+      - id: INPUT-DESIGN-REVIEW
         kind: artifact
         ref: WI-0009|00000000#artifact/A-007
-        purpose: Completed design review and implementation evidence boundary.
+        purpose: Completed design review and evidence boundary.
         required: true
     requirements:
       - id: REQ-001
         kind: requirement
-        statement: Cover WI-0009_REQ_001 and WI-0009_REQ_002 for chatFactory, LlmChatProvider, LlmChatSession, AbortSignal, EventSink/DebugEvent, provider pass-through, and default interruption behavior.
+        statement: Cover WI-0009_REQ_001 and acceptance criteria WI-0009_REQ_001_AC_001 and WI-0009_REQ_001_AC_002 for chatFactory, LlmChatProvider, independent LlmChatSession instances, public exports, and independent session state.
         inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
         required: true
       - id: REQ-002
         kind: requirement
-        statement: Cover WI-0009_REQ_003 and WI-0009_REQ_004 for task/taskSchema separation, public/raw messages, assistant/tool ordering, request-3 replay, and tool_call_id correlation.
+        statement: Cover WI-0009_REQ_002 and acceptance criteria WI-0009_REQ_002_AC_001 and WI-0009_REQ_002_AC_002 for AbortSignal, EventSink/DebugEvent, provider pass-through, default interruption false, cancellation, and redaction.
         inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
         required: true
       - id: REQ-003
         kind: requirement
-        statement: Cover WI-0009_REQ_005 and WI-0009_REQ_006 for additional user messages, blocked default behavior, and isolated interrupt behavior.
+        statement: Cover WI-0009_REQ_003 and acceptance criteria WI-0009_REQ_003_AC_001 and WI-0009_REQ_003_AC_002 for task/taskSchema separation, public/raw messages, initial XML context, and provider-neutral roles.
         inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
         required: true
       - id: REQ-004
         kind: requirement
-        statement: Cover WI-0009_REQ_007 and WI-0009_REQ_008 for HTTP projection, request Markdown, prompt XSD, fixtures, and schema validation.
+        statement: Cover WI-0009_REQ_004 and acceptance criteria WI-0009_REQ_004_AC_001 and WI-0009_REQ_004_AC_002 for request-2/request-3 replay, assistant tool calls, tool results, parallel calls, and tool_call_id correlation.
         inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
         required: true
       - id: REQ-005
         kind: requirement
-        statement: Cover WI-0009_REQ_009, WI-0009_REQ_010, and WI-0009_REQ_011 for three samples, non-concurrency/non-goals documentation, TypeScript conventions, and package gates.
+        statement: Cover WI-0009_REQ_005 and acceptance criteria WI-0009_REQ_005_AC_001 and WI-0009_REQ_005_AC_002 for additional user messages, retained prior assistant responses, and no insertion inside an incomplete tool exchange.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        required: true
+      - id: REQ-006
+        kind: requirement
+        statement: Cover WI-0009_REQ_006 and acceptance criteria WI-0009_REQ_006_AC_001 and WI-0009_REQ_006_AC_002 for interruptible and blocked long-running tool rounds, pending work, and deterministic default behavior.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        required: true
+      - id: REQ-007
+        kind: requirement
+        statement: Cover WI-0009_REQ_007 and acceptance criteria WI-0009_REQ_007_AC_001 and WI-0009_REQ_007_AC_002 for the dedicated HTTP projection, request Markdown, field destinations, mocked HTTP bodies, and credential exclusion.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        required: true
+      - id: REQ-008
+        kind: requirement
+        statement: Cover WI-0009_REQ_008 and acceptance criteria WI-0009_REQ_008_AC_001 and WI-0009_REQ_008_AC_002 for llm-prompt.xsd, descriptions, fixtures, generated prompt validation, and exact validation command recording.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        required: true
+      - id: REQ-009
+        kind: requirement
+        statement: Cover WI-0009_REQ_009 and acceptance criteria WI-0009_REQ_009_AC_001, WI-0009_REQ_009_AC_002, and WI-0009_REQ_009_AC_003 for ordinary, interruptible, and blocked executable samples and the sample JSON protocol.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        required: true
+      - id: REQ-010
+        kind: requirement
+        statement: Cover WI-0009_REQ_010 and acceptance criteria WI-0009_REQ_010_AC_001 and WI-0009_REQ_010_AC_002 for caller-enforced non-concurrency and explicit compaction/checkpointing non-goals.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        required: true
+      - id: REQ-011
+        kind: requirement
+        statement: Cover WI-0009_REQ_011 and acceptance criteria WI-0009_REQ_011_AC_001 and WI-0009_REQ_011_AC_002 for strict TypeScript/native ESM conventions, existing vocabularies, dependencies, package gates, declarations, integrity, and changed paths.
         inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
         required: true
     invariants:
       - id: INV-001
-        statement: Every assistant tool-call message precedes matching tool messages and all prior messages are replayed on subsequent provider requests.
+        statement: "C-001 factory/session ownership: chatFactory creates independent sessions and raw LlmProvider remains stateless."
         inputRefs: [INPUT-DESIGN]
         required: true
       - id: INV-002
-        statement: A user message never enters canonical history between an unresolved assistant tool-call message and its tool results.
+        statement: "C-002 context separation: task and taskSchema remain separate while LlmRequest.messages and ProviderCompletionRequest.messages carry ordered history."
         inputRefs: [INPUT-DESIGN]
         required: true
       - id: INV-003
-        statement: Credentials never enter message history, prompts, diagnostics, samples, or durable artifacts.
+        statement: "C-003 history ordering: assistant tool calls precede matching tool messages and complete history is replayed."
         inputRefs: [INPUT-DESIGN]
         required: true
       - id: INV-004
-        statement: Compaction, checkpointing, persistence, and automatic session concurrency controls remain out of scope.
-        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        statement: "C-004 interruption policy: false blocks/defers during active tools and true uses the isolated interrupt branch without canonical history corruption."
+        inputRefs: [INPUT-DESIGN]
+        required: true
+      - id: INV-005
+        statement: "C-005 caller-enforced non-concurrency: the session does not add automatic locks, queues, or concurrent mutation controls."
+        inputRefs: [INPUT-DESIGN]
+        required: true
+      - id: INV-006
+        statement: "C-006 scope boundary: history accumulates without compaction, checkpointing, persistence, memory reduction, or restore behavior."
+        inputRefs: [INPUT-DESIGN, INPUT-WORK-ITEM]
         required: true
     objectives:
       - id: OBJ-CONTRACTS
-        statement: Define executable contract tests for the public session/factory and provider message types.
+        statement: Prove public factory/session/options/message contracts and initial context/history separation.
         inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
-        requirementRefs: [REQ-001, REQ-002]
-        invariantRefs: [INV-001, INV-003]
-      - id: OBJ-LIFECYCLE
-        statement: Define deterministic lifecycle tests for two-round replay, additional users, interruption, blocking, cancellation, and tool failures.
-        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
-        requirementRefs: [REQ-002, REQ-003]
+        requirementRefs: [REQ-001, REQ-002, REQ-003]
         invariantRefs: [INV-001, INV-002]
+      - id: OBJ-LIFECYCLE
+        statement: Prove complete multi-round replay, tool validation/failure/retry, additional users, cancellation, and both tool-round user policies.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        requirementRefs: [REQ-004, REQ-005, REQ-006]
+        invariantRefs: [INV-003, INV-004]
       - id: OBJ-PROJECTION
-        statement: Define mocked HTTP and XML schema evidence for the projection boundary.
+        statement: Prove the OpenRouter HTTP projection, prompt XSD, documentation, file/symbol handoff, and credential boundary.
         inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
-        requirementRefs: [REQ-004]
-        invariantRefs: [INV-001, INV-003]
-      - id: OBJ-SAMPLES-GATES
-        statement: Define sample discovery, documentation, scope, and package validation gates.
+        requirementRefs: [REQ-007, REQ-008]
+        invariantRefs: [INV-002, INV-003]
+      - id: OBJ-SAMPLES-DOCS
+        statement: Prove all three samples, non-concurrency/non-goal documentation, and no forbidden scope expansion.
         inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
-        requirementRefs: [REQ-005]
-        invariantRefs: [INV-004]
+        requirementRefs: [REQ-009, REQ-010]
+        invariantRefs: [INV-005, INV-006]
+      - id: OBJ-GATES
+        statement: Prove TypeScript/ESM quality, package gates, generated declarations, schema validation, formatting, conflict state, and changed-path organization.
+        inputRefs: [INPUT-WORK-ITEM, INPUT-DESIGN]
+        requirementRefs: [REQ-011]
+        invariantRefs: [INV-001, INV-005, INV-006]
+      - id: OBJ-DESIGN-OBLIGATIONS
+        statement: Ensure every completed design verification obligation has a required test or inspection target and an implementation/validation handoff.
+        inputRefs: [INPUT-DESIGN, INPUT-DESIGN-REVIEW]
+        requirementRefs: [REQ-011]
+        invariantRefs: [INV-001, INV-002, INV-003, INV-004, INV-005, INV-006]
     nonGoals:
       - Do not require live provider credentials, network calls, production readiness, or real external tool effects.
-      - Do not define compaction, checkpointing, persistence, or automatic session locking tests.
-      - Do not alter the completed design artifacts; deviations are implementation blockers.
+      - Do not define or test compaction, checkpointing, persistence, memory retrieval, or automatic session locking as implementation behavior.
+      - Do not claim that the strategy itself proves execution; implementation and validation results must provide that evidence.
   result:
     status: defined
     testCases:
@@ -144,59 +192,104 @@ task:
         title: factory creates independent sessions and propagates options
         type: unit
         requirementLevel: required
-        purpose: Prove factory/session ownership, options, signal, event sink, provider, and invoker boundaries.
+        purpose: Prove REQ-001/002, INV-001, and public contract symbols.
         procedure:
           executionMode: executable
           target: public TypeScript session contract
-          steps: [Create two sessions, inspect independent histories/options, invoke deterministic turns, and inspect events.]
+          steps: [Create two sessions, inspect independent histories/options, inject signal/event/provider/tool doubles, and inspect redacted events.]
           command: npm test
-        expectedOutcome: Sessions are independent and options reach the intended layers.
-        passCriteria: All public contract and propagation assertions pass.
+        expectedOutcome: Independent sessions expose the documented public contract and option propagation.
+        passCriteria: All factory, options, signal, event, provider, and redaction assertions pass.
         evidenceTier: unit
         fixtureRefs: [FIX-SESSION]
+        limitations: [Provider-free evidence only.]
+      - id: TC-TASK-MESSAGE-SEPARATION
+        title: task context remains separate from conversation messages
+        type: unit
+        requirementLevel: required
+        purpose: Prove REQ-003 and INV-002.
+        procedure:
+          executionMode: executable
+          target: LlmRequest and ProviderCompletionRequest boundaries
+          steps: [Build task/taskSchema/files/outputSchema context, append user/assistant/tool messages, capture the raw provider request, and assert independent fields.]
+          command: npm test
+        expectedOutcome: Initial XML context and ordered messages remain separate and role-specific.
+        passCriteria: No tool result is embedded in initial XML and all message roles remain distinct.
+        evidenceTier: unit
+        fixtureRefs: [FIX-SESSION, FIX-HISTORY]
         limitations: [Provider-free evidence only.]
       - id: TC-HISTORY-REPLAY
         title: two tool rounds replay complete assistant and tool history
         type: unit
         requirementLevel: required
-        purpose: Prove request 2/request 3 ordering and exact call/result correlation.
+        purpose: Prove REQ-004 and INV-003.
         procedure:
           executionMode: executable
           target: session history and provider request capture
-          steps: [Return two tool-call responses, execute tools, capture provider requests, and assert request 3 role sequence.]
+          steps: [Return two tool-call responses, execute tools, capture provider requests, and assert request 3 system/user/assistant/tool/assistant/tool order, IDs, arguments, and results.]
           command: npm test
-        expectedOutcome: Request 3 contains both assistant/tool pairs and all prior messages.
-        passCriteria: Assistant IDs, arguments, tool_call_id values, and ordering match the design fixture.
+        expectedOutcome: Request 3 contains both complete assistant/tool pairs and all prior messages.
+        passCriteria: Role ordering, call IDs, arguments, tool_call_id correlation, and parallel-call grouping match the design fixture.
         evidenceTier: unit
         fixtureRefs: [FIX-HISTORY]
         limitations: [Mocked provider only.]
+      - id: TC-TOOL-VALIDATION-RETRY
+        title: tool validation, failures, cancellation, and retry do not corrupt history
+        type: component
+        requirementLevel: required
+        purpose: Prove REQ-004/006 and INV-003/004 under invalid calls, tool failures, cancellation, and provider retry.
+        procedure:
+          executionMode: executable
+          target: tool lifecycle and session history
+          steps: [Exercise unknown tools, malformed arguments, duplicate IDs, bounded errors, provider retry, abort, and successful continuation; inspect history after each case.]
+          command: npm test
+        expectedOutcome: Invalid calls do not enter history, failures produce matching bounded tool messages, and retries do not duplicate entries.
+        passCriteria: All fail-closed, redaction, cancellation, and retry assertions pass.
+        evidenceTier: component
+        fixtureRefs: [FIX-SESSION, FIX-HISTORY]
+        limitations: [Provider-free evidence only.]
+      - id: TC-ADDITIONAL-USER
+        title: additional user messages follow completed assistant turns
+        type: unit
+        requirementLevel: required
+        purpose: Prove REQ-005 and INV-003/004.
+        procedure:
+          executionMode: executable
+          target: canonical session turn lifecycle
+          steps: [Complete a first assistant turn, append a second user message, capture the next request, and assert prior assistant history precedes the new user message.]
+          command: npm test
+        expectedOutcome: Later user messages see prior assistant/tool history and never enter an incomplete tool exchange.
+        passCriteria: Canonical history order and provider request order match the state model.
+        evidenceTier: unit
+        fixtureRefs: [FIX-HISTORY]
+        limitations: [Provider-free evidence only.]
       - id: TC-USER-POLICIES
         title: blocked and interruptible user-message policies are deterministic
         type: component
         requirementLevel: required
-        purpose: Prove false blocks/defers and true uses an isolated interrupt branch without canonical history corruption.
+        purpose: Prove REQ-006 and INV-004.
         procedure:
           executionMode: executable
           target: LlmChatSession long-running-tool lifecycle
-          steps: [Run the same delayed tool under both option values, submit a user message during the tool, inspect response/history/events, and wait for completion.]
+          steps: [Run the same delayed tool under false and true option values, submit a user message during the tool, inspect branch/canonical history/events, and await completion.]
           command: npm test
-        expectedOutcome: Both policies preserve assistant/tool ordering and produce their documented result.
-        passCriteria: No user message appears inside an incomplete canonical tool exchange.
-        evidenceTier: unit
+        expectedOutcome: False blocks/defers without mutation; true returns an isolated response while canonical tool work continues.
+        passCriteria: No user message appears inside an incomplete canonical tool exchange and pending work remains observable.
+        evidenceTier: component
         fixtureRefs: [FIX-LONG-TOOL]
         limitations: [Bounded local delay only.]
       - id: TC-PROJECTION
         title: OpenRouter projection includes complete messages and excludes secrets
         type: unit
         requirementLevel: required
-        purpose: Prove model, reasoning, tools, assistant calls, tool results, files, and credentials mapping.
+        purpose: Prove REQ-007 and VER-004.
         procedure:
           executionMode: executable
           target: OpenRouterHttpProjection and mocked fetch
-          steps: [Project captured requests, inspect request 3 JSON, validate role sequence, and assert credentials are absent from body.]
+          steps: [Project captured requests, inspect request 3 JSON, validate role sequence and all field destinations, and assert credentials are absent from body/history/events.]
           command: npm test
         expectedOutcome: HTTP bodies follow the projection design exactly.
-        passCriteria: Every projection mapping assertion passes.
+        passCriteria: Every field mapping and credential-exclusion assertion passes.
         evidenceTier: unit
         fixtureRefs: [FIX-HISTORY]
         limitations: [Does not establish provider acceptance.]
@@ -204,32 +297,89 @@ task:
         title: generated prompt XML validates against the prompt XSD
         type: unit
         requirementLevel: required
-        purpose: Prove the generated XML structure and documented descriptions are aligned.
+        purpose: Prove REQ-008 and VER-005.
         procedure:
           executionMode: executable
           target: prompt generator, XSD, and XML fixtures
-          steps: [Generate valid prompt variants, validate positive fixtures, validate negative fixtures, and inspect XSD documentation annotations.]
+          steps: [Generate valid prompt variants, validate positive fixtures, validate negative ordering/attribute/encoding fixtures, and inspect XSD documentation annotations.]
           command: schema-validate schemas/prompt/v1/llm-prompt.xsd
         expectedOutcome: Positive fixtures validate and negative fixtures fail for the declared reasons.
         passCriteria: XML schema validation and fixture assertions pass.
         evidenceTier: static
         fixtureRefs: [FIX-PROMPT]
         limitations: [JSON Schema semantics inside CDATA remain separately validated.]
-      - id: TC-SAMPLES-GATES
-        title: samples, documentation, and package gates pass
+      - id: TC-SAMPLES
+        title: all three required chat samples execute and assert behavior
         type: integration
         requirementLevel: required
-        purpose: Prove all three chat samples execute and repository gates remain clean.
+        purpose: Prove REQ-009 and VER-006.
         procedure:
           executionMode: executable
-          target: samples/, tests/samples.test.ts, package, and documentation
-          steps: [Run typecheck, tests, build, sample discovery, diff check, conflict scan, declaration inspection, and changed-path review.]
+          target: three chat samples and sample discovery harness
+          steps: [Run ordinary conversation, interruptible tool, and blocked tool samples; inspect one JSON envelope per sample and policy assertions.]
+          command: npm run build && node --test --import tsx tests/samples.test.ts
+        expectedOutcome: All three new samples and all existing samples pass without stderr.
+        passCriteria: Sample IDs, ok fields, feature fields, histories, timings, and policy assertions pass.
+        evidenceTier: integration
+        fixtureRefs: [FIX-LONG-TOOL, FIX-REPOSITORY]
+        limitations: [Provider-free local evidence.]
+      - id: TC-DOCS-NONGOALS
+        title: non-concurrency and non-goal documentation remains explicit
+        type: inspection
+        requirementLevel: required
+        purpose: Prove REQ-010, INV-005/006, and VER-007.
+        procedure:
+          executionMode: inspection
+          target: README.md, SKILL.md, task records, and source scan
+          steps: [Search for caller-enforced non-concurrency, compaction/checkpointing exclusions, persistence/memory claims, and automatic locking; inspect changed paths.]
+        expectedOutcome: Documentation states the assumption and no forbidden implementation concepts are introduced.
+        passCriteria: Required documentation exists and forbidden scope is absent or explicitly non-goal-only.
+        evidenceTier: inspection
+        fixtureRefs: [FIX-REPOSITORY]
+        limitations: [Static inspection only.]
+      - id: TC-TYPESCRIPT-GATES
+        title: TypeScript, ESM, declarations, formatting, and package gates pass
+        type: cli
+        requirementLevel: required
+        purpose: Prove REQ-011, INV-001/005/006, and VER-008.
+        procedure:
+          executionMode: executable
+          target: repository package and generated declarations
+          steps: [Run typecheck/tests/build, inspect declarations, run schema validation, diff check, conflict scan, changed-path audit, dependency audit, and folder organization review.]
           command: npm run typecheck && npm test && npm run build
-        expectedOutcome: Package and all discovered samples pass without unrelated changes.
-        passCriteria: All commands exit zero and scope/non-goal scans pass.
+        expectedOutcome: Package and all declared artifacts pass repository conventions and gates.
+        passCriteria: All commands exit zero and no formatting, declaration, dependency, conflict, or ownership issues remain.
         evidenceTier: cli-audit
         fixtureRefs: [FIX-REPOSITORY]
         limitations: [Provider-free local evidence.]
+      - id: TC-DESIGN-CORRELATION
+        title: every design obligation and output has executable test handoff
+        type: inspection
+        requirementLevel: required
+        purpose: Prove OBJ-DESIGN-OBLIGATIONS and VER-001 through VER-009 coverage.
+        procedure:
+          executionMode: inspection
+          target: design result, strategy coverage, implementation tasks, and validation task
+          steps: [Index every OUT/E/REL/A/VER ID, assert each VER appears in a test case/coverage row, assert each OUT has verificationRefs, assert every verification has an artifact/file target, and assert validation procedures consume every required case/obligation.]
+        expectedOutcome: No design output, verification obligation, requirement, invariant, or test case is orphaned.
+        passCriteria: Coverage audit reports zero unmapped IDs.
+        evidenceTier: static
+        fixtureRefs: [FIX-REPOSITORY]
+        limitations: [This proves task/test traceability, not runtime behavior.]
+      - id: TC-FILE-ORGANIZATION
+        title: implementation symbols and files follow the design handoff
+        type: inspection
+        requirementLevel: required
+        purpose: Prove REQ-011 and VER-001/008 against planned and actual file/symbol locations.
+        procedure:
+          executionMode: inspection
+          target: TypeScript implementation handoff and repository tree
+          steps: [Resolve every planned source path/symbol, inspect test/sample/schema folder placement, compare implementation owned paths with task ownership, and record any deviation as a blocker.]
+        expectedOutcome: Files and public symbols are discoverable in the designed structure or processing halts for clarification.
+        passCriteria: All planned locations resolve or an explicit design deviation record blocks acceptance.
+        evidenceTier: inspection
+        fixtureRefs: [FIX-REPOSITORY]
+        limitations: [Path/symbol inspection only until implementation exists.]
     fixtures:
       - id: FIX-SESSION
         name: session-contract-fixtures
@@ -257,35 +407,167 @@ task:
         sourceRefs: [WI-0009|00000000#result/R-001]
       - id: FIX-REPOSITORY
         name: repository-gate-fixture
-        purpose: Package, generated declaration, sample, documentation, and changed-path audit boundary.
+        purpose: Package, generated declaration, sample, documentation, design-correlation, and changed-path audit boundary.
         setup: Run commands from repository root with provider/network disabled.
         teardown: Preserve only task evidence.
         sourceRefs: [WI-0009|00000000#work-item/WI-0009, WI-0009|00000000#result/R-001]
     coverage:
-      - id: COV-CONTRACTS
-        requirementRefs: [REQ-001, REQ-002]
+      - id: COV-REQ-001
+        requirementRefs: [REQ-001]
+        invariantRefs: [INV-001]
+        objectiveRefs: [OBJ-CONTRACTS]
+        testCaseRefs: [TC-FACTORY-CONTRACT]
+        rationale: Factory/session export and independent-state assertions cover both acceptance criteria.
+      - id: COV-REQ-002
+        requirementRefs: [REQ-002]
         invariantRefs: [INV-001, INV-003]
         objectiveRefs: [OBJ-CONTRACTS]
-        testCaseRefs: [TC-FACTORY-CONTRACT, TC-HISTORY-REPLAY]
-        rationale: Public contracts and complete history are tested through injected providers and captured requests.
-      - id: COV-LIFECYCLE
+        testCaseRefs: [TC-FACTORY-CONTRACT]
+        rationale: Option propagation, event/cancellation, and redaction assertions cover both acceptance criteria.
+      - id: COV-REQ-003
         requirementRefs: [REQ-003]
-        invariantRefs: [INV-001, INV-002]
-        objectiveRefs: [OBJ-LIFECYCLE]
-        testCaseRefs: [TC-USER-POLICIES]
-        rationale: Both user-message policies and long-running tool behavior have dedicated evidence.
-      - id: COV-PROJECTION
+        invariantRefs: [INV-002]
+        objectiveRefs: [OBJ-CONTRACTS]
+        testCaseRefs: [TC-TASK-MESSAGE-SEPARATION]
+        rationale: Dedicated context/history boundary assertions cover both acceptance criteria.
+      - id: COV-REQ-004
         requirementRefs: [REQ-004]
-        invariantRefs: [INV-001, INV-003]
-        objectiveRefs: [OBJ-PROJECTION]
-        testCaseRefs: [TC-PROJECTION, TC-PROMPT-XSD]
-        rationale: HTTP and XML contracts are independently captured and validated.
-      - id: COV-SAMPLES-GATES
+        invariantRefs: [INV-003]
+        objectiveRefs: [OBJ-LIFECYCLE]
+        testCaseRefs: [TC-HISTORY-REPLAY, TC-TOOL-VALIDATION-RETRY, TC-PROJECTION]
+        rationale: Replay, tool lifecycle, parallel calls, and wire projection cover both acceptance criteria.
+      - id: COV-REQ-005
         requirementRefs: [REQ-005]
+        invariantRefs: [INV-003, INV-004]
+        objectiveRefs: [OBJ-LIFECYCLE]
+        testCaseRefs: [TC-ADDITIONAL-USER, TC-USER-POLICIES]
+        rationale: Later canonical turns and active-round ordering are tested separately.
+      - id: COV-REQ-006
+        requirementRefs: [REQ-006]
         invariantRefs: [INV-004]
-        objectiveRefs: [OBJ-SAMPLES-GATES]
-        testCaseRefs: [TC-SAMPLES-GATES]
-        rationale: Samples, documentation, non-goals, and package gates are covered together.
-    minimumRequiredTestCaseRefs: [TC-FACTORY-CONTRACT, TC-HISTORY-REPLAY, TC-USER-POLICIES, TC-PROJECTION, TC-PROMPT-XSD, TC-SAMPLES-GATES]
+        objectiveRefs: [OBJ-LIFECYCLE]
+        testCaseRefs: [TC-USER-POLICIES, TC-SAMPLES]
+        rationale: Component tests and both required long-running samples cover both policies.
+      - id: COV-REQ-007
+        requirementRefs: [REQ-007]
+        invariantRefs: [INV-002, INV-003]
+        objectiveRefs: [OBJ-PROJECTION]
+        testCaseRefs: [TC-PROJECTION]
+        rationale: Projection body and documentation assertions cover both acceptance criteria.
+      - id: COV-REQ-008
+        requirementRefs: [REQ-008]
+        invariantRefs: [INV-002]
+        objectiveRefs: [OBJ-PROJECTION]
+        testCaseRefs: [TC-PROMPT-XSD]
+        rationale: XSD documentation and positive/negative fixture validation cover both acceptance criteria.
+      - id: COV-REQ-009
+        requirementRefs: [REQ-009]
+        invariantRefs: [INV-004]
+        objectiveRefs: [OBJ-SAMPLES-DOCS]
+        testCaseRefs: [TC-SAMPLES]
+        rationale: Sample discovery and three sample assertions cover all three acceptance criteria.
+      - id: COV-REQ-010
+        requirementRefs: [REQ-010]
+        invariantRefs: [INV-005, INV-006]
+        objectiveRefs: [OBJ-SAMPLES-DOCS]
+        testCaseRefs: [TC-DOCS-NONGOALS, TC-USER-POLICIES]
+        rationale: Documentation scan and user-policy tests cover assumption and non-goals.
+      - id: COV-REQ-011
+        requirementRefs: [REQ-011]
+        invariantRefs: [INV-001, INV-005, INV-006]
+        objectiveRefs: [OBJ-GATES]
+        testCaseRefs: [TC-TYPESCRIPT-GATES, TC-FILE-ORGANIZATION]
+        rationale: Package, declaration, format, dependency, and organization checks cover both acceptance criteria.
+      - id: COV-INV-001
+        requirementRefs: [REQ-001, REQ-002]
+        invariantRefs: [INV-001]
+        objectiveRefs: [OBJ-CONTRACTS, OBJ-GATES]
+        testCaseRefs: [TC-FACTORY-CONTRACT, TC-TYPESCRIPT-GATES]
+        rationale: Public ownership and raw-provider statelessness are tested and inspected.
+      - id: COV-INV-002
+        requirementRefs: [REQ-003, REQ-007]
+        invariantRefs: [INV-002]
+        objectiveRefs: [OBJ-CONTRACTS, OBJ-PROJECTION]
+        testCaseRefs: [TC-TASK-MESSAGE-SEPARATION, TC-PROJECTION]
+        rationale: Context separation is tested at both request and wire boundaries.
+      - id: COV-INV-003
+        requirementRefs: [REQ-004, REQ-007]
+        invariantRefs: [INV-003]
+        objectiveRefs: [OBJ-LIFECYCLE, OBJ-PROJECTION]
+        testCaseRefs: [TC-HISTORY-REPLAY, TC-TOOL-VALIDATION-RETRY, TC-PROJECTION]
+        rationale: Ordering, retry, and serialized HTTP history tests share this invariant.
+      - id: COV-INV-004
+        requirementRefs: [REQ-005, REQ-006]
+        invariantRefs: [INV-004]
+        objectiveRefs: [OBJ-LIFECYCLE, OBJ-SAMPLES-DOCS]
+        testCaseRefs: [TC-ADDITIONAL-USER, TC-USER-POLICIES, TC-SAMPLES]
+        rationale: Canonical and interrupt branch behavior is tested at unit, component, and sample levels.
+      - id: COV-INV-005
+        requirementRefs: [REQ-010, REQ-011]
+        invariantRefs: [INV-005]
+        objectiveRefs: [OBJ-SAMPLES-DOCS, OBJ-GATES]
+        testCaseRefs: [TC-USER-POLICIES, TC-DOCS-NONGOALS, TC-FILE-ORGANIZATION]
+        rationale: Public assumption, documentation, and organization checks cover non-concurrency.
+      - id: COV-INV-006
+        requirementRefs: [REQ-010, REQ-011]
+        invariantRefs: [INV-006]
+        objectiveRefs: [OBJ-SAMPLES-DOCS, OBJ-GATES]
+        testCaseRefs: [TC-DOCS-NONGOALS, TC-TYPESCRIPT-GATES]
+        rationale: Scope scans and package checks prevent forbidden persistence/compaction/checkpoint behavior.
+      - id: COV-VER-001
+        requirementRefs: [REQ-001, REQ-002, REQ-011]
+        invariantRefs: [INV-001]
+        objectiveRefs: [OBJ-CONTRACTS, OBJ-DESIGN-OBLIGATIONS]
+        testCaseRefs: [TC-FACTORY-CONTRACT, TC-FILE-ORGANIZATION]
+        rationale: Public contract and handoff completeness are independently inspected.
+      - id: COV-VER-002
+        requirementRefs: [REQ-004]
+        invariantRefs: [INV-003]
+        objectiveRefs: [OBJ-LIFECYCLE, OBJ-DESIGN-OBLIGATIONS]
+        testCaseRefs: [TC-HISTORY-REPLAY, TC-PROJECTION]
+        rationale: State and wire tests verify provider-valid assistant/tool sequencing.
+      - id: COV-VER-003
+        requirementRefs: [REQ-006]
+        invariantRefs: [INV-004]
+        objectiveRefs: [OBJ-LIFECYCLE]
+        testCaseRefs: [TC-USER-POLICIES, TC-SAMPLES]
+        rationale: Both long-running policy modes are exercised.
+      - id: COV-VER-004
+        requirementRefs: [REQ-007]
+        invariantRefs: [INV-002, INV-003]
+        objectiveRefs: [OBJ-PROJECTION]
+        testCaseRefs: [TC-PROJECTION]
+        rationale: Mocked bodies and projection documentation are checked together.
+      - id: COV-VER-005
+        requirementRefs: [REQ-008]
+        invariantRefs: [INV-002]
+        objectiveRefs: [OBJ-PROJECTION]
+        testCaseRefs: [TC-PROMPT-XSD]
+        rationale: XSD structure, descriptions, and generated XML are validated.
+      - id: COV-VER-006
+        requirementRefs: [REQ-009]
+        invariantRefs: [INV-004]
+        objectiveRefs: [OBJ-SAMPLES-DOCS]
+        testCaseRefs: [TC-SAMPLES]
+        rationale: Sample discovery proves all three executable examples.
+      - id: COV-VER-007
+        requirementRefs: [REQ-010]
+        invariantRefs: [INV-005, INV-006]
+        objectiveRefs: [OBJ-SAMPLES-DOCS]
+        testCaseRefs: [TC-DOCS-NONGOALS, TC-FILE-ORGANIZATION]
+        rationale: Scope scans inspect non-concurrency and forbidden concepts.
+      - id: COV-VER-008
+        requirementRefs: [REQ-011]
+        invariantRefs: [INV-001, INV-005, INV-006]
+        objectiveRefs: [OBJ-GATES, OBJ-DESIGN-OBLIGATIONS]
+        testCaseRefs: [TC-TYPESCRIPT-GATES, TC-DESIGN-CORRELATION]
+        rationale: Package gates and design/task graph integrity are both checked.
+      - id: COV-VER-009
+        requirementRefs: [REQ-006, REQ-010]
+        invariantRefs: [INV-004, INV-005]
+        objectiveRefs: [OBJ-LIFECYCLE, OBJ-DESIGN-OBLIGATIONS]
+        testCaseRefs: [TC-USER-POLICIES, TC-DESIGN-CORRELATION]
+        rationale: Interrupt design decision is checked against the state model, samples, and task handoff.
+    minimumRequiredTestCaseRefs: [TC-FACTORY-CONTRACT, TC-TASK-MESSAGE-SEPARATION, TC-HISTORY-REPLAY, TC-TOOL-VALIDATION-RETRY, TC-ADDITIONAL-USER, TC-USER-POLICIES, TC-PROJECTION, TC-PROMPT-XSD, TC-SAMPLES, TC-DOCS-NONGOALS, TC-TYPESCRIPT-GATES, TC-DESIGN-CORRELATION, TC-FILE-ORGANIZATION]
     recommendedTestCaseRefs: []
     evidenceLimitations: [Strategy evidence is provider-free and does not establish production, deployment, persistence, compaction, checkpointing, or authenticated provider behavior.]
