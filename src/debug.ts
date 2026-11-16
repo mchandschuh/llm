@@ -15,7 +15,10 @@ const MAX_OBJECT_KEYS = 40;
 
 function sanitize(value: unknown, depth = 0): unknown {
   if (depth > 4) return '[truncated]';
-  if (typeof value === 'string') return value.length > MAX_STRING_LENGTH ? `${value.slice(0, MAX_STRING_LENGTH)}…[truncated]` : value;
+  if (typeof value === 'string') {
+    const sanitized = value.replace(/(["'](?:api.?key|access.?token|authorization|credential|secret|password)["']\s*:\s*["'])[^"']*(["'])/gi, '$1[redacted]$2');
+    return sanitized.length > MAX_STRING_LENGTH ? `${sanitized.slice(0, MAX_STRING_LENGTH)}…[truncated]` : sanitized;
+  }
   if (typeof value === 'number' || typeof value === 'boolean' || value === null) return value;
   if (Array.isArray(value)) return value.slice(0, MAX_ARRAY_ITEMS).map((item) => sanitize(item, depth + 1));
   if (typeof value === 'object') {

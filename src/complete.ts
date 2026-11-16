@@ -3,7 +3,7 @@ import { OpenRouterProvider } from './provider.js';
 import { assertMatchesSchema, parseSchema, validateResponse } from './schema.js';
 import { boundedMessage, errorFromFailure, LlmFailure } from './errors.js';
 import { normalizeRequest } from './normalize.js';
-import type { CompletionOptions, LlmError, LlmOutput, LlmRequest, LlmResponse, LlmProvider, NormalizedRequest, ProviderCompletionResponse, ToolCall, ToolCalls, ToolResult } from './types.js';
+import type { CompletionOptions, LlmAssistantMessage, LlmError, LlmOutput, LlmRequest, LlmResponse, LlmProvider, LlmToolMessage, LlmChatMessage, NormalizedRequest, ProviderCompletionResponse, ToolCall, ToolCalls, ToolResult } from './types.js';
 import { RESPONSE_SCHEMA } from './types.js';
 import { LlmFailure as Failure } from './errors.js';
 import { emitDebug } from './debug.js';
@@ -54,6 +54,41 @@ function toolFailure(code: string, message: string, phase: LlmError['phase'] = '
 
 function toolCallCount(calls: ToolCalls): number {
   return calls.reduce((total, batch) => total + batch.length, 0);
+}
+
+function initialMessages(request: NormalizedRequest, prompt: string): LlmChatMessage[] {
+  return [
+    { role: 'system', content: request.systemPrompt.value },
+    { role: 'user', content: prompt },
+    ...request.messages,
+  ];
+}
+
+function assistantMessage(providerResult: ProviderCompletionResponse): LlmAssistantMessage {
+  return {
+    role: 'assistant',
+    content: providerResult.content,
+    toolCalls: providerResult.toolCalls.flat(),
+  };
+}
+
+function toolMessage(call: ToolCall, result: ToolResult): LlmToolMessage {
+  const content = result.status === 'error'
+    ? JSON.stringify({ error: { code: result.error?.code ?? 'TOOL_INVOCATION_FAILED', message: boundedMessage(result.error?.message ?? 'The tool invocation failed.').slice(0, 400) } })
+    : JSON.stringify(result.value);
+  return {
+    role: 'tool',
+    toolCallId: call.id,
+    content,
+  };
+}
+
+function emitMessage(options: CompletionOptions, message: LlmChatMessage): void {
+  try {
+    options.messageSink?.(message);
+  } catch {
+    // Session history observers must not change completion behavior.
+  }
 }
 
 function validateToolCalls(request: NormalizedRequest, calls: ToolCalls, completedRounds: number): void {
@@ -136,6 +171,7 @@ async function completeToolInternalImpl(request: LlmRequest | unknown, options: 
   let toolRounds = 0;
   let totalToolCalls = 0;
   let prompt = composeRequestPrompt(normalized as unknown as NormalizedRequest);
+  const messages = initialMessages(normalized, prompt);
   let toolResults: ToolResult[] = [];
   const completedToolResults: ToolResult[] = [];
   const outputSchema = normalized.outputSchema ? parseSchema(normalized.outputSchema) : undefined;
@@ -148,7 +184,7 @@ async function completeToolInternalImpl(request: LlmRequest | unknown, options: 
     }
     let providerResult: ProviderCompletionResponse;
     try {
-      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials, signal: options.signal, toolOptions: normalized.toolOptions, toolResults };
+      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, task: normalized.task, taskSchema: normalized.taskSchema, messages: messages.slice(), files: normalized.files, credentials: normalized.credentials, signal: options.signal, toolOptions: normalized.toolOptions, toolResults };
       emitDebug(options.debug, 'llm.request', request);
       emitDebug(options.debug, 'llm.provider.request', providerRequest);
       providerResult = await provider.complete(providerRequest);
@@ -189,6 +225,9 @@ async function completeToolInternalImpl(request: LlmRequest | unknown, options: 
       const count = toolCallCount(calls);
       if (totalToolCalls + count > normalized.toolOptions.maxCalls) return toolResponse('unvalidated', null, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, [toolFailure('TOOL_CALL_INVALID', 'The tool-call count would exceed the configured limit.')]);
       totalToolCalls += count;
+      const assistant = assistantMessage(providerResult);
+      messages.push(assistant);
+      emitMessage(options, assistant);
       if (!normalized.toolOptions.autoInvoke) return toolResponse('tool_calls_pending', toolAwareOutput({ output: null, tool_calls: calls }), failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, []);
       toolResults = [];
       for (let batchIndex = 0; batchIndex < calls.length; batchIndex += 1) {
@@ -198,7 +237,16 @@ async function completeToolInternalImpl(request: LlmRequest | unknown, options: 
           completeCancellation(options, 'before-tool-batch', iterations, toolRounds, totalToolCalls);
           return result;
         }
-        toolResults.push(...await invokeParallelToolBatch(normalized, options, calls[batchIndex]!, toolRounds, batchIndex));
+        const batchResults = await invokeParallelToolBatch(normalized, options, calls[batchIndex]!, toolRounds, batchIndex);
+        toolResults.push(...batchResults);
+        for (const [index, result] of batchResults.entries()) {
+          const call = calls[batchIndex]![index];
+          if (call) {
+            const message = toolMessage(call, result);
+            messages.push(message);
+            emitMessage(options, message);
+          }
+        }
       }
       completedToolResults.push(...toolResults);
       if (options.signal?.aborted) {
@@ -217,9 +265,13 @@ async function completeToolInternalImpl(request: LlmRequest | unknown, options: 
     }
     try {
       const text = providerResult.content ?? '';
-      if (!outputSchema) return toolResponse('success', { $type: 'string', schema: null, value: text }, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, []);
+      if (!outputSchema) {
+        emitMessage(options, { role: 'assistant', content: text, toolCalls: [] });
+        return toolResponse('success', { $type: 'string', schema: null, value: text }, failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, []);
+      }
       const parsed = JSON.parse(text) as unknown;
       assertMatchesSchema(parsed, outputSchema, 'OUTPUT_SCHEMA_VALIDATION_FAILED', 'output-validation');
+      emitMessage(options, { role: 'assistant', content: text, toolCalls: [] });
       return toolResponse('success', toolAwareOutput({ output: parsed, tool_calls: [] }), failedAttempts, iterations, toolRounds, totalToolCalls, completedToolResults, []);
     } catch (error) {
       const failure = error instanceof Failure ? error : new Failure('OUTPUT_INVALID', 'output-validation', 'Provider output did not satisfy the configured output schema.');
@@ -267,7 +319,7 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
   while (iterations < normalized.maxIterations) {
     let raw: string;
     try {
-      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, files: normalized.files, credentials: normalized.credentials };
+      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, task: normalized.task, taskSchema: normalized.taskSchema, messages: initialMessages(normalized, prompt), files: normalized.files, credentials: normalized.credentials, signal: options.signal };
       emitDebug(options.debug, 'llm.request', request);
       emitDebug(options.debug, 'llm.provider.request', providerRequest);
       raw = (await provider.complete(providerRequest)).content ?? '';

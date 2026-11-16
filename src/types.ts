@@ -49,8 +49,33 @@ export interface LlmRequest {
   readonly taskSchema?: InlineJsonSchema;
   readonly files?: readonly ReferenceFile[];
   readonly outputSchema?: InlineJsonSchema;
+  readonly messages?: readonly LlmChatMessage[];
   readonly toolOptions?: ToolOptions;
 }
+
+export interface LlmSystemMessage {
+  readonly role: 'system';
+  readonly content: string;
+}
+
+export interface LlmUserMessage {
+  readonly role: 'user';
+  readonly content: string;
+}
+
+export interface LlmAssistantMessage {
+  readonly role: 'assistant';
+  readonly content: string | null;
+  readonly toolCalls: readonly ToolCall[];
+}
+
+export interface LlmToolMessage {
+  readonly role: 'tool';
+  readonly toolCallId: string;
+  readonly content: string;
+}
+
+export type LlmChatMessage = LlmSystemMessage | LlmUserMessage | LlmAssistantMessage | LlmToolMessage;
 
 /**
  * @see schemas/tool-definition/v1/tool-definition.schema.json
@@ -127,6 +152,7 @@ export interface NormalizedRequest {
   readonly taskSchema?: InlineJsonSchema;
   readonly files: readonly (ReferenceFile & { readonly encoding: FileEncoding; readonly content: string; readonly resolvedPath: string })[];
   readonly outputSchema?: InlineJsonSchema;
+  readonly messages: readonly LlmChatMessage[];
   readonly toolOptions?: NormalizedToolOptions;
   readonly configurationRoot: string;
 }
@@ -144,6 +170,9 @@ export interface ProviderCompletionRequestBase {
   readonly thinking: Thinking;
   readonly systemPrompt: string;
   readonly llmPrompt: string;
+  readonly task: TaskValue;
+  readonly taskSchema?: InlineJsonSchema;
+  readonly messages: readonly LlmChatMessage[];
   readonly files: readonly (ReferenceFile & { readonly encoding: FileEncoding; readonly content: string; readonly resolvedPath: string })[];
   readonly credentials?: Credentials;
   readonly signal?: AbortSignal;
@@ -176,6 +205,34 @@ export interface ToolInvocationContext {
 
 export interface ToolInvoker {
   invoke(call: ToolCall, context: ToolInvocationContext): Promise<unknown>;
+}
+
+export interface ChatFactoryCreateSessionOptions {
+  readonly request?: LlmRequest;
+  readonly provider?: LlmProvider;
+  readonly toolInvoker?: ToolInvoker;
+  readonly signal?: AbortSignal;
+  readonly eventSink?: import('./debug.js').DebugSink;
+  readonly userMessageInterruptsToolRound?: boolean;
+  readonly configurationRoot?: string;
+}
+
+export interface LlmChatTurn {
+  readonly response: LlmResponse;
+  readonly interrupted?: boolean;
+  readonly blocked?: boolean;
+  readonly history: readonly LlmChatMessage[];
+}
+
+export interface LlmChatSession {
+  readonly history: readonly LlmChatMessage[];
+  sendUserMessage(message: string): Promise<LlmChatTurn>;
+  complete(): Promise<LlmChatTurn>;
+  appendMessage(message: LlmChatMessage): void;
+}
+
+export interface LlmChatProvider {
+  createSession(options?: ChatFactoryCreateSessionOptions): LlmChatSession;
 }
 
 /** @see schemas/response/v1/response.schema.json */
@@ -293,6 +350,7 @@ export interface CompletionOptions {
   readonly debug?: import('./debug.js').DebugSink;
   readonly toolInvoker?: ToolInvoker;
   readonly signal?: AbortSignal;
+  readonly messageSink?: (message: LlmChatMessage) => void;
 }
 
 /** @see schemas/request/v1/request.schema.json */

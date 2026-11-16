@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 import { assertRequestShape, parseSchema } from './schema.js';
 import { resolveRequiredFile, resolveSource } from './source.js';
 import { LlmFailure } from './errors.js';
-import type { LlmRequest, NormalizedRequest, NormalizedToolOptions, ReferenceFile, Thinking } from './types.js';
+import type { LlmChatMessage, LlmRequest, NormalizedRequest, NormalizedToolOptions, ReferenceFile, Thinking } from './types.js';
 
 const DEFAULTS = {
   provider: 'openrouter',
@@ -37,8 +37,14 @@ function inlineSchema(value: unknown, name: string): Record<string, unknown> | u
 }
 
 export async function normalizeRequest(value: unknown, options: { readonly configurationFilePath?: string; readonly configurationRoot?: string } = {}): Promise<NormalizedRequest> {
-  assertRequestShape(value);
+  if (value && typeof value === 'object' && 'messages' in value) {
+    const { messages: _messages, ...requestWithoutMessages } = value as Record<string, unknown>;
+    assertRequestShape(requestWithoutMessages);
+  } else {
+    assertRequestShape(value);
+  }
   const request = value as unknown as LlmRequest;
+  validateMessages(request.messages ?? []);
   const root = resolve(options.configurationRoot ?? (options.configurationFilePath ? resolve(options.configurationFilePath, '..') : process.cwd()));
   const task = typeof request.task === 'string' ? (await resolveSource(request.task, root)).value : request.task;
   const systemPrompt = await resolveSource(request.systemPrompt, root);
@@ -62,9 +68,28 @@ export async function normalizeRequest(value: unknown, options: { readonly confi
     taskSchema,
     files,
     outputSchema,
+    messages: request.messages ?? [],
     ...(request.toolOptions ? { toolOptions: await normalizeToolOptions(request.toolOptions) } : {}),
     configurationRoot: root,
   };
+}
+
+function validateMessages(messages: readonly LlmChatMessage[]): void {
+  if (!Array.isArray(messages)) throw new LlmFailure('REQUEST_INVALID', 'request', 'messages must be an array.');
+  for (const message of messages) {
+    if (!message || typeof message !== 'object' || !['system', 'user', 'assistant', 'tool'].includes(message.role)) {
+      throw new LlmFailure('REQUEST_INVALID', 'request', 'messages contains an invalid chat message.');
+    }
+    if ((message.role === 'system' || message.role === 'user') && typeof message.content !== 'string') {
+      throw new LlmFailure('REQUEST_INVALID', 'request', `${message.role} messages require string content.`);
+    }
+    if (message.role === 'assistant' && (typeof message.content !== 'string' && message.content !== null || !Array.isArray(message.toolCalls))) {
+      throw new LlmFailure('REQUEST_INVALID', 'request', 'assistant messages require content and toolCalls.');
+    }
+    if (message.role === 'tool' && (typeof message.toolCallId !== 'string' || typeof message.content !== 'string')) {
+      throw new LlmFailure('REQUEST_INVALID', 'request', 'tool messages require toolCallId and string content.');
+    }
+  }
 }
 
 async function normalizeToolOptions(value: NonNullable<LlmRequest['toolOptions']>): Promise<NormalizedToolOptions> {

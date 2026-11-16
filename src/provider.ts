@@ -1,4 +1,4 @@
-import type { LlmProvider, ProviderCompletionRequest, ProviderCompletionResponse, ToolCall, ToolCalls, ToolDefinition } from './types.js';
+import type { LlmAssistantMessage, LlmChatMessage, LlmProvider, ProviderCompletionRequest, ProviderCompletionResponse, ToolCall, ToolCalls, ToolDefinition } from './types.js';
 import { boundedMessage, LlmFailure } from './errors.js';
 
 function credential(request: ProviderCompletionRequest): string | undefined {
@@ -39,12 +39,41 @@ function toolParameters(tool: ToolDefinition): Record<string, unknown> {
   return parsed as Record<string, unknown>;
 }
 
-function toolMessages(request: ProviderCompletionRequest): Array<Record<string, unknown>> {
+function projectMessage(message: LlmChatMessage): Record<string, unknown> {
+  if (message.role === 'system' || message.role === 'user') return { role: message.role, content: message.content };
+  if (message.role === 'tool') return { role: 'tool', tool_call_id: message.toolCallId, content: message.content };
+  const assistant: LlmAssistantMessage = message;
+  return {
+    role: 'assistant',
+    content: assistant.content,
+    tool_calls: assistant.toolCalls.map((call) => ({
+      id: call.id,
+      type: 'function',
+      function: { name: call.name, arguments: JSON.stringify(call.arguments) },
+    })),
+  };
+}
+
+function projectedMessages(request: ProviderCompletionRequest): Array<Record<string, unknown>> {
+  return (request.messages ?? []).map(projectMessage);
+}
+
+function legacyToolMessages(request: ProviderCompletionRequest): Array<Record<string, unknown>> {
   return (request.toolResults ?? []).map((result) => ({
     role: 'tool',
     tool_call_id: result.callId,
     content: JSON.stringify(result.status === 'success' ? result.value : { error: result.error }),
   }));
+}
+
+function requestMessages(request: ProviderCompletionRequest): Array<Record<string, unknown>> {
+  const messages = projectedMessages(request);
+  if (messages.length > 0) return messages;
+  return [
+    { role: 'system', content: request.systemPrompt },
+    { role: 'user', content: userContent(request) },
+    ...legacyToolMessages(request),
+  ];
 }
 
 function normalizedToolCalls(message: unknown): ToolCall[] {
@@ -102,7 +131,7 @@ export class OpenRouterProvider implements LlmProvider {
         signal: request.signal,
         body: JSON.stringify({
           model: request.model,
-          messages: [{ role: 'system', content: request.systemPrompt }, { role: 'user', content: userContent(request) }],
+          messages: requestMessages(request),
           reasoning: { effort: request.thinking },
         }),
       });
@@ -122,11 +151,7 @@ export class OpenRouterProvider implements LlmProvider {
   private async completeWithTools(request: ProviderCompletionRequest): Promise<ProviderCompletionResponse> {
     const apiKey = credential(request);
     if (!apiKey) throw new LlmFailure('CONFIGURATION_INVALID', 'configuration', 'No in-memory provider credential or OPENROUTER_API_KEY is configured.');
-    const messages: Array<Record<string, unknown>> = [
-      { role: 'system', content: request.systemPrompt },
-      { role: 'user', content: userContent(request) },
-      ...toolMessages(request),
-    ];
+    const messages = requestMessages(request);
     const body: Record<string, unknown> = {
       model: request.model,
       messages,
