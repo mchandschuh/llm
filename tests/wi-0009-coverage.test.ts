@@ -120,7 +120,12 @@ test('WI-0009 review coverage audit accounts for every requirement, acceptance c
   for (const [index, requirement] of workItem.requirements.items.entries()) {
     const strategyRequirement = `REQ-${String(index + 1).padStart(3, '0')}`;
     assert.ok(requirementEvidence[strategyRequirement], `${requirement.id} must map to ${strategyRequirement}`);
-    for (const criterion of requirement.acceptanceCriteria) assert.ok(criterion.id.startsWith(`${requirement.id}_AC_`));
+    for (const criterion of requirement.acceptanceCriteria) {
+      assert.ok(criterion.id.startsWith(`${requirement.id}_AC_`));
+      const criterionEvidence = requirementEvidence[strategyRequirement];
+      assert.ok(criterionEvidence.length > 0, `${criterion.id} must have executable test-case evidence`);
+      for (const testCase of criterionEvidence) assertAnchors(`${criterion.id}/${testCase}`, testCaseEvidence[testCase]!);
+    }
   }
 
   const docs = `${read(join(root, 'README.md'))}\n${read(join(root, 'SKILL.md'))}`;
