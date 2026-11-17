@@ -1,4 +1,4 @@
-import type { LlmProvider, ProviderCompletionRequest, ProviderCompletionResponse, ToolCall, ToolCalls } from './types.js';
+import type { LlmProvider, ProviderCompletionRequest, ProviderCompletionResponse, ProviderValidationResult, ToolCall, ToolCalls } from './types.js';
 import { boundedMessage, LlmFailure } from './errors.js';
 import { OpenRouterHttpProjection, type OpenRouterChatRequest } from './openrouter-projection.js';
 
@@ -57,6 +57,19 @@ function completionDecision(finishReason: unknown, toolCalls: ToolCalls): 'conti
 
 export class OpenRouterProvider implements LlmProvider {
   private readonly projection = new OpenRouterHttpProjection();
+
+  validate(request: Pick<ProviderCompletionRequest, 'provider' | 'credentials'>): ProviderValidationResult {
+    const apiKey = request.credentials?.apiKey ?? request.credentials?.accessToken ?? process.env.OPENROUTER_API_KEY;
+    if (apiKey) return { success: true, errors: [] };
+    return {
+      success: false,
+      errors: [{
+        code: 'CONFIGURATION_INVALID',
+        phase: 'configuration',
+        message: 'OpenRouter requires request.credentials.apiKey, request.credentials.accessToken, or OPENROUTER_API_KEY.',
+      }],
+    };
+  }
 
   async complete(request: ProviderCompletionRequest): Promise<ProviderCompletionResponse> {
     if (request.toolOptions) return this.completeWithTools(request);

@@ -17,9 +17,7 @@ export async function runPromptCommand(options: PromptCommandOptions): Promise<n
   };
   try {
     const result = await complete(request, { debug: debugSink(options.debug), provider: options.provider });
-    if (options.json) console.log(JSON.stringify(result, null, 2));
-    else if (result.status === 'success') console.log(result.output?.value ?? '');
-    else console.error(result.errors.map((error) => error.message).join('\n'));
+    console.log(JSON.stringify(result, null, 2));
     return result.status === 'success' ? 0 : 1;
   } catch {
     return printInputError();

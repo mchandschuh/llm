@@ -11,11 +11,11 @@ export function printResponse(response: LlmResponse): number {
 }
 
 export function printInputError(): number {
-  console.error(JSON.stringify({ status: 'input_invalid', message: 'The request file could not be read or parsed.' }));
+  console.error(JSON.stringify({ status: 'input_invalid', errors: [{ code: 'REQUEST_INVALID', phase: 'request', message: 'The request file could not be read or parsed.' }] }));
   return 1;
 }
 
 export function printUsageError(): number {
-  console.error('Usage: llm <request.json> | llm -p <prompt> | llm -c <prompt> | llm <prompt>');
+  console.error(JSON.stringify({ status: 'input_invalid', errors: [{ code: 'REQUEST_INVALID', phase: 'request', message: 'Usage: llm <request.json> | llm -p <prompt> | llm -c <prompt> | llm <prompt>' }] }));
   return 2;
 }

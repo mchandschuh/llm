@@ -191,7 +191,19 @@ export interface ProviderCompletionResponse {
   readonly decision: ProviderCompletionDecision;
 }
 
+export interface ProviderValidationError {
+  readonly code: ErrorCode;
+  readonly phase: ErrorPhase;
+  readonly message: string;
+}
+
+export interface ProviderValidationResult {
+  readonly success: boolean;
+  readonly errors: readonly ProviderValidationError[];
+}
+
 export interface LlmProvider {
+  validate?(request: Pick<ProviderCompletionRequest, 'provider' | 'credentials'>): ProviderValidationResult | Promise<ProviderValidationResult>;
   complete(request: ProviderCompletionRequest): Promise<ProviderCompletionResponse>;
 }
 

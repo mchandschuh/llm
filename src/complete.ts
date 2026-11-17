@@ -3,7 +3,7 @@ import { OpenRouterProvider } from './provider.js';
 import { assertMatchesSchema, parseSchema, validateResponse } from './schema.js';
 import { boundedMessage, errorFromFailure, LlmFailure } from './errors.js';
 import { normalizeRequest } from './normalize.js';
-import type { CompletionOptions, LlmAssistantMessage, LlmError, LlmOutput, LlmRequest, LlmResponse, LlmProvider, LlmToolMessage, LlmChatMessage, NormalizedRequest, ProviderCompletionResponse, ToolCall, ToolCalls, ToolResult } from './types.js';
+import type { CompletionOptions, LlmAssistantMessage, LlmError, LlmOutput, LlmRequest, LlmResponse, LlmProvider, LlmToolMessage, LlmChatMessage, NormalizedRequest, ProviderCompletionRequest, ProviderCompletionResponse, ToolCall, ToolCalls, ToolResult } from './types.js';
 import { RESPONSE_SCHEMA } from './types.js';
 import { LlmFailure as Failure } from './errors.js';
 import { debugException, emitDebug } from './debug.js';
@@ -12,6 +12,20 @@ function response(status: LlmResponse['status'], output: LlmOutput | null, faile
   const result: LlmResponse = { schema: RESPONSE_SCHEMA, status, output, failedAttempts, iterations, toolRounds: 0, toolCalls: 0, toolResults: [], errors: errors.slice(0, 10) };
   validateResponse(result);
   return result;
+}
+
+async function validateProvider(provider: LlmProvider, request: Pick<ProviderCompletionRequest, 'provider' | 'credentials'>, options: CompletionOptions): Promise<LlmResponse | undefined> {
+  if (!provider.validate) return undefined;
+  try {
+    const result = await provider.validate(request);
+    if (result.success) return undefined;
+    const errors = result.errors.map((error) => ({ code: error.code, phase: error.phase, message: boundedMessage(error.message) }));
+    emitDebug(options.debug, 'llm.validation.failed', { provider: request.provider, errors });
+    return response('configuration_error', null, 0, 0, errors);
+  } catch (error) {
+    emitDebug(options.debug, 'llm.error', { phase: 'provider-validation', error: debugException(error) });
+    return response('configuration_error', null, 0, 0, [errorFromFailure(new LlmFailure('CONFIGURATION_INVALID', 'configuration', 'Provider configuration validation failed.'))]);
+  }
 }
 
 function outputFromText(text: string, schema: ReturnType<typeof parseSchema> | undefined, source: NormalizedRequest['outputSchema']): LlmOutput {
@@ -171,6 +185,8 @@ async function completeToolInternalImpl(request: LlmRequest | unknown, options: 
   const provider = options.provider ?? new OpenRouterProvider();
   if (!normalized.toolOptions) return response('configuration_error', null, 0, 0, [toolFailure('CONFIGURATION_INVALID', 'toolOptions is required for tool completion.', 'configuration')]);
   if (normalized.toolOptions.autoInvoke && !options.toolInvoker) return toolResponse('configuration_error', null, 0, 0, 0, 0, [], [toolFailure('CONFIGURATION_INVALID', 'autoInvoke requires an injected ToolInvoker.', 'configuration')]);
+  const validation = await validateProvider(provider, { provider: normalized.provider, credentials: normalized.credentials }, options);
+  if (validation) return toolResponse('configuration_error', null, 0, 0, 0, 0, [], validation.errors);
   let failedAttempts = 0;
   let iterations = 0;
   let toolRounds = 0;
@@ -317,6 +333,8 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
     emitDebug(options.debug, 'llm.response', result);
     return result;
   }
+  const validation = await validateProvider(provider, { provider: normalized.provider, credentials: normalized.credentials }, options);
+  if (validation) return validation;
   const outputSchema = normalized.outputSchema ? parseSchema(normalized.outputSchema) : undefined;
   let failedAttempts = 0;
   let iterations = 0;

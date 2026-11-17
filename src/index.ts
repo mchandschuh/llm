@@ -22,6 +22,8 @@ export type {
   ParallelToolCallBatch,
   ProviderCompletionRequest,
   ProviderCompletionResponse,
+  ProviderValidationError,
+  ProviderValidationResult,
   ProviderCompletionDecision,
   ToolAwareOutput,
   ToolCall,

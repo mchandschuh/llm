@@ -65,6 +65,42 @@ test('normalizes closed request defaults', async () => {
   assert.equal(normalized.maxIterations, 3);
 });
 
+test('OpenRouterProvider validates request credentials and environment fallback', () => {
+  const provider = new OpenRouterProvider();
+  const original = process.env.OPENROUTER_API_KEY;
+  delete process.env.OPENROUTER_API_KEY;
+  try {
+    assert.equal(provider.validate?.({ provider: 'openrouter', credentials: { apiKey: 'request-key' } }).success, true);
+    assert.equal(provider.validate?.({ provider: 'openrouter', credentials: { accessToken: 'request-token' } }).success, true);
+    const missing = provider.validate?.({ provider: 'openrouter', credentials: undefined });
+    assert.equal(missing?.success, false);
+    assert.equal(missing?.errors[0]?.code, 'CONFIGURATION_INVALID');
+    process.env.OPENROUTER_API_KEY = 'environment-key';
+    assert.equal(provider.validate?.({ provider: 'openrouter', credentials: undefined }).success, true);
+  } finally {
+    if (original === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = original;
+  }
+});
+
+test('provider validation fails before complete and retry attempts', async () => {
+  let completeCalls = 0;
+  const provider: LlmProvider = {
+    validate: () => ({ success: false, errors: [{ code: 'CONFIGURATION_INVALID', phase: 'configuration', message: 'Missing provider configuration.' }] }),
+    async complete() {
+      completeCalls += 1;
+      return { content: 'unexpected', toolCalls: [], decision: 'stop' };
+    },
+  };
+  const events: Array<{ event: string; data?: unknown }> = [];
+  const result = await complete({ schema, task: 'task', systemPrompt: 'system' }, { provider, debug: (event) => events.push(event) });
+  assert.equal(result.status, 'configuration_error');
+  assert.equal(result.failedAttempts, 0);
+  assert.equal(result.iterations, 0);
+  assert.equal(completeCalls, 0);
+  assert.equal(events.some((event) => event.event === 'llm.validation.failed'), true);
+});
+
 test('normalizes toolCapable tool declarations and bounded tool settings', async () => {
   const normalized = await normalizeRequest({
     schema: toolSchema,

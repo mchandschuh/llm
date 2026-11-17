@@ -50,7 +50,7 @@ test('prompt command performs one completion and supports JSON output without se
   } finally {
     console.log = original;
   }
-  assert.deepEqual(output, ['prompt answer']);
+  assert.equal(JSON.parse(output[0]!).output.value, 'prompt answer');
 });
 
 test('prompt command supports machine-readable JSON output', async () => {
@@ -100,7 +100,7 @@ test('fresh chat start replaces explicit-ID state and emits export-only handoff'
     console.error = originalError;
   }
   assert.deepEqual(output, ['export LLM_CHAT_ID="chat-1"']);
-  assert.deepEqual(errors, ['fresh answer']);
+  assert.equal(JSON.parse(errors[0]!).output.value, 'fresh answer');
   assert.deepEqual(providerRequests[0]?.messages?.map((message) => message.role), ['system', 'user']);
   assert.equal(providerRequests[0]?.messages?.filter((message) => message.role === 'user').length, 1);
   assert.match(String(providerRequests[0]?.messages?.[1]?.content), /^<llmPrompt version="1">/u);
@@ -144,5 +144,5 @@ test('continuation without an ambient handoff fails before any provider call', a
     else process.env.LLM_CHAT_ID = originalChatId;
   }
   assert.equal(called, false);
-  assert.match(errors.join('\n'), /No active chat session/u);
+  assert.equal(JSON.parse(errors[0]!).errors[0].code, 'CONFIGURATION_INVALID');
 });

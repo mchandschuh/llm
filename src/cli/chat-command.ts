@@ -21,9 +21,7 @@ function newChatId(): string {
 
 function printTurn(response: LlmResponse, options: ChatCommandOptions): void {
   const write = options.printChatId ? console.error : console.log;
-  if (options.json) write(JSON.stringify(response));
-  else if (response.status === 'success') write(response.output?.value ?? '');
-  else console.error(response.errors.map((error) => error.message).join('\n'));
+  write(JSON.stringify(response, null, 2));
 }
 
 function handoff(chatId: string, printChatId: boolean): void {
@@ -38,7 +36,7 @@ const DEFAULT_CHAT_REQUEST: Omit<LlmRequest, 'task'> = {
 export async function runChatCommand(options: ChatCommandOptions): Promise<number> {
   try {
     if (options.continuation && !process.env.LLM_CHAT_ID) {
-      console.error('No active chat session. Start one with llm -c <prompt> or llm -c --chat-id <id> <prompt>.');
+      console.error(JSON.stringify({ status: 'configuration_error', errors: [{ code: 'CONFIGURATION_INVALID', phase: 'configuration', message: 'No active chat session. Start one with llm -c <prompt> or llm -c --chat-id <id> <prompt>.' }] }));
       return 1;
     }
     const chatId = validateChatId(options.chatId ?? (options.continuation ? process.env.LLM_CHAT_ID! : newChatId()));
@@ -47,7 +45,7 @@ export async function runChatCommand(options: ChatCommandOptions): Promise<numbe
     if (options.continuation) {
       const persisted = await loadChatSession(chatId, { rootDirectory: options.rootDirectory });
       if (!persisted) {
-        console.error(`No valid chat session was found for LLM_CHAT_ID=${chatId}. Start a new session with llm -c <prompt>.`);
+        console.error(JSON.stringify({ status: 'configuration_error', errors: [{ code: 'CONFIGURATION_INVALID', phase: 'configuration', message: `No valid chat session was found for LLM_CHAT_ID=${chatId}. Start a new session with llm -c <prompt>.` }] }));
         return 1;
       }
       request = persisted.request;
@@ -67,7 +65,7 @@ export async function runChatCommand(options: ChatCommandOptions): Promise<numbe
     handoff(chatId, options.printChatId);
     return turn.response.status === 'success' ? 0 : 1;
   } catch (error) {
-    console.error(error instanceof Error ? error.message : 'The chat session could not be processed.');
+    console.error(JSON.stringify({ status: 'input_invalid', errors: [{ code: 'REQUEST_INVALID', phase: 'request', message: error instanceof Error ? error.message : 'The chat session could not be processed.' }] }));
     return error instanceof Error && error.message.includes('identifier') ? 2 : 1;
   }
 }
