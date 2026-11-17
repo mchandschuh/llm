@@ -18,7 +18,7 @@ export function responseText(response: LlmResponse, format: ResponseFormat, rawO
 
 export function printResponse(
   response: LlmResponse,
-  format: ResponseFormat = 'full',
+  format: ResponseFormat = 'raw',
   rawOutput?: string,
   write: OutputWriter = stdoutWriter,
   writeError: OutputWriter = stderrWriter,

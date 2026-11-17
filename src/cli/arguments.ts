@@ -16,7 +16,7 @@ export interface ParsedCliArguments {
 
 function parseFlags(args: readonly string[]): { readonly debug: boolean; readonly format: ResponseFormat; readonly printChatId: boolean; readonly invalid: boolean; readonly args: string[] } {
   const cleanArgs: string[] = [];
-  let format: ResponseFormat = 'full';
+  let format: ResponseFormat = 'raw';
   let formatSpecified = false;
   let invalid = false;
   let debug = false;

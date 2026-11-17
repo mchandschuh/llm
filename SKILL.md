@@ -120,9 +120,9 @@ llm -c --chat-id <id> <prompt> [--format=full|raw] [--print-chat-id]
 llm <prompt> [--format=full|raw]  # continue the active LLM_CHAT_ID session
 ```
 
-Successful completions use `full` by default. `--format=full` prints the
-versioned response envelope with status, output, counters, and errors;
-`--format=raw` prints exactly the model's completion text. Both formats print
+Successful completions use `raw` by default. `--format=raw` prints exactly the
+model's completion text; `--format=full` prints the versioned response envelope
+with status, output, counters, and errors. Both formats print
 errors as JSON, so error output is always deserializable. The legacy `--json`
 selector is not supported.
 

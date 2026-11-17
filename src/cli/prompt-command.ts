@@ -24,7 +24,7 @@ export async function runPromptCommand(options: PromptCommandOptions): Promise<n
       if (message.role === 'assistant' && message.content !== null) rawOutput = message.content;
     };
     const result = await complete(request, { debug: debugSink(options.debug), provider: options.provider, messageSink });
-    return printResponse(result, options.format ?? 'full', rawOutput, options.write, options.writeError);
+    return printResponse(result, options.format ?? 'raw', rawOutput, options.write, options.writeError);
   } catch {
     return printInputError(options.writeError);
   }

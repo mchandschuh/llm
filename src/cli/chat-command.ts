@@ -36,7 +36,7 @@ function printTurn(response: LlmResponse, history: readonly LlmChatMessage[], op
   const write = options.printChatId
     ? (options.writeError ?? ((text: string) => process.stderr.write(text)))
     : (options.write ?? ((text: string) => process.stdout.write(text)));
-  printResponse(response, options.format ?? 'full', rawAssistantOutput(history), write, options.writeError);
+  printResponse(response, options.format ?? 'raw', rawAssistantOutput(history), write, options.writeError);
 }
 
 function handoff(chatId: string, printChatId: boolean, write: OutputWriter = (text) => process.stdout.write(text)): void {

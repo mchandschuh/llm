@@ -15,6 +15,8 @@ export function printHelp(): number {
   console.log('       llm --debug <request.json>');
   console.log('       llm --help');
   console.log('\nRun one provider-backed completion from a JSON request configuration.');
+  console.log('Successful responses default to raw model output; use --format=full for the response envelope.');
+  console.log('Errors are always emitted as JSON for both response formats.');
   console.log('The --help path loads package metadata only and does not initialize a provider.');
   console.log(`\nMinimal request (${requestSchemaPath}):`);
   console.log('{');

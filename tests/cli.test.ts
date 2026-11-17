@@ -43,8 +43,8 @@ function assertJson(value: string): Record<string, any> {
   return JSON.parse(value) as Record<string, any>;
 }
 
-test('CLI parser preserves request-file and config modes while defaulting to full format and accepting both format spellings', () => {
-  assert.deepEqual(parseCliArguments(['request.json']), { debug: false, format: 'full', printChatId: false, command: 'config', requestPath: 'request.json' });
+test('CLI parser preserves request-file and config modes while defaulting to raw format and accepting both format spellings', () => {
+  assert.deepEqual(parseCliArguments(['request.json']), { debug: false, format: 'raw', printChatId: false, command: 'config', requestPath: 'request.json' });
   assert.deepEqual(parseCliArguments(['--config', 'request.json', '--format=raw', '--debug']), { debug: true, format: 'raw', printChatId: false, command: 'config', requestPath: 'request.json' });
   assert.deepEqual(parseCliArguments(['-p', 'one shot', '--format', 'full']), { debug: false, format: 'full', printChatId: false, command: 'prompt', prompt: 'one shot' });
   assert.deepEqual(parseCliArguments(['-c', 'start', '--format=raw', '--print-chat-id']), { debug: false, format: 'raw', printChatId: true, command: 'chat', prompt: 'start' });
@@ -60,19 +60,19 @@ test('CLI parser rejects missing, invalid, duplicate, and legacy output selector
   ]) {
     assert.equal(parseCliArguments(args).exitCode, 2, args.join(' '));
   }
-  assert.deepEqual(parseCliArguments([]), { debug: false, format: 'full', printChatId: false, command: 'help', exitCode: 0 });
+  assert.deepEqual(parseCliArguments([]), { debug: false, format: 'raw', printChatId: false, command: 'help', exitCode: 0 });
   assert.deepEqual(parseCliArguments(['--help', '--format=raw']), { debug: false, format: 'raw', printChatId: false, command: 'help', exitCode: 0 });
-  assert.deepEqual(parseCliArguments(['--version']), { debug: false, format: 'full', printChatId: false, command: 'version', exitCode: 0 });
+  assert.deepEqual(parseCliArguments(['--version']), { debug: false, format: 'raw', printChatId: false, command: 'version', exitCode: 0 });
   assert.equal(parseCliArguments(['request.json', 'extra']).exitCode, 2);
 });
 
-test('prompt command performs one completion and prints exact raw model output or the full response envelope', async () => {
-  for (const format of ['full', 'raw'] as const) {
+test('prompt command performs one completion, defaults to exact raw model output, and supports the full response envelope', async () => {
+  for (const format of [undefined, 'full', 'raw'] as const) {
     const calls: ProviderCompletionRequest[] = [];
     const output = await capture(({ write, writeError }) => runPromptCommand({ prompt: 'one shot', debug: false, format, provider: fakeProvider('model answer\nwith exact spacing', calls), write, writeError }));
     assert.equal(output.result, 0);
     assert.equal(calls.length, 1);
-    if (format === 'raw') {
+    if (format !== 'full') {
       assert.equal(output.stdout, 'model answer\nwith exact spacing');
     } else {
       const response = assertJson(output.stdout);
@@ -83,7 +83,7 @@ test('prompt command performs one completion and prints exact raw model output o
   }
 });
 
-test('config command applies both formats with an injected fake provider', async () => {
+test('config command defaults to raw and applies both explicit formats with an injected fake provider', async () => {
   const root = await mkdtemp(join(tmpdir(), 'llm-cli-format-'));
   const requestPath = join(root, 'request.json');
   await writeFile(requestPath, JSON.stringify({
@@ -91,20 +91,21 @@ test('config command applies both formats with an injected fake provider', async
     task: 'configured task',
     systemPrompt: 'Respond.',
   }));
-  for (const format of ['full', 'raw'] as const) {
+  for (const format of [undefined, 'full', 'raw'] as const) {
     const output = await capture(({ write, writeError }) => runConfigCommand(requestPath, false, format, fakeProvider('configured answer'), write, writeError));
     assert.equal(output.result, 0);
-    if (format === 'raw') assert.equal(output.stdout, 'configured answer');
+    if (format !== 'full') assert.equal(output.stdout, 'configured answer');
     else assert.equal(assertJson(output.stdout).output.value, 'configured answer');
     assert.equal(output.stderr, '');
   }
 });
 
-test('fresh chat start replaces explicit-ID state, applies both formats, and preserves export-only handoff', async () => {
-  for (const format of ['full', 'raw'] as const) {
+test('fresh chat start replaces explicit-ID state, defaults to raw, and preserves export-only handoff', async () => {
+  for (const format of [undefined, 'full', 'raw'] as const) {
     const root = await mkdtemp(join(tmpdir(), 'llm-cli-chat-'));
+    const chatId = `format-${format ?? 'default'}`;
     const output = await capture(({ write, writeError, writeHandoff }) => runChatCommand({
-      chatId: `format-${format}`,
+      chatId,
       prompt: 'fresh prompt',
       continuation: false,
       debug: false,
@@ -117,14 +118,14 @@ test('fresh chat start replaces explicit-ID state, applies both formats, and pre
       writeHandoff,
     }));
     assert.equal(output.result, 0);
-    assert.match(output.stdout, /^export LLM_CHAT_ID="format-(full|raw)"\n$/u);
-    if (format === 'raw') assert.equal(output.stderr, 'fresh answer');
+    assert.equal(output.stdout, `export LLM_CHAT_ID="${chatId}"\n`);
+    if (format !== 'full') assert.equal(output.stderr, 'fresh answer');
     else assert.equal(assertJson(output.stderr).output.value, 'fresh answer');
-    assert.equal((await loadChatSession(`format-${format}`, { rootDirectory: root }))?.chatId, `format-${format}`);
+    assert.equal((await loadChatSession(chatId, { rootDirectory: root }))?.chatId, chatId);
   }
 });
 
-test('subsequent bare continuation rehydrates history through LLM_CHAT_ID and applies both formats', async () => {
+test('subsequent bare continuation rehydrates history, defaults to raw, and applies both explicit formats', async () => {
   const originalChatId = process.env.LLM_CHAT_ID;
   const root = await mkdtemp(join(tmpdir(), 'llm-cli-chat-'));
   process.env.LLM_CHAT_ID = 'continued-chat';
@@ -138,13 +139,13 @@ test('subsequent bare continuation rehydrates history through LLM_CHAT_ID and ap
         { role: 'assistant', content: 'previous answer', toolCalls: [] },
       ],
     }, { rootDirectory: root });
-    for (const format of ['full', 'raw'] as const) {
+    for (const format of [undefined, 'full', 'raw'] as const) {
       const requests: ProviderCompletionRequest[] = [];
       const output = await capture(({ write, writeError }) => runChatCommand({ prompt: 'continue', continuation: true, debug: false, format, printChatId: false, rootDirectory: root, provider: fakeProvider('continued answer', requests), write, writeError }));
       assert.equal(output.result, 0);
       assert.equal(requests.length, 1);
       assert.match(JSON.stringify(requests[0]?.messages), /previous answer/u);
-      if (format === 'raw') assert.equal(output.stdout, 'continued answer');
+      if (format !== 'full') assert.equal(output.stdout, 'continued answer');
       else assert.equal(assertJson(output.stdout).output.value, 'continued answer');
     }
   } finally {
@@ -153,8 +154,8 @@ test('subsequent bare continuation rehydrates history through LLM_CHAT_ID and ap
   }
 });
 
-test('raw and full formats serialize provider errors identically as JSON', async () => {
-  for (const format of ['full', 'raw'] as const) {
+test('default, raw, and full formats serialize provider errors identically as JSON', async () => {
+  for (const format of [undefined, 'raw', 'full'] as const) {
     let calls = 0;
     const provider: LlmProvider = {
       async complete() {
@@ -169,7 +170,7 @@ test('raw and full formats serialize provider errors identically as JSON', async
     assert.equal(response.status, 'attempts_exhausted');
     assert.equal(response.errors[0].code, 'ATTEMPTS_EXHAUSTED');
     assert.equal(output.stdout, '');
-    if (format === 'full') {
+    if (format === undefined) {
       const rawOutput = await capture(({ write, writeError }) => runPromptCommand({ prompt: 'failure', debug: false, format: 'raw', provider: {
         async complete() { throw new Error('provider unavailable'); },
       }, write, writeError }));
@@ -178,11 +179,11 @@ test('raw and full formats serialize provider errors identically as JSON', async
   }
 });
 
-test('raw and full formats serialize pre-provider chat errors as JSON without calling the fake provider', async () => {
+test('default, raw, and full formats serialize pre-provider chat errors as JSON without calling the fake provider', async () => {
   const originalChatId = process.env.LLM_CHAT_ID;
   delete process.env.LLM_CHAT_ID;
   try {
-    for (const format of ['full', 'raw'] as const) {
+    for (const format of [undefined, 'raw', 'full'] as const) {
       let called = false;
       const output = await capture(({ write, writeError }) => runChatCommand({
         prompt: 'continue',

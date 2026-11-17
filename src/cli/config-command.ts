@@ -5,7 +5,7 @@ import type { LlmChatMessage, LlmProvider, LlmRequest } from '../types.js';
 import { debugSink, printInputError, printResponse, type OutputWriter } from './output.js';
 import type { ResponseFormat } from './arguments.js';
 
-export async function runConfigCommand(requestPath: string, debug: boolean, format: ResponseFormat = 'full', provider?: LlmProvider, write?: OutputWriter, writeError?: OutputWriter): Promise<number> {
+export async function runConfigCommand(requestPath: string, debug: boolean, format: ResponseFormat = 'raw', provider?: LlmProvider, write?: OutputWriter, writeError?: OutputWriter): Promise<number> {
   try {
     const configurationFilePath = resolve(process.cwd(), requestPath);
     const request = JSON.parse(await readFile(configurationFilePath, 'utf8')) as LlmRequest;
