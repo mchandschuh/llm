@@ -1,12 +1,15 @@
 import { complete } from '../complete.js';
-import type { LlmProvider, LlmRequest } from '../types.js';
-import { debugSink, printInputError } from './output.js';
+import type { LlmChatMessage, LlmProvider, LlmRequest } from '../types.js';
+import { debugSink, printInputError, printResponse, type OutputWriter } from './output.js';
+import type { ResponseFormat } from './arguments.js';
 
 export interface PromptCommandOptions {
   readonly prompt: string;
   readonly debug: boolean;
-  readonly json: boolean;
+  readonly format?: ResponseFormat;
   readonly provider?: LlmProvider;
+  readonly write?: OutputWriter;
+  readonly writeError?: OutputWriter;
 }
 
 export async function runPromptCommand(options: PromptCommandOptions): Promise<number> {
@@ -16,10 +19,13 @@ export async function runPromptCommand(options: PromptCommandOptions): Promise<n
     systemPrompt: 'Respond helpfully and concisely.',
   };
   try {
-    const result = await complete(request, { debug: debugSink(options.debug), provider: options.provider });
-    console.log(JSON.stringify(result, null, 2));
-    return result.status === 'success' ? 0 : 1;
+    let rawOutput: string | undefined;
+    const messageSink = (message: LlmChatMessage): void => {
+      if (message.role === 'assistant' && message.content !== null) rawOutput = message.content;
+    };
+    const result = await complete(request, { debug: debugSink(options.debug), provider: options.provider, messageSink });
+    return printResponse(result, options.format ?? 'full', rawOutput, options.write, options.writeError);
   } catch {
-    return printInputError();
+    return printInputError(options.writeError);
   }
 }

@@ -1,9 +1,11 @@
 import { existsSync } from 'node:fs';
 import { extname } from 'node:path';
 
+export type ResponseFormat = 'full' | 'raw';
+
 export interface ParsedCliArguments {
   readonly debug: boolean;
-  readonly json: boolean;
+  readonly format: ResponseFormat;
   readonly printChatId: boolean;
   readonly command: 'help' | 'version' | 'config' | 'prompt' | 'chat' | 'continue';
   readonly prompt?: string;
@@ -12,22 +14,55 @@ export interface ParsedCliArguments {
   readonly exitCode?: number;
 }
 
-function parseFlags(args: readonly string[]): { readonly debug: boolean; readonly json: boolean; readonly printChatId: boolean; readonly args: string[] } {
-  const debug = args.includes('--debug');
-  const json = args.includes('--json');
-  const printChatId = args.includes('--print-chat-id');
+function parseFlags(args: readonly string[]): { readonly debug: boolean; readonly format: ResponseFormat; readonly printChatId: boolean; readonly invalid: boolean; readonly args: string[] } {
+  const cleanArgs: string[] = [];
+  let format: ResponseFormat = 'full';
+  let formatSpecified = false;
+  let invalid = false;
+  let debug = false;
+  let printChatId = false;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === '--debug') {
+      debug = true;
+      continue;
+    }
+    if (arg === '--print-chat-id') {
+      printChatId = true;
+      continue;
+    }
+    if (arg === '--json') {
+      invalid = true;
+      continue;
+    }
+    if (arg === '--format' || arg.startsWith('--format=')) {
+      const value = arg === '--format' ? args[++index] : arg.slice('--format='.length);
+      if (formatSpecified || (value !== 'full' && value !== 'raw')) {
+        invalid = true;
+      } else {
+        format = value;
+        formatSpecified = true;
+      }
+      continue;
+    }
+    cleanArgs.push(arg);
+  }
+
   return {
     debug,
-    json,
+    format,
     printChatId,
-    args: args.filter((arg) => !['--debug', '--json', '--print-chat-id'].includes(arg)),
+    invalid,
+    args: cleanArgs,
   };
 }
 
 export function parseCliArguments(args: readonly string[]): ParsedCliArguments {
   const parsed = parseFlags(args);
   const cleanArgs = parsed.args;
-  const common = { debug: parsed.debug, json: parsed.json, printChatId: parsed.printChatId };
+  const common = { debug: parsed.debug, format: parsed.format, printChatId: parsed.printChatId };
+  if (parsed.invalid) return { ...common, command: 'config', exitCode: 2 };
   if (cleanArgs.length === 0 || cleanArgs[0] === '--help' || cleanArgs[0] === '-h') return { ...common, command: 'help', exitCode: 0 };
   if (cleanArgs[0] === '--version' || cleanArgs[0] === '-v') return { ...common, command: 'version', exitCode: 0 };
 

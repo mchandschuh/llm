@@ -113,12 +113,18 @@ initializing the provider.
 The CLI also provides stateless prompt and process-per-turn persistent chat:
 
 ```text
-llm -p <prompt> [--json]
-llm --prompt <prompt> [--json]
-llm -c <prompt> [--print-chat-id]
-llm -c --chat-id <id> <prompt> [--print-chat-id]
-llm <prompt>  # continue the active LLM_CHAT_ID session
+llm -p <prompt> [--format=full|raw]
+llm --prompt <prompt> [--format=full|raw]
+llm -c <prompt> [--format=full|raw] [--print-chat-id]
+llm -c --chat-id <id> <prompt> [--format=full|raw] [--print-chat-id]
+llm <prompt> [--format=full|raw]  # continue the active LLM_CHAT_ID session
 ```
+
+Successful completions use `full` by default. `--format=full` prints the
+versioned response envelope with status, output, counters, and errors;
+`--format=raw` prints exactly the model's completion text. Both formats print
+errors as JSON, so error output is always deserializable. The legacy `--json`
+selector is not supported.
 
 `-p/--prompt` performs exactly one completion and never reads, writes, resumes,
 or depends on chat-session persistence or `LLM_CHAT_ID`. Every `-c <prompt>`
