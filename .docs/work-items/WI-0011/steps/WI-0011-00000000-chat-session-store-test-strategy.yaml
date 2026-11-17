@@ -1,0 +1,673 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0011
+taskUid: WI-0011-00000000
+orderKey: "00000000"
+parentTaskUid: null
+taskType: test-strategy
+processingStatus: processing_completed
+title: Enumerate complete chat-session store evidence
+objective: Define provider-free executable evidence for every WI-0011
+  requirement, acceptance criterion, security boundary, compatibility
+  constraint, configuration fallback, public export rule, non-goal, and delivery
+  obligation.
+references:
+  required:
+    - .docs/work-items/WI-0011/work-item.json
+    - .docs/work-items/WI-0011/README.md
+    - src/chat-session-store.ts
+    - src/chat-session-config.ts
+    - src/cli/chat-command.ts
+    - src/index.ts
+    - tests/cli-session-store.test.ts
+    - tests/chat-session-config.test.ts
+    - tests/cli.test.ts
+    - package.json
+  informational:
+    - README.md
+    - SKILL.md
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0011/steps/
+  commitSubject: "WI-0011: 01: test(llm): define session store evidence"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v1#/properties/result
+  intent:
+    summary: Enumerate all executable tests for the store interface, query
+      semantics, implementations, factory, configuration fallback,
+      encapsulation, secure persistence, CLI regression, and major release.
+    inputs:
+      - id: INPUT-WORK-ITEM
+        kind: requirement
+        ref: WI-0011|00000000#work-item/WI-0011
+        purpose: Authoritative requirements
+        required: true
+      - id: INPUT-IMPLEMENTATION
+        kind: implementation
+        ref: "#artifact/session-store-implementation"
+        purpose: Store and configuration source under test.
+        required: true
+      - id: INPUT-CONFIG-CONVENTION
+        kind: artifact
+        ref: "#artifact/nodejs-common-config"
+        purpose: Reviewed fallback convention for application
+        required: true
+    requirements:
+      - id: REQ-001
+        kind: requirement
+        statement: Cover WI-0011_REQ_001 with interface
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+      - id: REQ-002
+        kind: requirement
+        statement: Cover WI-0011_REQ_002 with built-in factory selection
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+      - id: REQ-003
+        kind: requirement
+        statement: Cover WI-0011_REQ_003 with current-directory
+        inputRefs:
+          - INPUT-WORK-ITEM
+          - INPUT-CONFIG-CONVENTION
+        required: true
+      - id: REQ-004
+        kind: requirement
+        statement: Cover WI-0011_REQ_004 with source/export/declaration scans and CLI
+          interface usage checks.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+      - id: REQ-005
+        kind: requirement
+        statement: Cover WI-0011_REQ_005 with ID
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+      - id: REQ-006
+        kind: requirement
+        statement: Cover WI-0011_REQ_006 with the existing CLI
+          prompt/config/fresh/continuation/error matrix.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+      - id: REQ-007
+        kind: requirement
+        statement: Cover WI-0011_REQ_007 with synchronized version metadata
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+    invariants:
+      - id: INV-001
+        statement: Store implementations are selected by type and expose the same
+          load/save/query contract.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+      - id: INV-002
+        statement: Query returns only validated chat IDs and applies inclusive time
+          bounds.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+      - id: INV-003
+        statement: Configuration precedence is current directory
+        inputRefs:
+          - INPUT-WORK-ITEM
+          - INPUT-CONFIG-CONVENTION
+        required: true
+      - id: INV-004
+        statement: Persisted state is provider-neutral
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+      - id: INV-005
+        statement: Module-level persistence functions are not part of the public package
+          boundary.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+      - id: INV-006
+        statement: Prompt mode does not depend on session-store state.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        required: true
+    objectives:
+      - id: OBJ-CONTRACT
+        statement: Prove the store interface
+        inputRefs:
+          - INPUT-WORK-ITEM
+        requirementRefs:
+          - REQ-001
+          - REQ-002
+        invariantRefs:
+          - INV-001
+          - INV-002
+      - id: OBJ-CONFIG
+        statement: Prove standardized layered configuration and environment precedence.
+        inputRefs:
+          - INPUT-WORK-ITEM
+          - INPUT-CONFIG-CONVENTION
+        requirementRefs:
+          - REQ-003
+        invariantRefs:
+          - INV-003
+      - id: OBJ-SECURITY
+        statement: Prove secure file persistence and validation boundaries.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        requirementRefs:
+          - REQ-005
+        invariantRefs:
+          - INV-004
+      - id: OBJ-COMPATIBILITY
+        statement: Prove CLI behavior remains intact through the interface.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        requirementRefs:
+          - REQ-006
+        invariantRefs:
+          - INV-006
+      - id: OBJ-ENCAPSULATION
+        statement: Prove removed module-level functions are not exported.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        requirementRefs:
+          - REQ-004
+        invariantRefs:
+          - INV-005
+      - id: OBJ-RELEASE
+        statement: Prove major-version metadata and delivery records.
+        inputRefs:
+          - INPUT-WORK-ITEM
+        requirementRefs:
+          - REQ-007
+        invariantRefs:
+          - INV-005
+    nonGoals:
+      - Do not test or introduce remote session storage., reason Remote
+        persistence is a separate integration boundary., forbiddenFileWrites
+        secrets/,.env, forbiddenFileReads secrets/,.env
+      - "Do not claim downstream consumer migration or publication., reason This
+        delivery is local only., forbiddenFileWrites , forbiddenFileReads "
+      - "Do not add compaction, reason Existing chat history policy is out of
+        scope., forbiddenFileWrites , forbiddenFileReads "
+      - "Do not add a design-stage task., reason The user requested
+        implementation without a design task., forbiddenFileWrites ,
+        forbiddenFileReads "
+  result:
+    status: defined
+    testCases:
+      - id: TC-STORE-ID-VALIDATION
+        title: chat session store safely validates IDs and contains paths
+        type: unit
+        requirementLevel: required
+        purpose: Prove safe identifier and path containment behavior.
+        procedure:
+          executionMode: executable
+          target: tests/cli-session-store.test.ts
+          steps:
+            - Create invalid IDs
+            - call store.load
+            - assert bounded request failures.
+          command: npx tsx --test tests/cli-session-store.test.ts
+        expectedOutcome: Invalid identifiers are rejected before file access.
+        passCriteria: The named test passes.
+        evidenceTier: component
+        fixtureRefs:
+          - FIX-STORE
+        limitations:
+          - Provider-free local evidence.
+      - id: TC-STORE-PERSISTENCE-SECURITY
+        title: chat session store atomically persists bounded provider-neutral state
+          without credentials
+        type: component
+        requirementLevel: required
+        purpose: Prove persistence security and bounded serialization.
+        procedure:
+          executionMode: executable
+          target: tests/cli-session-store.test.ts
+          steps:
+            - Save credential-bearing input
+            - inspect file and permissions
+            - reload state.
+          command: npx tsx --test tests/cli-session-store.test.ts
+        expectedOutcome: State is atomic
+        passCriteria: The named test passes.
+        evidenceTier: component
+        fixtureRefs:
+          - FIX-STORE
+        limitations:
+          - No production filesystem claim.
+      - id: TC-STORE-REPLACEMENT
+        title: fresh session saves replace existing state at the explicit chat ID
+        type: component
+        requirementLevel: required
+        purpose: Prove replacement semantics.
+        procedure:
+          executionMode: executable
+          target: tests/cli-session-store.test.ts
+          steps:
+            - Save two sessions with one ID
+            - reload the ID.
+          command: npx tsx --test tests/cli-session-store.test.ts
+        expectedOutcome: The second state replaces the first.
+        passCriteria: The named test passes.
+        evidenceTier: component
+        fixtureRefs:
+          - FIX-STORE
+        limitations:
+          - Provider-free local evidence.
+      - id: TC-STORE-QUERY
+        title: query returns sorted chat IDs and applies inclusive updatedAt bounds
+        type: component
+        requirementLevel: required
+        purpose: Prove query ordering and inclusive range semantics.
+        procedure:
+          executionMode: executable
+          target: tests/cli-session-store.test.ts
+          steps:
+            - Create sessions with deterministic timestamps
+            - query without and with bounds.
+          command: npx tsx --test tests/cli-session-store.test.ts
+        expectedOutcome: Matching IDs are sorted and bounds are inclusive.
+        passCriteria: The named test passes.
+        evidenceTier: component
+        fixtureRefs:
+          - FIX-STORE
+        limitations:
+          - Provider-free local evidence.
+      - id: TC-STORE-QUERY-INVALID
+        title: query handles a missing directory and rejects an inverted range
+        type: unit
+        requirementLevel: required
+        purpose: Prove query error boundaries.
+        procedure:
+          executionMode: executable
+          target: tests/cli-session-store.test.ts
+          steps:
+            - Query a missing root
+            - query an inverted range.
+          command: npx tsx --test tests/cli-session-store.test.ts
+        expectedOutcome: Missing roots return no IDs and invalid ranges fail.
+        passCriteria: The named test passes.
+        evidenceTier: component
+        fixtureRefs:
+          - FIX-STORE
+        limitations:
+          - Provider-free local evidence.
+      - id: TC-STORE-PERSISTED-VALIDATION
+        title: store rejects malformed or credential-bearing persisted state
+        type: component
+        requirementLevel: required
+        purpose: Prove persisted JSON validation and secret rejection.
+        procedure:
+          executionMode: executable
+          target: tests/cli-session-store.test.ts
+          steps:
+            - Write malformed
+            - credential-bearing
+            - and incompatible JSON
+            - load each.
+          command: npx tsx --test tests/cli-session-store.test.ts
+        expectedOutcome: Invalid persisted state is rejected.
+        passCriteria: The named test passes.
+        evidenceTier: component
+        fixtureRefs:
+          - FIX-STORE
+        limitations:
+          - Provider-free local evidence.
+      - id: TC-STORE-TOOL-CALL-VALIDATION
+        title: store rejects malformed embedded tool calls and distinguishes missing
+          sessions
+        type: component
+        requirementLevel: required
+        purpose: Prove history/tool-call validation and missing-state behavior.
+        procedure:
+          executionMode: executable
+          target: tests/cli-session-store.test.ts
+          steps:
+            - Load a missing ID
+            - then load malformed tool-call history.
+          command: npx tsx --test tests/cli-session-store.test.ts
+        expectedOutcome: Missing state is undefined and malformed state fails.
+        passCriteria: The named test passes.
+        evidenceTier: component
+        fixtureRefs:
+          - FIX-STORE
+        limitations:
+          - Provider-free local evidence.
+      - id: TC-FACTORY-BUILTINS
+        title: factory selects both built-in implementations and supports registration
+        type: unit
+        requirementLevel: required
+        purpose: Prove named factory selection and extension.
+        procedure:
+          executionMode: executable
+          target: tests/cli-session-store.test.ts
+          steps:
+            - Create file and tempFile stores
+            - register a custom factory
+            - create it.
+          command: npx tsx --test tests/cli-session-store.test.ts
+        expectedOutcome: Both built-ins and a registered implementation satisfy the interface.
+        passCriteria: The named test passes.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-STORE
+        limitations:
+          - Provider-free local evidence.
+      - id: TC-FACTORY-UNKNOWN
+        title: factory rejects missing and unknown implementation names
+        type: unit
+        requirementLevel: required
+        purpose: Prove factory configuration failures.
+        procedure:
+          executionMode: executable
+          target: tests/cli-session-store.test.ts
+          steps:
+            - Create stores with empty and unknown types.
+          command: npx tsx --test tests/cli-session-store.test.ts
+        expectedOutcome: Configuration errors are raised before use.
+        passCriteria: The named test passes.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-STORE
+        limitations:
+          - Provider-free local evidence.
+      - id: TC-CONFIG-PRECEDENCE
+        title: configuration falls back from current directory to home and environment
+          roots
+        type: component
+        requirementLevel: required
+        purpose: Prove layered file precedence.
+        procedure:
+          executionMode: executable
+          target: tests/chat-session-config.test.ts
+          steps:
+            - Write config layers in all roots
+            - resolve the merged result.
+          command: npx tsx --test tests/chat-session-config.test.ts
+        expectedOutcome: Environment-root values override home and current-directory values.
+        passCriteria: The named test passes.
+        evidenceTier: component
+        fixtureRefs:
+          - FIX-CONFIG
+        limitations:
+          - Test roots are isolated temporary directories.
+      - id: TC-CONFIG-DEFAULTS
+        title: configuration uses defaults when no roots or environment overrides are
+          present
+        type: unit
+        requirementLevel: required
+        purpose: Prove default type selection.
+        procedure:
+          executionMode: executable
+          target: tests/chat-session-config.test.ts
+          steps:
+            - Resolve with empty roots and environment.
+          command: npx tsx --test tests/chat-session-config.test.ts
+        expectedOutcome: tempFile is selected without overrides.
+        passCriteria: The named test passes.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-CONFIG
+        limitations:
+          - Provider-free local evidence.
+      - id: TC-CONFIG-ENVIRONMENT
+        title: environment variables override files and require absolute configuration
+          roots
+        type: unit
+        requirementLevel: required
+        purpose: Prove environment overrides and absolute-root validation.
+        procedure:
+          executionMode: executable
+          target: tests/chat-session-config.test.ts
+          steps:
+            - Resolve with environment overrides and relative values.
+          command: npx tsx --test tests/chat-session-config.test.ts
+        expectedOutcome: Explicit environment values win and relative roots fail.
+        passCriteria: The named test passes.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-CONFIG
+        limitations:
+          - Provider-free local evidence.
+      - id: TC-CONFIG-INVALID
+        title: configuration rejects malformed JSON and invalid store values
+        type: unit
+        requirementLevel: required
+        purpose: Prove invalid configuration handling.
+        procedure:
+          executionMode: executable
+          target: tests/chat-session-config.test.ts
+          steps:
+            - Write malformed JSON and invalid type values
+            - resolve each.
+          command: npx tsx --test tests/chat-session-config.test.ts
+        expectedOutcome: Invalid config fails with bounded errors.
+        passCriteria: The named test passes.
+        evidenceTier: unit
+        fixtureRefs:
+          - FIX-CONFIG
+        limitations:
+          - Provider-free local evidence.
+      - id: TC-CLI-COMPATIBILITY
+        title: existing CLI prompt/config/fresh/continuation/error matrix remains green
+        type: cli
+        requirementLevel: required
+        purpose: Prove the CLI uses the store interface without regressions.
+        procedure:
+          executionMode: executable
+          target: tests/cli.test.ts
+          steps:
+            - Run the existing parser
+            - prompt
+            - config
+            - fresh-chat
+            - continuation
+            - output
+            - and error cases.
+          command: npx tsx --test tests/cli.test.ts
+        expectedOutcome: Existing CLI behavior remains green.
+        passCriteria: All CLI tests pass.
+        evidenceTier: integration
+        fixtureRefs:
+          - FIX-CLI
+        limitations:
+          - Provider is injected and deterministic.
+      - id: TC-EXPORT-ENCAPSULATION
+        title: package exports factory and full store types without load/save functions
+        type: inspection
+        requirementLevel: required
+        purpose: Prove the breaking public export boundary.
+        procedure:
+          executionMode: inspection
+          target: src/index.ts and dist/index.d.ts
+          steps:
+            - Inspect source exports and generated declarations
+            - search for removed names.
+          command: npm run build
+        expectedOutcome: Only the factory and full store types are exposed.
+        passCriteria: Removed names are absent from public source and declarations.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - FIX-CLI
+        limitations:
+          - Static declaration evidence.
+      - id: TC-VERSION-MAJOR
+        title: package and lockfile record the major release
+        type: inspection
+        requirementLevel: required
+        purpose: Prove synchronized major version delivery metadata.
+        procedure:
+          executionMode: inspection
+          target: package.json
+          steps:
+            - Inspect versions and major classification/delivery fields.
+          command: npm run typecheck
+        expectedOutcome: All release records report 1.0.0 and major impact.
+        passCriteria: Metadata and coverage audit assertions pass.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - FIX-CLI
+        limitations:
+          - Does not publish the package.
+    fixtures:
+      - id: FIX-STORE
+        name: isolated-file-store
+        purpose: Temporary store roots and validated session fixtures.
+        setup: Create a test-owned temporary root and provider-neutral request objects.
+        teardown: Remove only test-owned temporary files.
+        sourceRefs:
+          - "#artifact/chat-session-store-ts"
+          - "#artifact/cli-session-store-test-ts"
+      - id: FIX-CONFIG
+        name: layered-config-roots
+        purpose: Current-directory, home, environment, and invalid configuration
+          fixtures.
+        setup: Create test-owned roots and config.json layers.
+        teardown: Remove only test-owned temporary files.
+        sourceRefs:
+          - "#artifact/chat-session-config-ts"
+          - "#artifact/chat-session-config-test-ts"
+      - id: FIX-CLI
+        name: cli-regression-matrix
+        purpose: Existing CLI parser and command fixtures plus declaration/version
+          scans.
+        setup: Use injected provider and temporary store roots.
+        teardown: Restore environment and remove test-owned files.
+        sourceRefs:
+          - "#artifact/chat-command-ts"
+          - "#artifact/cli-test-ts"
+          - "#artifact/wi-0011-coverage-test-ts"
+    coverage:
+      - id: COV-CONTRACT
+        requirementRefs:
+          - REQ-001
+          - REQ-002
+        invariantRefs:
+          - INV-001
+          - INV-002
+        objectiveRefs:
+          - OBJ-CONTRACT
+        testCaseRefs:
+          - TC-STORE-ID-VALIDATION
+          - TC-STORE-QUERY
+          - TC-STORE-QUERY-INVALID
+          - TC-FACTORY-BUILTINS
+          - TC-FACTORY-UNKNOWN
+        rationale: Interface, query, and factory tests cover substitutability and
+          discovery behavior.
+      - id: COV-CONFIG
+        requirementRefs:
+          - REQ-003
+        invariantRefs:
+          - INV-003
+        objectiveRefs:
+          - OBJ-CONFIG
+        testCaseRefs:
+          - TC-CONFIG-PRECEDENCE
+          - TC-CONFIG-DEFAULTS
+          - TC-CONFIG-ENVIRONMENT
+          - TC-CONFIG-INVALID
+        rationale: Configuration tests cover every lookup layer, override, default, and
+          invalid path.
+      - id: COV-SECURITY
+        requirementRefs:
+          - REQ-005
+        invariantRefs:
+          - INV-004
+        objectiveRefs:
+          - OBJ-SECURITY
+        testCaseRefs:
+          - TC-STORE-PERSISTENCE-SECURITY
+          - TC-STORE-REPLACEMENT
+          - TC-STORE-PERSISTED-VALIDATION
+          - TC-STORE-TOOL-CALL-VALIDATION
+        rationale: File tests cover bounded secure persistence and validation rejection.
+      - id: COV-CLI
+        requirementRefs:
+          - REQ-006
+        invariantRefs:
+          - INV-006
+        objectiveRefs:
+          - OBJ-COMPATIBILITY
+        testCaseRefs:
+          - TC-CLI-COMPATIBILITY
+        rationale: The existing CLI matrix proves the refactor preserves prompt
+          isolation and command behavior.
+      - id: COV-API
+        requirementRefs:
+          - REQ-004
+        invariantRefs:
+          - INV-005
+        objectiveRefs:
+          - OBJ-ENCAPSULATION
+        testCaseRefs:
+          - TC-EXPORT-ENCAPSULATION
+        rationale: Source and declaration inspection proves the removed functions are
+          not public.
+      - id: COV-RELEASE
+        requirementRefs:
+          - REQ-007
+        invariantRefs:
+          - INV-005
+        objectiveRefs:
+          - OBJ-RELEASE
+        testCaseRefs:
+          - TC-VERSION-MAJOR
+        rationale: Version and record inspection proves major-release classification.
+    minimumRequiredTestCaseRefs:
+      - TC-STORE-ID-VALIDATION
+      - TC-STORE-PERSISTENCE-SECURITY
+      - TC-STORE-REPLACEMENT
+      - TC-STORE-QUERY
+      - TC-STORE-QUERY-INVALID
+      - TC-STORE-PERSISTED-VALIDATION
+      - TC-STORE-TOOL-CALL-VALIDATION
+      - TC-FACTORY-BUILTINS
+      - TC-FACTORY-UNKNOWN
+      - TC-CONFIG-PRECEDENCE
+      - TC-CONFIG-DEFAULTS
+      - TC-CONFIG-ENVIRONMENT
+      - TC-CONFIG-INVALID
+      - TC-CLI-COMPATIBILITY
+      - TC-EXPORT-ENCAPSULATION
+      - TC-VERSION-MAJOR
+    recommendedTestCaseRefs: []
+    evidenceLimitations:
+      - Strategy evidence is provider-free and local; it does not establish
+        authenticated provider behavior
+      - deployment
+      - publication
+      - downstream migration
+      - or remote storage.

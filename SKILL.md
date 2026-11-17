@@ -149,6 +149,35 @@ exits. There is intentionally no REPL, interactive chat loop, long-lived
 process, TTY/readline requirement, stdin-driven message loop, slash-command
 exit interface, or promptless chat start.
 
+### Chat-session store configuration
+
+The process-per-turn chat mode uses `ChatSessionStoreFactory` and supports two
+built-in store types:
+
+- `tempFile` (default): validated temporary JSON files under `/tmp/.llm/chat`;
+- `file`: persistent validated JSON files under `~/.llm/chat` by default.
+
+Configuration is layered from `<current-directory>/.config/config.json`,
+`$HOME/.llm/config.json`, and the optional directory named by the absolute
+`LLM_CONFIG` environment variable. Later layers override earlier layers. The
+configuration object is:
+
+```json
+{
+  "chatSessionStore": {
+    "type": "file",
+    "rootDirectory": "/var/tmp/llm/chat"
+  }
+}
+```
+
+`LLM_CHAT_SESSION_STORE` and absolute `LLM_CHAT_SESSION_ROOT` environment
+variables override the layered JSON settings. Library consumers can create a
+store directly with `ChatSessionStoreFactory.createChatSessionStore({ type })`.
+The public `ChatSessionStore` interface has `load`, `save`, and inclusive
+time-range `query` methods; persistence is not exposed through module-level
+functions.
+
 Exit codes:
 
 - `0`: help, version, or a completion with `status: "success"`.

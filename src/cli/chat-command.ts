@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { chatFactory } from '../chat.js';
-import { loadChatSession, saveChatSession, validateChatId, type PersistedChatSession } from '../chat-session-store.js';
+import { resolveChatSessionStoreConfig } from '../chat-session-config.js';
+import { ChatSessionStoreFactory, type ChatSessionStore, type ChatSessionStoreConfig, type PersistedChatSession } from '../chat-session-store.js';
 import type { LlmChatMessage, LlmProvider, LlmRequest, LlmResponse } from '../types.js';
 import { stderrDebugSink } from '../debug.js';
 import { printResponse, type OutputWriter } from './output.js';
@@ -14,6 +15,8 @@ export interface ChatCommandOptions {
   readonly format?: ResponseFormat;
   readonly printChatId: boolean;
   readonly rootDirectory?: string;
+  readonly sessionStoreConfig?: ChatSessionStoreConfig;
+  readonly sessionStore?: ChatSessionStore;
   readonly provider?: LlmProvider;
   readonly write?: OutputWriter;
   readonly writeError?: OutputWriter;
@@ -51,15 +54,18 @@ const DEFAULT_CHAT_REQUEST: Omit<LlmRequest, 'task'> = {
 export async function runChatCommand(options: ChatCommandOptions): Promise<number> {
   const writeError = options.writeError ?? ((text: string) => process.stderr.write(`${text}\n`));
   try {
+    const sessionStore = options.sessionStore ?? ChatSessionStoreFactory.createChatSessionStore(options.sessionStoreConfig ?? (options.rootDirectory
+      ? { type: 'tempFile', rootDirectory: options.rootDirectory }
+      : resolveChatSessionStoreConfig()));
     if (options.continuation && !process.env.LLM_CHAT_ID) {
       writeError(JSON.stringify({ status: 'configuration_error', errors: [{ code: 'CONFIGURATION_INVALID', phase: 'configuration', message: 'No active chat session. Start one with llm -c <prompt> or llm -c --chat-id <id> <prompt>.' }] }));
       return 1;
     }
-    const chatId = validateChatId(options.chatId ?? (options.continuation ? process.env.LLM_CHAT_ID! : newChatId()));
+    const chatId = ChatSessionStoreFactory.validateChatId(options.chatId ?? (options.continuation ? process.env.LLM_CHAT_ID! : newChatId()));
     let request: LlmRequest;
     let initialHistory;
     if (options.continuation) {
-      const persisted = await loadChatSession(chatId, { rootDirectory: options.rootDirectory });
+      const persisted = await sessionStore.load(chatId);
       if (!persisted) {
         writeError(JSON.stringify({ status: 'configuration_error', errors: [{ code: 'CONFIGURATION_INVALID', phase: 'configuration', message: `No valid chat session was found for LLM_CHAT_ID=${chatId}. Start a new session with llm -c <prompt>.` }] }));
         return 1;
@@ -77,7 +83,7 @@ export async function runChatCommand(options: ChatCommandOptions): Promise<numbe
     });
     const turn = options.continuation ? await session.sendUserMessage(options.prompt) : await session.complete();
     printTurn(turn.response, turn.history, options);
-    await saveChatSession({ chatId, request, history: session.history }, { rootDirectory: options.rootDirectory });
+    await sessionStore.save({ chatId, request, history: session.history });
     handoff(chatId, options.printChatId, options.writeHandoff);
     return turn.response.status === 'success' ? 0 : 1;
   } catch (error) {

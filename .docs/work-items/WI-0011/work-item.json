@@ -1,0 +1,165 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0011",
+  "status": "complete",
+  "title": "Encapsulate configurable chat-session stores",
+  "type": "feature",
+  "objective": "Replace module-level chat-session persistence functions with a configurable ChatSessionStore interface and factory, add query by inclusive time range, provide tempFile and persistent file implementations, standardize configuration fallback, preserve secure CLI behavior, and deliver the breaking public API as version 1.0.0.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0011-chat-session-store",
+      "created": false,
+      "rationale": "The repository workflow records scoped work as ordered commits on the current branch."
+    }
+  },
+  "baseline": "cf06c8705f10ee2cdef4eda3bc894a3fb0378e61",
+  "request": {
+    "source": "conversation",
+    "text": "Define a ChatSessionStore interface with query by time range, provide tempFile and persistent file implementations, use standardized current-directory/home/environment configuration fallback, remove module-level persistence exports, expose ChatSessionStoreFactory.createChatSessionStore, add complete coverage and a work item without a design task, classify delivery as major, and commit the result.",
+    "sha256": "6eda2ed1580120440008098efa939c3e48d895d5c1b6849513a4efb42f75000c"
+  },
+  "scope": [
+    {
+      "name": "store-contract",
+      "description": "Define ChatSessionStore load, save, and inclusive time-range query operations with provider-neutral persisted types.",
+      "reason": "Consumers need a substitutable session-store boundary and session discovery without depending on a concrete persistence module."
+    },
+    {
+      "name": "default-implementations",
+      "description": "Provide tempFile and persistent file-backed store implementations selected by string type.",
+      "reason": "The CLI needs a temporary default while library/operational users need a persistent configured store."
+    },
+    {
+      "name": "configuration-fallback",
+      "description": "Resolve layered config from current directory, home directory, and an environment-selected root, with environment setting overrides.",
+      "reason": "Configuration must be predictable and consistent with the reviewed nodejs-common convention."
+    },
+    {
+      "name": "encapsulated-public-api",
+      "description": "Remove module-level persistence functions and export the store factory plus complete store-related types.",
+      "reason": "Encapsulation prevents callers from bypassing the selected implementation."
+    },
+    {
+      "name": "cli-and-security",
+      "description": "Route process-per-turn chat through the configured store while retaining validation, atomic writes, permissions, bounded state, and secret exclusion.",
+      "reason": "Existing CLI behavior and security properties must survive the public-boundary change."
+    },
+    {
+      "name": "major-release",
+      "description": "Advance package metadata from 0.2.0 to 1.0.0 and record the compatibility impact in the delivery task.",
+      "reason": "Removing public functions is an incompatible API change."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "remote-session-storage",
+      "description": "Do not add a database, network, or remote session-store implementation.",
+      "reason": "This change is limited to local interchangeable implementations.",
+      "forbiddenFileWrites": ["secrets/", ".env"],
+      "forbiddenFileReads": ["secrets/", ".env"]
+    },
+    {
+      "name": "consumer-migration",
+      "description": "Do not migrate downstream repositories or publish the package.",
+      "reason": "Consumer migration and publication require separate release work.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "chat-history-policy",
+      "description": "Do not add compaction, truncation, checkpointing, retrieval, or a new chat-history policy.",
+      "reason": "The existing chat history boundary remains unchanged.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "design-stage-task",
+      "description": "Do not add a design task; the requested implementation boundary is sufficiently specified.",
+      "reason": "The user explicitly requested implementation without a design task.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0011_REQ_001",
+        "name": "store-interface",
+        "description": "A public ChatSessionStore interface owns load, save, and query operations.",
+        "reason": "Consumers need a stable, implementation-independent persistence boundary.",
+        "acceptanceCriteria": [
+          { "id": "WI-0011_REQ_001_AC_001", "description": "The interface exposes load(chatId), save(session), and query(timeRange?) returning chat IDs." },
+          { "id": "WI-0011_REQ_001_AC_002", "description": "Query bounds are inclusive and invalid/inverted ranges fail with the existing configuration/request error vocabulary." }
+        ]
+      },
+      {
+        "id": "WI-0011_REQ_002",
+        "name": "default-stores",
+        "description": "The factory provides tempFile and persistent file implementations selected by string name.",
+        "reason": "The CLI and library need explicit transient and persistent storage choices.",
+        "acceptanceCriteria": [
+          { "id": "WI-0011_REQ_002_AC_001", "description": "tempFile defaults to the temporary session root and file defaults to the persistent home root unless configured." },
+          { "id": "WI-0011_REQ_002_AC_002", "description": "Custom factories can be registered and unknown types fail before store use." }
+        ]
+      },
+      {
+        "id": "WI-0011_REQ_003",
+        "name": "configuration-resolution",
+        "description": "Store configuration uses standardized application, home, and environment fallback layers.",
+        "reason": "Predictable layered configuration prevents implementation-specific lookup behavior.",
+        "acceptanceCriteria": [
+          { "id": "WI-0011_REQ_003_AC_001", "description": "config.json is layered from current-directory .config, home .llm, and the absolute LLM_CONFIG root in that order." },
+          { "id": "WI-0011_REQ_003_AC_002", "description": "LLM_CHAT_SESSION_STORE and absolute LLM_CHAT_SESSION_ROOT override file values and malformed configuration is rejected." }
+        ]
+      },
+      {
+        "id": "WI-0011_REQ_004",
+        "name": "encapsulation",
+        "description": "The public package exports the store factory and full store types without module-level persistence functions.",
+        "reason": "Encapsulation prevents callers from bypassing configuration and implementation selection.",
+        "acceptanceCriteria": [
+          { "id": "WI-0011_REQ_004_AC_001", "description": "loadChatSession and saveChatSession are absent from source exports, package exports, and generated declarations." },
+          { "id": "WI-0011_REQ_004_AC_002", "description": "The CLI calls the selected ChatSessionStore interface rather than concrete module-level persistence functions." }
+        ]
+      },
+      {
+        "id": "WI-0011_REQ_005",
+        "name": "secure-file-behavior",
+        "description": "File-backed stores preserve secure bounded provider-neutral persistence.",
+        "reason": "Session files contain conversation state and must retain the existing security boundary.",
+        "acceptanceCriteria": [
+          { "id": "WI-0011_REQ_005_AC_001", "description": "Invalid IDs, malformed JSON, incompatible requests, malformed tool calls, oversized state, and invalid ranges are rejected." },
+          { "id": "WI-0011_REQ_005_AC_002", "description": "Writes remain atomic with restrictive directory/file permissions and credentials are excluded from persisted state." }
+        ]
+      },
+      {
+        "id": "WI-0011_REQ_006",
+        "name": "cli-regression",
+        "description": "Existing prompt, config, fresh-chat, continuation, output, and error behavior remains covered through the store boundary.",
+        "reason": "The API refactor must not regress existing CLI behavior.",
+        "acceptanceCriteria": [
+          { "id": "WI-0011_REQ_006_AC_001", "description": "The existing CLI test matrix passes using interface-created stores for fresh and continued sessions." },
+          { "id": "WI-0011_REQ_006_AC_002", "description": "Prompt mode remains independent of chat-session persistence and provider-free tests remain deterministic." }
+        ]
+      },
+      {
+        "id": "WI-0011_REQ_007",
+        "name": "major-delivery",
+        "description": "The breaking public API is delivered as a major version with complete work-item evidence.",
+        "reason": "Removing public functions requires an explicit major-version compatibility record.",
+        "acceptanceCriteria": [
+          { "id": "WI-0011_REQ_007_AC_001", "description": "package.json and package-lock.json both report 1.0.0." },
+          { "id": "WI-0011_REQ_007_AC_002", "description": "The test-strategy task enumerates every declared test case with executable evidence and the delivery task marks the change major." }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0011/steps/"
+}

@@ -80,7 +80,26 @@ Every `-c/--chat <prompt>` invocation starts a new chat session. Without
 `--chat-id`, it generates a safe ID; with `--chat-id`, the supplied ID is only
 the destination for that new session. Existing contents at that ID are not
 rehydrated and are replaced after the turn. State is persisted as validated
-provider-neutral JSON under `/tmp/.llm/chat/{chat-id}.json`.
+provider-neutral JSON under the configured session-store root.
+
+The chat CLI selects a session store from layered configuration. `config.json`
+is read from `.config` in the current directory, then `~/.llm`, then the
+directory named by the optional absolute `LLM_CONFIG` environment variable;
+later layers override earlier layers. The relevant shape is:
+
+```json
+{
+  "chatSessionStore": {
+    "type": "file",
+    "rootDirectory": "/var/tmp/llm/chat"
+  }
+}
+```
+
+The built-in `tempFile` store is the default and uses `/tmp/.llm/chat`. The
+persistent `file` store defaults to `~/.llm/chat`. `LLM_CHAT_SESSION_STORE` and
+the absolute `LLM_CHAT_SESSION_ROOT` environment variable override file
+configuration.
 
 Continuation is a separate subsequent `llm <prompt>` process. It requires the
 active `LLM_CHAT_ID` and rehydrates the corresponding validated JSON session.
@@ -99,6 +118,29 @@ Each invocation accepts one prompt and exits. This feature intentionally has no
 REPL, interactive chat loop, long-lived process, TTY/readline requirement,
 stdin-driven message loop, slash-command exit interface, or promptless chat
 start.
+
+## Chat-session store API
+
+The package exposes the complete session-store boundary through
+`ChatSessionStoreFactory`; module-level persistence functions are intentionally
+not exported:
+
+```js
+import { ChatSessionStoreFactory } from 'llm';
+
+const store = ChatSessionStoreFactory.createChatSessionStore({
+  type: 'file',
+  rootDirectory: '/var/tmp/llm/chat',
+});
+
+const session = await store.load('chat-1');
+const ids = await store.query({ from: new Date('2026-01-01T00:00:00Z') });
+```
+
+`ChatSessionStore` provides `load`, `save`, and `query` operations. `query`
+accepts inclusive `from` and `to` `Date` bounds and returns sorted chat IDs.
+Custom implementations can be registered by name with
+`ChatSessionStoreFactory.register(type, factory)`.
 
 ## Session-scoped chat
 

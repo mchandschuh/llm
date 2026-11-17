@@ -1,0 +1,249 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0011
+taskUid: WI-0011-90000000
+orderKey: "90000000"
+parentTaskUid: null
+taskType: review
+processingStatus: processing_completed
+title: Review configurable chat-session store API and major release
+objective: Review implementation quality, public encapsulation, configuration
+  precedence, secure persistence, test completeness, documentation, work-item
+  coverage, and major-version classification.
+references:
+  required:
+    - .docs/work-items/WI-0011/work-item.json
+    - .docs/work-items/WI-0011/steps/WI-0011-00000000-chat-session-store-test-strategy.yaml
+    - .docs/work-items/WI-0011/steps/WI-0011-80000000-chat-session-store-validation.yaml
+    - src/chat-session-store.ts
+    - src/chat-session-config.ts
+    - src/cli/chat-command.ts
+    - src/index.ts
+    - tests/cli-session-store.test.ts
+    - tests/chat-session-config.test.ts
+    - README.md
+    - SKILL.md
+    - package.json
+    - package-lock.json
+  informational:
+    - .docs/work-items/WI-0011/README.md
+dependsOn:
+  - WI-0011-80000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0011/steps/
+  commitSubject: "WI-0011: 03: review(llm): assess configurable session store"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: tests
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+    - id: diff-check
+      executable: git
+      arguments:
+        - diff
+        - --check
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review the complete WI-0011 implementation and evidence chain before
+      commit.
+    reviewKind: code
+    target:
+      taskType: validation
+      taskRef: WI-0011|80000000
+      result:
+        ref: WI-0011|80000000#result/R-001
+        sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    gateId: configurable-chat-session-store
+    policyRef:
+      ref: .docs/work-items/WI-0011/README.md
+      sha256: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    criteria:
+      - id: CRIT-001
+        statement: The public API contains the ChatSessionStore interface and factory
+          while removing module-level persistence functions.
+        purpose: Confirm the requested encapsulation boundary.
+        required: true
+        evidenceRefs:
+          - WI-0011|80000000#result/R-001
+      - id: CRIT-002
+        statement: tempFile and persistent file implementations are secure
+        purpose: Confirm implementation safety and substitutability.
+        required: true
+        evidenceRefs:
+          - WI-0011|80000000#result/R-001
+      - id: CRIT-003
+        statement: Configuration precedence matches the reviewed nodejs-common
+          application/home/environment fallback pattern.
+        purpose: Confirm standardized configuration behavior.
+        required: true
+        evidenceRefs:
+          - WI-0011|80000000#result/R-001
+      - id: CRIT-004
+        statement: Query behavior and all declared test cases have executable evidence.
+        purpose: Confirm complete evidence coverage.
+        required: true
+        evidenceRefs:
+          - WI-0011|00000000#result/R-001
+          - WI-0011|80000000#result/R-001
+      - id: CRIT-005
+        statement: Removal of public functions is classified and delivered as a major
+          version change.
+        purpose: Confirm compatibility impact is recorded.
+        required: true
+        evidenceRefs:
+          - WI-0011|80000000#result/R-001
+      - id: CRIT-006
+        statement: Documentation
+        purpose: Confirm release quality and repository conventions.
+        required: true
+        evidenceRefs:
+          - WI-0011|80000000#result/R-001
+    evidenceRequirements:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0011|80000000#result/R-001
+        purpose: Independent implementation and package validation.
+        required: true
+        minimumTier: cli-audit
+      - id: EVID-002
+        kind: test
+        ref: WI-0011|00000000#result/R-001
+        purpose: Complete strategy-defined test coverage.
+        required: true
+        minimumTier: component
+      - id: EVID-003
+        kind: diff
+        ref: "#repository-state/HEAD"
+        purpose: Changed-path and integrity review.
+        required: true
+        minimumTier: inspection
+    nonGoals:
+      - id: NON-001
+        statement: Do not approve remote persistence
+      - id: NON-002
+        statement: Do not approve module-level persistence functions or an incomplete
+          public type surface.
+    context:
+      - id: CTX-001
+        kind: repository-guidance
+        ref: .docs/work-items/WI-0011/README.md
+        purpose: Work-item scope
+        required: true
+      - id: CTX-002
+        kind: contract
+        ref: .docs/work-items/WI-0011/README.md
+        purpose: Reviewed configuration fallback convention.
+        required: true
+  result:
+    status: complete
+    decision: accepted
+    summary: Review accepted. The selected store interface is encapsulated,
+      built-ins and configuration are explicit, query and security coverage are
+      strong, and the removed public functions justify version 1.0.0.
+    actor:
+      id: wi-0011-reviewer
+      role: reviewer
+      authorityRef: WI-0011
+    criteriaEvaluations:
+      - criterionRef: "#criterion/CRIT-001"
+        status: satisfied
+        summary: Public declarations expose the store interface and factory and omit
+          module-level persistence functions.
+        evidenceRefs:
+          - WI-0011|80000000#result/R-001
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-002"
+        status: satisfied
+        summary: Both built-ins use the common secure bounded file implementation and
+          factory selection is tested.
+        evidenceRefs:
+          - WI-0011|80000000#result/R-001
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-003"
+        status: satisfied
+        summary: Configuration tests cover current
+        evidenceRefs:
+          - WI-0011|80000000#result/R-001
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-004"
+        status: satisfied
+        summary: The strategy enumerates 16 required cases and the coverage audit checks
+          exact enumeration and mapping.
+        evidenceRefs:
+          - WI-0011|00000000#result/R-001
+          - WI-0011|80000000#result/R-001
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-005"
+        status: satisfied
+        summary: Package metadata and records classify removal of public functions as a
+          major 0.2.0 to 1.0.0 change.
+        evidenceRefs:
+          - WI-0011|80000000#result/R-001
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-006"
+        status: satisfied
+        summary: Typecheck
+        evidenceRefs:
+          - WI-0011|80000000#result/R-001
+        findingRefs: []
+    findings: []
+    evidence:
+      - id: EVID-001
+        kind: validation
+        ref: WI-0011|80000000#result/R-001
+        claim: Implementation
+        tier: cli-audit
+        source: referenced-result
+      - id: EVID-002
+        kind: test
+        ref: WI-0011|00000000#result/R-001
+        claim: All 16 strategy test cases are enumerated and mapped to evidence.
+        tier: component
+        source: referenced-result
+      - id: EVID-003
+        kind: diff
+        ref: "#repository-state/HEAD"
+        claim: Final source and record paths pass diff and declaration inspection.
+        tier: inspection
+        source: repository
+    limitations:
+      - Local provider-free review does not establish production deployment
+      - publication
+      - authenticated-provider behavior
+      - remote persistence
+      - or downstream migration.
+    nonClaims:
+      - No publication
+      - deployment
+      - remote persistence
+      - authenticated-provider
+      - production-readiness
+      - or consumer-migration approval.
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: EXEC-REVIEW-WI-0011
+      status: succeeded
+      startedAt: 2026-11-17T00:00:00Z
+      finishedAt: 2026-11-17T00:10:00Z

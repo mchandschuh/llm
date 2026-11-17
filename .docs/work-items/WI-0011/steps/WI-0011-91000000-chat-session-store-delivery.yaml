@@ -1,0 +1,169 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0011
+taskUid: WI-0011-91000000
+orderKey: "91000000"
+parentTaskUid: null
+taskType: delivery
+processingStatus: processing_completed
+title: Record major-version delivery of configurable chat-session stores
+objective: Record local delivery of the validated and reviewed ChatSessionStore
+  interface, built-in implementations, configuration fallback, CLI integration,
+  documentation, version metadata, tests, and work-item records.
+references:
+  required:
+    - .docs/work-items/WI-0011/work-item.json
+    - .docs/work-items/WI-0011/classification-result.json
+    - .docs/work-items/WI-0011/steps/WI-0011-00000000-chat-session-store-test-strategy.yaml
+    - .docs/work-items/WI-0011/steps/WI-0011-80000000-chat-session-store-validation.yaml
+    - .docs/work-items/WI-0011/steps/WI-0011-90000000-chat-session-store-review.yaml
+    - package.json
+    - package-lock.json
+    - README.md
+    - SKILL.md
+  informational:
+    - dist/
+    - tests/
+dependsOn:
+  - WI-0011-90000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0011/
+  commitSubject: "WI-0011: 04: release(llm): deliver configurable session stores"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: final-typecheck
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: final-tests
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+    - id: final-build
+      executable: npm
+      arguments:
+        - run
+        - build
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-delivery/v1#/properties/result
+  intent:
+    summary: Deliver the accepted local major-version change and commit it without
+      publication or deployment claims.
+    deliveryTypes:
+      - package
+      - release
+    inputs:
+      - id: INPUT-VALIDATION
+        kind: validation
+        ref: WI-0011|80000000#result/R-001
+        purpose: Independent implementation, package, and work-item validation.
+        required: true
+      - id: INPUT-REVIEW
+        kind: approval
+        ref: WI-0011|90000000#result/R-001
+        purpose: Accepted review of the exact implementation and public API break.
+        required: true
+      - id: INPUT-REPOSITORY
+        kind: repositoryState
+        ref: "#repository-state/HEAD"
+        purpose: Exact local revision being delivered.
+        required: true
+    artifacts:
+      - id: ART-PACKAGE
+        kind: package
+        path: dist/
+        purpose: Locally built package with generated declarations.
+        required: true
+      - id: ART-SOURCE
+        kind: manifest
+        path: src/chat-session-store.ts
+        purpose: ChatSessionStore contract and implementations.
+        required: true
+      - id: ART-TESTS
+        kind: manifest
+        path: tests/
+        purpose: Store, configuration, CLI, and coverage tests.
+        required: true
+      - id: ART-RECORDS
+        kind: releaseRecord
+        path: .docs/work-items/WI-0011/
+        purpose: Complete major-release work-item records.
+        required: true
+    procedures:
+      - id: PROC-FINAL-VERIFY
+        sequence: 1
+        name: final-major-release-verification
+        description: Rebuild, rerun all tests, inspect declarations, verify version
+          metadata, and inspect work-item coverage.
+        steps:
+          - Run typecheck
+          - run the full test suite
+          - build declarations
+          - run the WI-0011 coverage audit
+          - inspect public exports
+          - and run diff checks.
+        command: npm run typecheck && npm test && npm run build && git diff --check
+        expected:
+          result: Package, tests, declarations, documentation, records, and major version
+            metadata are complete.
+        required: true
+    nonGoals:
+      - Do not publish to a registry or deploy to production.
+      - Do not make authenticated provider calls.
+      - Do not claim downstream migration or remote persistence.
+  result:
+    status: delivered
+    summary: Delivered the configurable ChatSessionStore API as major version 1.0.0
+      after local validation and review.
+    artifacts:
+      - id: ART-PACKAGE
+        kind: package
+        path: dist/
+        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      - id: ART-SOURCE
+        kind: manifest
+        path: src/chat-session-store.ts
+        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      - id: ART-TESTS
+        kind: manifest
+        path: tests/
+        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      - id: ART-RECORDS
+        kind: releaseRecord
+        path: .docs/work-items/WI-0011/
+        checksum: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executions:
+      - id: EXEC-FINAL-VERIFY
+        procedureRef: "#procedure/PROC-FINAL-VERIFY"
+        result:
+          status: passed
+          summary: Typecheck, full 106-test suite, build, declaration inspection, coverage
+            audit, and diff check passed.
+          assertions:
+            - Package version is 1.0.0 and removed functions are absent from
+              public declarations.
+        command: npm run typecheck && npm test && npm run build && git diff --check
+    limitations:
+      - No publication
+      - deployment
+      - authenticated-provider
+      - remote-store
+      - or downstream-consumer evidence is claimed.

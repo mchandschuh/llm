@@ -7,7 +7,7 @@ import { parseCliArguments } from '../src/cli/arguments.js';
 import { runPromptCommand } from '../src/cli/prompt-command.js';
 import { runConfigCommand } from '../src/cli/config-command.js';
 import { runChatCommand } from '../src/cli/chat-command.js';
-import { loadChatSession, saveChatSession } from '../src/chat-session-store.js';
+import { ChatSessionStoreFactory } from '../src/chat-session-store.js';
 import type { LlmProvider, ProviderCompletionRequest } from '../src/types.js';
 
 interface CapturedOutput<T> {
@@ -121,7 +121,7 @@ test('fresh chat start replaces explicit-ID state, defaults to raw, and preserve
     assert.equal(output.stdout, `export LLM_CHAT_ID="${chatId}"\n`);
     if (format !== 'full') assert.equal(output.stderr, 'fresh answer');
     else assert.equal(assertJson(output.stderr).output.value, 'fresh answer');
-    assert.equal((await loadChatSession(chatId, { rootDirectory: root }))?.chatId, chatId);
+    assert.equal((await ChatSessionStoreFactory.createChatSessionStore({ type: 'tempFile', rootDirectory: root }).load(chatId))?.chatId, chatId);
   }
 });
 
@@ -130,7 +130,7 @@ test('subsequent bare continuation rehydrates history, defaults to raw, and appl
   const root = await mkdtemp(join(tmpdir(), 'llm-cli-chat-'));
   process.env.LLM_CHAT_ID = 'continued-chat';
   try {
-    await saveChatSession({
+    await ChatSessionStoreFactory.createChatSessionStore({ type: 'tempFile', rootDirectory: root }).save({
       chatId: 'continued-chat',
       request: { schema: 'https://schemas.handschuh.dev/llm/request/v1', task: 'start', systemPrompt: 'Respond.' },
       history: [
@@ -138,7 +138,7 @@ test('subsequent bare continuation rehydrates history, defaults to raw, and appl
         { role: 'user', content: 'previous prompt' },
         { role: 'assistant', content: 'previous answer', toolCalls: [] },
       ],
-    }, { rootDirectory: root });
+    });
     for (const format of [undefined, 'full', 'raw'] as const) {
       const requests: ProviderCompletionRequest[] = [];
       const output = await capture(({ write, writeError }) => runChatCommand({ prompt: 'continue', continuation: true, debug: false, format, printChatId: false, rootDirectory: root, provider: fakeProvider('continued answer', requests), write, writeError }));
