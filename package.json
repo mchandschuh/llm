@@ -31,7 +31,8 @@
   },
   "dependencies": {
     "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1"
+    "ajv-formats": "^3.0.1",
+    "nodejs-common": "file:../nodejs-common"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

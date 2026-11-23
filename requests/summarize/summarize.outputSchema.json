@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.handschuh.dev/llm/llm-summarize/output/v1",
+  "title": "LLM Summarize Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A concise summary of the content supplied in the request files."
+    }
+  }
+}

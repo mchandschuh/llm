@@ -1,4 +1,4 @@
-import { lstat, readFile, realpath } from 'node:fs/promises';
+import { lstat, readFile, realpath, stat } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { LlmFailure } from './errors.js';
 import type { FileEncoding, ResolvedSource } from './types.js';
@@ -45,15 +45,18 @@ interface ResolvedCandidate {
   readonly canonicalPath: string;
 }
 
-async function readCandidate(candidate: string, root: string): Promise<ResolvedCandidate | undefined> {
+async function readCandidate(candidate: string, root: string, allowFinalSymlink: boolean): Promise<ResolvedCandidate | undefined> {
   assertSafeCandidate(candidate);
   const absolute = resolve(root, candidate);
   const relativeCandidate = relative(resolve(root), absolute);
   let current = resolve(root);
-  for (const segment of relativeCandidate.split(sep).filter(Boolean)) {
+  const segments = relativeCandidate.split(sep).filter(Boolean);
+  for (const [index, segment] of segments.entries()) {
     current = resolve(current, segment);
     try {
-      if ((await lstat(current)).isSymbolicLink()) throw sourceFailure('Symbolic-link sources are not permitted.');
+      if ((await lstat(current)).isSymbolicLink() && !(allowFinalSymlink && index === segments.length - 1)) {
+        throw sourceFailure('Symbolic-link sources are not permitted.');
+      }
     } catch (error) {
       if (error instanceof LlmFailure) throw error;
       const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
@@ -69,17 +72,28 @@ async function readCandidate(candidate: string, root: string): Promise<ResolvedC
     if (code === 'ENOENT' || code === 'ENOTDIR' || code === 'ENAMETOOLONG') return undefined;
     throw sourceFailure('The configured source could not be inspected.');
   }
-  if (info.isSymbolicLink()) throw sourceFailure('Symbolic-link sources are not permitted.');
-  if (!info.isFile()) throw sourceFailure('Configured sources must be regular files.');
+  if (info.isSymbolicLink()) {
+    if (!allowFinalSymlink) throw sourceFailure('Symbolic-link sources are not permitted.');
+    try {
+      if (!(await stat(absolute)).isFile()) throw sourceFailure('Configured sources must be regular files.');
+    } catch (error) {
+      if (error instanceof LlmFailure) throw error;
+      throw sourceFailure('The configured source could not be resolved.');
+    }
+  }
+  if (!info.isFile() && !info.isSymbolicLink()) throw sourceFailure('Configured sources must be regular files.');
   let canonicalRoot: string;
   let canonicalPath: string;
+  const finalSymlink = info.isSymbolicLink();
   try {
     [canonicalRoot, canonicalPath] = await Promise.all([realpath(root), realpath(absolute)]);
   } catch {
     throw sourceFailure('The configured source could not be resolved.');
   }
   const escaped = relative(canonicalRoot, canonicalPath).startsWith('..') || isAbsolute(relative(canonicalRoot, canonicalPath));
-  if (escaped || hasForbiddenSegment(relative(canonicalRoot, canonicalPath))) throw sourceFailure('The configured source is outside the permitted root.');
+  if ((escaped && !(allowFinalSymlink && finalSymlink)) || hasForbiddenSegment(relative(canonicalRoot, canonicalPath))) {
+    throw sourceFailure('The configured source is outside the permitted root.');
+  }
   return { path: candidate, canonicalPath };
 }
 
@@ -99,9 +113,9 @@ function encodingFor(type: string): FileEncoding {
   return type.startsWith('text/') || UTF8_MIME_TYPES.has(type) ? 'utf8' : 'base64';
 }
 
-async function readFileAttachment(candidate: string, type: string, encoding: FileEncoding | undefined, root: string): Promise<ResolvedSource & { readonly path: string; readonly encoding: FileEncoding }> {
+async function readFileAttachment(candidate: string, type: string, encoding: FileEncoding | undefined, root: string, allowFinalSymlink: boolean): Promise<ResolvedSource & { readonly path: string; readonly encoding: FileEncoding }> {
   assertMimeType(type);
-  const resolved = await readCandidate(candidate, root);
+  const resolved = await readCandidate(candidate, root, allowFinalSymlink);
   if (!resolved?.path) throw sourceFailure('Configured reference files must resolve to regular files.');
   let bytes: Buffer;
   try {
@@ -126,7 +140,7 @@ async function readFileAttachment(candidate: string, type: string, encoding: Fil
 export async function resolveSource(source: string, root: string): Promise<ResolvedSource> {
   if (typeof source !== 'string' || source.length === 0) throw sourceFailure('Configured source values must be non-empty strings.');
   if (isAbsolute(source) || isTraversal(source) || hasForbiddenSegment(source)) assertSafeCandidate(source);
-  const file = await readCandidate(source, root);
+  const file = await readCandidate(source, root, false);
   if (!file) return { value: source };
   try {
     return { value: await readFile(file.canonicalPath, 'utf8'), path: file.path };
@@ -135,6 +149,6 @@ export async function resolveSource(source: string, root: string): Promise<Resol
   }
 }
 
-export async function resolveRequiredFile(source: string, root: string, type = 'text/plain', encoding?: FileEncoding): Promise<ResolvedSource & { readonly path: string; readonly encoding: FileEncoding }> {
-  return readFileAttachment(source, type, encoding, root);
+export async function resolveRequiredFile(source: string, root: string, type = 'text/plain', encoding?: FileEncoding, options: { readonly allowFinalSymlink?: boolean } = {}): Promise<ResolvedSource & { readonly path: string; readonly encoding: FileEncoding }> {
+  return readFileAttachment(source, type, encoding, root, options.allowFinalSymlink === true);
 }

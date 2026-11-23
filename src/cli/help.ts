@@ -11,6 +11,8 @@ export function printHelp(): number {
   console.log('       llm --config <request.json>');
   console.log('       llm -p <prompt> [--format=full|raw]');
   console.log('       llm -c <prompt> [--format=full|raw] [--chat-id <id>] [--print-chat-id]');
+  console.log('       llm summarize --path <path> [--format=full|raw]');
+  console.log('       llm summarize --content <text> [--format=full|raw]');
   console.log('       llm <prompt>  # continue the LLM_CHAT_ID session [--format=full|raw]');
   console.log('       llm --debug <request.json>');
   console.log('       llm --help');

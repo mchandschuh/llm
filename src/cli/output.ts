@@ -34,6 +34,6 @@ export function printInputError(writeError: OutputWriter = stderrWriter): number
 }
 
 export function printUsageError(writeError: OutputWriter = stderrWriter): number {
-  writeError(`${JSON.stringify({ status: 'input_invalid', errors: [{ code: 'REQUEST_INVALID', phase: 'request', message: 'Usage: llm <request.json> | llm -p <prompt> | llm -c <prompt> | llm <prompt>' }] })}\n`);
+  writeError(`${JSON.stringify({ status: 'input_invalid', errors: [{ code: 'REQUEST_INVALID', phase: 'request', message: 'Usage: llm <request.json> | llm -p <prompt> | llm -c <prompt> | llm summarize --path <path> | llm summarize --content <text> | llm <prompt>' }] })}\n`);
   return 2;
 }

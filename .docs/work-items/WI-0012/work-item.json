@@ -1,0 +1,191 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0012",
+  "status": "planned",
+  "title": "Add the llm summarize command and configured request assets",
+  "type": "feature",
+  "objective": "Add one bounded llm summarize command that accepts exactly one source mode (--path or --content), resolves the configured requestsDirectory through nodejs-common, uses the summarize prompt and output-schema assets, sends the constructed request with its files to the existing LLM completion boundary, and prints the summary using the common raw/full output formats.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0012-llm-summarize-command",
+      "created": false,
+      "rationale": "The work item records a bounded command and request-asset change without creating or switching a branch during intake."
+    }
+  },
+  "baseline": "d3267e3cc3fc7ba87d1ce271f9e8a546a14dcd4a",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare a new .docs/work-items/* to perform only the following updates:\n\n1. add llm summarize command accepting one of the following [ --path  ] or [ --content ].\n2. add requests/llm-summarize/ directory\n3. add llm-summarize.outputSchema.json output schema for the llm request configuration\n4. add llm-summarize.prompt.md instructing the agent to summarize <files> content\n5. construct the llm request by adding <files>. if --content is provided, include a file called 'content' and include the --content text as the content of the file, inclde a note/purpose/attribute indicating it is not a file and that it is content provided by the command line\n6. pull requests directory from nodejs-common configuration resolution\n7. if no configuration is found error, instructing user to config ~/.llm/config.json:requestsDirectory to point to the llm repository's request directory\n8. issue the llm call, and provide the summary result to the terminal, respecting common command line options --format={raw|full}\n\nEnsure we don't build outside the above stated requirements w/out human operator approval.",
+    "sha256": "15202a4d4b3edf43e365c3ba8aac6655dbe304012bf3daa83f4e730b817ffd2e"
+  },
+  "scope": [
+    {
+      "name": "summarize-command",
+      "description": "Add llm summarize with one required and mutually exclusive source option: --path <path> or --content <text>.",
+      "reason": "Users need a dedicated command for summarizing supplied file content or command-line content without changing the existing prompt, chat, or request-file command modes."
+    },
+    {
+      "name": "summarize-request-assets",
+      "description": "Add requests/summarize/ with summarize.prompt.md and summarize.outputSchema.json, and use those assets for the constructed LLM request.",
+      "reason": "The summarize operation needs a repository-owned prompt and output contract that can be resolved from the configured requests directory."
+    },
+    {
+      "name": "file-input-construction",
+      "description": "Construct the request with its <files> collection; for --content, add a file named content containing the exact command-line text and metadata stating that it is command-line-provided content rather than a filesystem file.",
+      "reason": "The agent must receive all summarization material through the request file boundary while preserving the distinction between path-backed files and inline command-line content."
+    },
+    {
+      "name": "requests-directory-resolution",
+      "description": "Resolve requestsDirectory using the nodejs-common configuration resolution convention and locate the summarize request assets below that directory.",
+      "reason": "Request assets must be relocatable and must use the shared application/home/environment configuration precedence rather than a hard-coded checkout path."
+    },
+    {
+      "name": "completion-and-terminal-output",
+      "description": "Issue the existing LLM call for the constructed summarize request and print the summary result using the common --format={raw|full} behavior.",
+      "reason": "The command is useful only when it executes the existing completion boundary and exposes the result consistently with other CLI modes."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "unrelated-cli-expansion",
+      "description": "Do not add commands, aliases, source modes, flags, interactive input, REPL behavior, or path traversal semantics beyond llm summarize with --path or --content.",
+      "reason": "The requested feature has exactly two source options and must remain bounded until a human operator approves additional CLI behavior.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "existing-command-refactor",
+      "description": "Do not refactor or change the behavior of existing request-file, prompt, chat, continuation, help, version, debug, or output commands except for the minimal shared integration required by this command.",
+      "reason": "The summarize command is additive and unrelated command changes would exceed the stated requirements.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "request-contract-or-provider-expansion",
+      "description": "Do not redesign the existing LLM request/response schemas, provider interfaces, completion semantics, retry policy, output envelope, or provider set.",
+      "reason": "The command must adapt the existing completion boundary rather than broaden the library contract.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "configuration-convention-change",
+      "description": "Do not invent a second configuration lookup mechanism or change nodejs-common precedence, root validation, recursive merge behavior, or provenance semantics.",
+      "reason": "Only the existing shared configuration resolution is in scope; configuration behavior must remain standardized.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "unapproved-artifacts-and-operations",
+      "description": "Do not add request assets other than the requested directory, prompt, and output-schema files; do not change package versioning, publish, deploy, make authenticated calls during planning, or claim production/downstream integration.",
+      "reason": "The operator explicitly limited the work to the stated updates and requires approval before scope expansion.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0012_REQ_001",
+        "name": "summarize-source-options",
+        "description": "The CLI exposes llm summarize and accepts exactly one non-empty source option, --path <path> or --content <text>; missing, duplicate, or simultaneous source options fail with a usage/input error.",
+        "reason": "The command must have an unambiguous source while supporting both filesystem content and command-line content.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0012_REQ_001_AC_001",
+            "description": "Argument tests prove llm summarize --path <path> and llm summarize --content <text> parse as the two supported forms, while omission, duplication, simultaneous use, and empty values are rejected without an LLM call."
+          }
+        ]
+      },
+      {
+        "id": "WI-0012_REQ_002",
+        "name": "summarize-request-assets",
+        "description": "The repository contains requests/summarize/summarize.prompt.md instructing the agent to summarize <files> content and requests/summarize/summarize.outputSchema.json defining the summarize response contract.",
+        "reason": "The command must use named, repository-owned request assets rather than embedding an untracked prompt or output contract in command code.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0012_REQ_002_AC_001",
+            "description": "The two requested files exist at the exact paths under requests/summarize/, the prompt explicitly directs summarization of <files> content, and the output-schema JSON parses as the schema used by the request."
+          }
+        ]
+      },
+      {
+        "id": "WI-0012_REQ_003",
+        "name": "files-request-construction",
+        "description": "The constructed LLM request includes the supplied source in its <files> collection using the existing request file metadata contract; --content creates a file named content with the exact text and metadata/purpose/attribute identifying it as command-line-provided content, not a filesystem file.",
+        "reason": "The summarize prompt consumes <files>, and inline content must not be misrepresented as a path-backed file.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0012_REQ_003_AC_001",
+            "description": "Provider-boundary tests inspect the constructed request and prove path mode includes the requested path-backed file content, content mode includes name content and exact text, and content-mode metadata states that the entry is not a file and came from the command line."
+          }
+        ]
+      },
+      {
+        "id": "WI-0012_REQ_004",
+        "name": "configured-request-directory",
+        "description": "The command obtains requestsDirectory through nodejs-common configuration resolution and resolves the llm-summarize assets beneath that configured directory using the shared application, home, and optional environment-root precedence.",
+        "reason": "The request directory must follow the repository standard and must not be hard-coded to the current checkout.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0012_REQ_004_AC_001",
+            "description": "Configuration tests prove the shared nodejs-common resolution is used, later configuration layers override earlier requestsDirectory values according to the common merge contract, and the selected directory is used to locate both summarize assets."
+          }
+        ]
+      },
+      {
+        "id": "WI-0012_REQ_005",
+        "name": "missing-configuration-guidance",
+        "description": "When no usable configuration is found for requestsDirectory, the command fails before the LLM call with an actionable error instructing the user to configure ~/.llm/config.json:requestsDirectory to point to the llm repository request directory.",
+        "reason": "A missing request-directory configuration cannot be recovered safely by guessing a checkout path.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0012_REQ_005_AC_001",
+            "description": "A no-configuration test proves no provider/completion call occurs and the terminal error contains the exact ~/.llm/config.json:requestsDirectory guidance and explains that it must point to the llm repository request directory."
+          }
+        ]
+      },
+      {
+        "id": "WI-0012_REQ_006",
+        "name": "completion-and-format-output",
+        "description": "The command issues one existing LLM completion request and prints the successful summary to the terminal with the common output behavior: raw summary text for --format=raw (the default if that is the existing common default) and the full response envelope for --format=full.",
+        "reason": "Users need the summary in the same machine-readable or human-readable formats as the existing CLI.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0012_REQ_006_AC_001",
+            "description": "CLI tests with an injected/provider-free completion prove one call is issued, raw mode emits only the summary text, full mode emits the existing full response envelope, and non-success responses use the existing error/exit behavior."
+          }
+        ]
+      },
+      {
+        "id": "WI-0012_REQ_007",
+        "name": "strict-scope-regression",
+        "description": "The implementation changes only the summarize command integration, its two request assets, the required shared configuration hookup, and directly necessary tests/documentation; unrelated behavior remains unchanged.",
+        "reason": "The operator explicitly requires approval before building outside the eight stated updates.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0012_REQ_007_AC_001",
+            "description": "Changed-path review and regression tests show no unrelated command, schema, provider, package, deployment, or configuration-convention changes, and any proposed scope expansion is recorded as requiring human operator approval."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0012/steps/"
+}

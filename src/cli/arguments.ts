@@ -7,10 +7,12 @@ export interface ParsedCliArguments {
   readonly debug: boolean;
   readonly format: ResponseFormat;
   readonly printChatId: boolean;
-  readonly command: 'help' | 'version' | 'config' | 'prompt' | 'chat' | 'continue';
+  readonly command: 'help' | 'version' | 'config' | 'prompt' | 'chat' | 'continue' | 'summarize';
   readonly prompt?: string;
   readonly chatId?: string;
   readonly requestPath?: string;
+  readonly summarizePath?: string;
+  readonly summarizeContent?: string;
   readonly exitCode?: number;
 }
 
@@ -58,6 +60,35 @@ function parseFlags(args: readonly string[]): { readonly debug: boolean; readonl
   };
 }
 
+function summarizeOptionValue(value: string): { readonly name: 'path' | 'content'; readonly value: string } | undefined {
+  if (value.startsWith('--path=')) return { name: 'path', value: value.slice('--path='.length) };
+  if (value.startsWith('--content=')) return { name: 'content', value: value.slice('--content='.length) };
+  return undefined;
+}
+
+function parseSummarizeArguments(args: readonly string[], common: { readonly debug: boolean; readonly format: ResponseFormat; readonly printChatId: boolean }): ParsedCliArguments {
+  if (common.printChatId) return { ...common, command: 'summarize', exitCode: 2 };
+  let path: string | undefined;
+  let content: string | undefined;
+  for (let index = 1; index < args.length; index += 1) {
+    const argument = args[index]!;
+    const inline = summarizeOptionValue(argument);
+    const option = inline ? inline.name : argument === '--path' || argument === '--content' ? argument.slice(2) as 'path' | 'content' : undefined;
+    if (!option) return { ...common, command: 'summarize', exitCode: 2 };
+    const value = inline ? inline.value : args[++index];
+    if (!value) return { ...common, command: 'summarize', exitCode: 2 };
+    if (option === 'path') {
+      if (path !== undefined || !value) return { ...common, command: 'summarize', exitCode: 2 };
+      path = value;
+    } else {
+      if (content !== undefined || !value) return { ...common, command: 'summarize', exitCode: 2 };
+      content = value;
+    }
+  }
+  if ((path === undefined) === (content === undefined)) return { ...common, command: 'summarize', exitCode: 2 };
+  return { ...common, command: 'summarize', ...(path !== undefined ? { summarizePath: path } : { summarizeContent: content }) };
+}
+
 export function parseCliArguments(args: readonly string[]): ParsedCliArguments {
   const parsed = parseFlags(args);
   const cleanArgs = parsed.args;
@@ -81,6 +112,8 @@ export function parseCliArguments(args: readonly string[]): ParsedCliArguments {
     if (promptArgs.length !== 1) return { ...common, command: 'chat', exitCode: 2 };
     return { ...common, command: 'chat', prompt: promptArgs[0], ...(chatId ? { chatId } : {}) };
   }
+
+  if (cleanArgs[0] === 'summarize') return parseSummarizeArguments(cleanArgs, common);
 
   const configMode = cleanArgs[0] === '--config';
   const requestPath = configMode ? cleanArgs[1] : cleanArgs[0];

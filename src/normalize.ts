@@ -36,7 +36,7 @@ function inlineSchema(value: unknown, name: string): Record<string, unknown> | u
   return value as Record<string, unknown>;
 }
 
-export async function normalizeRequest(value: unknown, options: { readonly configurationFilePath?: string; readonly configurationRoot?: string } = {}): Promise<NormalizedRequest> {
+export async function normalizeRequest(value: unknown, options: { readonly configurationFilePath?: string; readonly configurationRoot?: string; readonly allowFinalSymlinkFiles?: boolean } = {}): Promise<NormalizedRequest> {
   assertRequestShape(value);
   const request = value as unknown as LlmRequest;
   validateMessages(request.messages ?? []);
@@ -47,7 +47,7 @@ export async function normalizeRequest(value: unknown, options: { readonly confi
   const outputSchema = inlineSchema(request.outputSchema, 'outputSchema');
   const files: Array<ReferenceFile & { readonly encoding: 'utf8' | 'base64'; readonly content: string; readonly resolvedPath: string }> = [];
   for (const file of request.files ?? []) {
-    const resolved = await resolveRequiredFile(file.path, root, file.type, file.encoding);
+    const resolved = await resolveRequiredFile(file.path, root, file.type, file.encoding, { allowFinalSymlink: options.allowFinalSymlinkFiles === true });
     files.push({ ...file, encoding: resolved.encoding, content: resolved.value, resolvedPath: resolved.path });
   }
   return {

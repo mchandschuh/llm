@@ -360,6 +360,7 @@ export interface CompletionOptions {
   readonly provider?: LlmProvider;
   readonly configurationFilePath?: string;
   readonly configurationRoot?: string;
+  readonly allowFinalSymlinkFiles?: boolean;
   readonly debug?: import('./debug.js').DebugSink;
   readonly toolInvoker?: ToolInvoker;
   readonly signal?: AbortSignal;
