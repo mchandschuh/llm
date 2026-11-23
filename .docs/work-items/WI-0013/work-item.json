@@ -1,0 +1,184 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0013",
+  "status": "planned",
+  "title": "Add configurable summarize settings",
+  "type": "feature",
+  "objective": "Add one canonical summarize settings/defaults JSON asset, resolve default provider/model/thinking values through the configured summarize request directory, and accept summarize-specific command-line overrides while preserving existing source modes, completion behavior, and output formats.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0013-summarize-settings",
+      "created": false,
+      "rationale": "The work item records a bounded summarize settings feature without creating or switching a branch during intake."
+    }
+  },
+  "baseline": "ecfd8be",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare a new .docs/work-items/* that accomplishes the following:\n\nAdd a summarize.settings.json to requests/summarize to support default model settings\nUpdate llm summarize to consult the summarize.defaults.json\nUpdate llm summarize to accept settings, such as provider/model/thinking via command line arguments\n\nCommit the work item.",
+    "sha256": "f96035ded20f62084d4fcf8db26f40c43c121950d2a1f8d109977358a2160c98"
+  },
+  "scope": [
+    {
+      "name": "summarize-settings-asset",
+      "description": "Add one canonical JSON settings/defaults asset under the configured requests/summarize directory containing bounded default provider, model, and thinking values.",
+      "reason": "The summarize command needs repository-owned defaults without hard-coding a deployment-specific model configuration."
+    },
+    {
+      "name": "settings-name-clarification",
+      "description": "Resolve the request discrepancy between summarize.settings.json and summarize.defaults.json before implementation and record the selected canonical filename.",
+      "reason": "Reading or adding two similarly purposed assets would create ambiguous configuration behavior."
+    },
+    {
+      "name": "summarize-default-resolution",
+      "description": "Load and validate the canonical summarize settings asset through the existing configured requestsDirectory boundary.",
+      "reason": "Request assets must remain relocatable and use the established configuration convention."
+    },
+    {
+      "name": "summarize-cli-overrides",
+      "description": "Accept summarize-specific provider, model, and thinking command-line settings and apply them as explicit overrides.",
+      "reason": "Operators need per-invocation control without editing repository-owned defaults."
+    },
+    {
+      "name": "settings-precedence-and-regression",
+      "description": "Define settings precedence and preserve existing summarize source construction, completion behavior, and raw/full output formats.",
+      "reason": "Defaults and overrides must be predictable without regressing path, content, directory, or symlink-file behavior."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "generic-request-contract-change",
+      "description": "Do not change the versioned request schema, provider interface, completion response envelope, or generic normalizer contract.",
+      "reason": "The feature is a summarize-command adaptation over existing request fields.",
+      "forbiddenFileWrites": [
+        "schemas/request/",
+        "schemas/response/"
+      ],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "other-command-settings",
+      "description": "Do not add settings-file or provider/model/thinking flag behavior to prompt, chat, continuation, or request-file commands.",
+      "reason": "The requested settings boundary is limited to llm summarize.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "configuration-precedence-redesign",
+      "description": "Do not invent another configuration lookup mechanism or alter nodejs-common requestsDirectory precedence.",
+      "reason": "The settings asset must remain relocatable under the established request-directory boundary.",
+      "forbiddenFileWrites": [
+        "src/requests-config.ts"
+      ],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "credentials-and-arbitrary-settings",
+      "description": "Do not persist credentials or add unrestricted settings passthrough, interactive prompts, or unapproved environment precedence.",
+      "reason": "The settings asset is limited to bounded provider/model/thinking defaults and explicit CLI overrides.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "operational-expansion",
+      "description": "Do not publish, deploy, make authenticated provider calls, or claim production readiness.",
+      "reason": "Evidence remains local and deterministic.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0013_REQ_001",
+        "name": "canonical-settings-asset",
+        "description": "The repository contains one canonical summarize settings/defaults JSON asset under requests/summarize with bounded provider, model, and thinking defaults.",
+        "reason": "The command needs explicit repository-owned defaults and the request currently names two conflicting asset filenames.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0013_REQ_001_AC_001",
+            "description": "Implementation records whether summarize.settings.json or summarize.defaults.json is canonical, creates exactly that asset, rejects malformed or unsupported settings, and does not silently consult a second competing asset."
+          }
+        ]
+      },
+      {
+        "id": "WI-0013_REQ_002",
+        "name": "configured-default-resolution",
+        "description": "llm summarize resolves the canonical settings asset beneath the requestsDirectory selected by the existing configuration convention.",
+        "reason": "Settings must follow the same relocatable request-asset boundary as the summarize prompt and output schema.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0013_REQ_002_AC_001",
+            "description": "Provider-free tests prove the configured requests directory is used, missing settings produce bounded actionable configuration errors, and valid defaults reach the constructed provider request."
+          }
+        ]
+      },
+      {
+        "id": "WI-0013_REQ_003",
+        "name": "summarize-cli-settings",
+        "description": "llm summarize accepts provider, model, and thinking settings through command-line arguments with explicit validation.",
+        "reason": "Operators need per-invocation settings overrides without mutating the defaults asset.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0013_REQ_003_AC_001",
+            "description": "Argument tests prove valid --provider, --model, and --thinking values are captured for summarize, while missing values, duplicates, unsupported thinking values, and unknown summarize settings fail with usage/input errors."
+          }
+        ]
+      },
+      {
+        "id": "WI-0013_REQ_004",
+        "name": "settings-precedence",
+        "description": "Explicit summarize command-line settings override settings-asset defaults, and omitted values continue through the defined defaults chain to existing runtime defaults.",
+        "reason": "Precedence must be deterministic when only some settings are supplied on the command line.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0013_REQ_004_AC_001",
+            "description": "Provider-boundary tests cover all combinations of asset defaults and partial CLI overrides and assert the final provider/model/thinking values."
+          }
+        ]
+      },
+      {
+        "id": "WI-0013_REQ_005",
+        "name": "summarize-regression",
+        "description": "Settings support does not change existing summarize source modes, recursive directory file collection, final symlink-file handling, completion invocation, or raw/full output behavior.",
+        "reason": "The feature must remain additive to the current summarize command.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0013_REQ_005_AC_001",
+            "description": "Existing summarize tests and new settings tests pass for --path file, --path directory, symlink file, --content, raw output, full output, and provider-free completion boundaries."
+          }
+        ]
+      },
+      {
+        "id": "WI-0013_REQ_006",
+        "name": "scope-and-quality",
+        "description": "The implementation remains limited to summarize settings integration and directly necessary tests/assets without generic provider or configuration-convention changes.",
+        "reason": "The operator requested a bounded settings feature rather than a broader configuration redesign.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0013_REQ_006_AC_001",
+            "description": "Changed-path review identifies only summarize settings integration, the canonical settings asset, and directly necessary tests or help text; typecheck, tests, build, and whitespace checks pass."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0013/steps/"
+}

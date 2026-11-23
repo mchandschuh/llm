@@ -1,0 +1,68 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/classification-result/v1",
+  "status": "classified",
+  "workItemRef": "sdlc://repo/local%2Fllm/WI-0013#work-item.json%23work-item/WI-0013",
+  "workItemSha256": "sha256:a800ef4bad9fdb1bbfb18414d3e3dd473f86c3f70b31d0f73f49604685a4982e",
+  "classification": {
+    "workKind": "feature",
+    "scopeClass": "composite",
+    "architectureImpact": "none",
+    "integrationImpact": "none",
+    "migrationImpact": "none",
+    "deploymentImpact": "none",
+    "risk": "unknown",
+    "uncertainty": "high",
+    "acceptanceCriteriaTestable": true,
+    "reasons": [
+      {
+        "statement": "The work item declares a feature classification.",
+        "sourceRefs": [
+          "#/type"
+        ]
+      },
+      {
+        "statement": "The work item declares six requirements.",
+        "sourceRefs": [
+          "#/requirements/items"
+        ]
+      },
+      {
+        "statement": "The work item has multiple implementation and compatibility scope entries.",
+        "sourceRefs": [
+          "#/scope"
+        ]
+      },
+      {
+        "statement": "Every declared acceptance criterion has a non-empty observable description.",
+        "sourceRefs": [
+          "#/requirements/items/0/acceptanceCriteria"
+        ]
+      },
+      {
+        "statement": "The request contains an explicit settings-asset naming discrepancy that must be resolved before implementation.",
+        "sourceRefs": [
+          "#/request/text",
+          "#/scope/1",
+          "#/requirements/items/0"
+        ]
+      }
+    ]
+  },
+  "workflow": {
+    "profile": "unselected",
+    "topology": "unselected"
+  },
+  "research": {
+    "disposition": "recommended",
+    "reasons": [
+      {
+        "statement": "The canonical settings filename and settings precedence require confirmation during implementation planning.",
+        "sourceRefs": [
+          "#/request/text",
+          "#/requirements/items/0",
+          "#/requirements/items/4"
+        ]
+      }
+    ]
+  }
+}
