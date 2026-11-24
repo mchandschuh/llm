@@ -4,7 +4,7 @@ taskUid: WI-0014-20000000
 orderKey: '20000000'
 parentTaskUid: WI-0014-10000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement the documented request-directory contract
 objective: Implement the documented request-directory contract
 references:
@@ -60,7 +60,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -145,3 +145,63 @@ task:
     - Record prompt/system mapping and summarize compatibility decisions against the
       existing LlmRequest boundary.
     - Review the documentation against every requirement and acceptance criterion.
+  result:
+    status: implemented
+    implementation:
+      summary: Documented the dynamic request-directory contract, including exact asset mapping, parameter and placeholder semantics, processing order, existing LlmRequest compatibility, output behavior, security boundaries, and provider-free evidence limits.
+      changes:
+      - id: CHANGE-001
+        type: documentation
+        summary: Added requests/README.md as the source of truth for the six supported request assets and their mapping to LlmRequest.
+        objectiveRefs:
+        - WI-0014-20000000_OBJ-001
+        - WI-0014-20000000_OBJ-002
+        paths:
+        - requests/README.md
+      - id: CHANGE-002
+        type: documentation
+        summary: Defined deterministic parameter grammar, precedence, duplicate/conflict behavior, JSON conversion, schema-validation timing, placeholder substitution, CLI/library boundaries, summarize compatibility, and safety limits.
+        objectiveRefs:
+        - WI-0014-20000000_OBJ-003
+        - WI-0014-20000000_OBJ-004
+        paths:
+        - requests/README.md
+      testImplementations: []
+    verification:
+      status: passed
+      objectiveRefs:
+      - WI-0014-20000000_OBJ-001
+      - WI-0014-20000000_OBJ-002
+      - WI-0014-20000000_OBJ-003
+      - WI-0014-20000000_OBJ-004
+      tests:
+      - id: WI-0014-20000000_EXEC-DOCUMENTATION
+        type: inspection
+        testCaseRefs:
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-DOCUMENTATION
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-PROMPT-MAPPING
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-PARAMETER-CONTRACT
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-EVIDENCE-BOUNDARY
+        status: passed
+        result: README contract audit passed for the supported tree, LlmRequest mapping, parameter grammar and precedence, substitution syntax, compatibility boundaries, safety rules, and evidence limits.
+      - id: WI-0014-20000000_EXEC-PACKAGE
+        type: component
+        testCaseRefs:
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-DOCUMENTATION
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-PROMPT-MAPPING
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-PARAMETER-CONTRACT
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-EVIDENCE-BOUNDARY
+        command: npm run typecheck && npm test && npm run build && git diff --check
+        status: passed
+        result: Typecheck passed, all 120 provider-free tests passed, the TypeScript build passed, and Git whitespace checks passed.
+      - id: WI-0014-20000000_EXEC-TASK-ENVELOPE
+        type: static
+        testCaseRefs:
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-DOCUMENTATION
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-EVIDENCE-BOUNDARY
+        command: /home/michael/.local/bin/schema-validate --root /home/michael/src/github/sdlc/schemas --schema /home/michael/src/github/sdlc/schemas/sdlc-task-envelope/v1/sdlc-task-envelope.schema.json --document /home/michael/src/github/llm/.docs/work-items/WI-0014/steps/WI-0014-20000000-implementation.yaml
+        status: passed
+        result: YAML parsing, task-envelope identity, lifecycle, owned-path, implementation-result, and nested task-shape audits passed; the repository changed-file conflict-marker audit also passed.
+    limitations:
+    - This task owns the contract documentation only; runtime discovery, parameter construction, substitution, library, CLI, summarize migration, and their focused tests are later work items.
+    - Local package checks do not establish authenticated provider behavior, deployment, publication, or production readiness.
