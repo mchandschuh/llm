@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { extname } from 'node:path';
+import type { Thinking } from '../types.js';
 
 export type ResponseFormat = 'full' | 'raw';
 
@@ -13,6 +14,9 @@ export interface ParsedCliArguments {
   readonly requestPath?: string;
   readonly summarizePath?: string;
   readonly summarizeContent?: string;
+  readonly summarizeProvider?: string;
+  readonly summarizeModel?: string;
+  readonly summarizeThinking?: Thinking;
   readonly exitCode?: number;
 }
 
@@ -60,33 +64,58 @@ function parseFlags(args: readonly string[]): { readonly debug: boolean; readonl
   };
 }
 
-function summarizeOptionValue(value: string): { readonly name: 'path' | 'content'; readonly value: string } | undefined {
-  if (value.startsWith('--path=')) return { name: 'path', value: value.slice('--path='.length) };
-  if (value.startsWith('--content=')) return { name: 'content', value: value.slice('--content='.length) };
+function summarizeOptionValue(value: string): { readonly name: 'path' | 'content' | 'provider' | 'model' | 'thinking'; readonly value: string } | undefined {
+  for (const name of ['path', 'content', 'provider', 'model', 'thinking'] as const) {
+    const prefix = `--${name}=`;
+    if (value.startsWith(prefix)) return { name, value: value.slice(prefix.length) };
+  }
   return undefined;
 }
+
+const THINKING_VALUES = new Set<Thinking>(['minimal', 'low', 'medium', 'high', 'xhigh']);
+const PROVIDER_PATTERN = /^[A-Za-z][A-Za-z0-9._-]*$/u;
+const MODEL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]*$/u;
 
 function parseSummarizeArguments(args: readonly string[], common: { readonly debug: boolean; readonly format: ResponseFormat; readonly printChatId: boolean }): ParsedCliArguments {
   if (common.printChatId) return { ...common, command: 'summarize', exitCode: 2 };
   let path: string | undefined;
   let content: string | undefined;
+  let provider: string | undefined;
+  let model: string | undefined;
+  let thinking: Thinking | undefined;
   for (let index = 1; index < args.length; index += 1) {
     const argument = args[index]!;
     const inline = summarizeOptionValue(argument);
-    const option = inline ? inline.name : argument === '--path' || argument === '--content' ? argument.slice(2) as 'path' | 'content' : undefined;
+    const option = inline ? inline.name : ['path', 'content', 'provider', 'model', 'thinking'].includes(argument.slice(2)) ? argument.slice(2) as 'path' | 'content' | 'provider' | 'model' | 'thinking' : undefined;
     if (!option) return { ...common, command: 'summarize', exitCode: 2 };
     const value = inline ? inline.value : args[++index];
     if (!value) return { ...common, command: 'summarize', exitCode: 2 };
     if (option === 'path') {
       if (path !== undefined || !value) return { ...common, command: 'summarize', exitCode: 2 };
       path = value;
-    } else {
+    } else if (option === 'content') {
       if (content !== undefined || !value) return { ...common, command: 'summarize', exitCode: 2 };
       content = value;
+    } else if (option === 'provider') {
+      if (provider !== undefined || !PROVIDER_PATTERN.test(value)) return { ...common, command: 'summarize', exitCode: 2 };
+      provider = value;
+    } else if (option === 'model') {
+      if (model !== undefined || !MODEL_PATTERN.test(value)) return { ...common, command: 'summarize', exitCode: 2 };
+      model = value;
+    } else {
+      if (thinking !== undefined || !THINKING_VALUES.has(value as Thinking)) return { ...common, command: 'summarize', exitCode: 2 };
+      thinking = value as Thinking;
     }
   }
   if ((path === undefined) === (content === undefined)) return { ...common, command: 'summarize', exitCode: 2 };
-  return { ...common, command: 'summarize', ...(path !== undefined ? { summarizePath: path } : { summarizeContent: content }) };
+  return {
+    ...common,
+    command: 'summarize',
+    ...(path !== undefined ? { summarizePath: path } : { summarizeContent: content }),
+    ...(provider !== undefined ? { summarizeProvider: provider } : {}),
+    ...(model !== undefined ? { summarizeModel: model } : {}),
+    ...(thinking !== undefined ? { summarizeThinking: thinking } : {}),
+  };
 }
 
 export function parseCliArguments(args: readonly string[]): ParsedCliArguments {

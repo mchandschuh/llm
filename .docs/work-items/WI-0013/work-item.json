@@ -33,7 +33,7 @@
     },
     {
       "name": "settings-name-clarification",
-      "description": "Resolve the request discrepancy between summarize.settings.json and summarize.defaults.json before implementation and record the selected canonical filename.",
+      "description": "Use summarize.defaults.json as the canonical settings asset; do not create or consult summarize.settings.json.",
       "reason": "Reading or adding two similarly purposed assets would create ambiguous configuration behavior."
     },
     {
@@ -114,7 +114,7 @@
         "acceptanceCriteria": [
           {
             "id": "WI-0013_REQ_001_AC_001",
-            "description": "Implementation records whether summarize.settings.json or summarize.defaults.json is canonical, creates exactly that asset, rejects malformed or unsupported settings, and does not silently consult a second competing asset."
+            "description": "The implementation creates and consults requests/summarize/summarize.defaults.json, rejects malformed or unsupported settings, and does not create or consult summarize.settings.json."
           }
         ]
       },

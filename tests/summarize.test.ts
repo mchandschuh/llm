@@ -41,12 +41,15 @@ async function writeConfig(root: string, value: unknown): Promise<void> {
 }
 
 test('summarize parser accepts exactly one path or content source and common output formats', () => {
-  assert.deepEqual(parseCliArguments(['summarize', '--path', 'notes.md', '--format=full']), {
+  assert.deepEqual(parseCliArguments(['summarize', '--path', 'notes.md', '--provider', 'anthropic', '--model=openai/test', '--thinking=low', '--format=full']), {
     debug: false,
     format: 'full',
     printChatId: false,
     command: 'summarize',
     summarizePath: 'notes.md',
+    summarizeProvider: 'anthropic',
+    summarizeModel: 'openai/test',
+    summarizeThinking: 'low',
   });
   assert.deepEqual(parseCliArguments(['summarize', '--content=inline text', '--format', 'raw']), {
     debug: false,
@@ -62,8 +65,97 @@ test('summarize parser accepts exactly one path or content source and common out
     ['summarize', '--content', 'one', '--content', 'two'],
     ['summarize', '--content', ''],
     ['summarize', '--unknown', 'value'],
+    ['summarize', '--provider'],
+    ['summarize', '--provider', 'bad provider'],
+    ['summarize', '--model', 'bad model'],
+    ['summarize', '--thinking', 'extreme'],
+    ['summarize', '--provider', 'one', '--provider', 'two'],
   ]) {
     assert.equal(parseCliArguments(args).exitCode, 2, args.join(' '));
+  }
+});
+
+test('summarize settings defaults are loaded and command-line values override them', async () => {
+  const calls: ProviderCompletionRequest[] = [];
+  const prepared = await buildSummarizeRequest({ requestDirectory, content: 'settings input' });
+  try {
+    assert.equal(prepared.request.provider, 'openrouter');
+    assert.equal(prepared.request.model, 'openai/gpt-5-nano');
+    assert.equal(prepared.request.thinking, 'low');
+  } finally {
+    if (prepared.temporaryRoot) await rm(prepared.temporaryRoot, { recursive: true, force: true });
+  }
+  const output = await capture((write, writeError) => runSummarizeCommand({
+    requestDirectory,
+    content: 'settings input',
+    providerName: 'anthropic',
+    model: 'anthropic/test-model',
+    thinking: 'low',
+    debug: false,
+    provider: provider('{"summary":"Settings summary."}', calls),
+    write,
+    writeError,
+  }));
+  assert.equal(output.result, 0);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]?.provider, 'anthropic');
+  assert.equal(calls[0]?.model, 'anthropic/test-model');
+  assert.equal(calls[0]?.thinking, 'low');
+});
+
+test('summarize settings fall back to runtime defaults when fields are omitted', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'llm-summarize-settings-'));
+  const summarizeRoot = join(root, 'summarize');
+  try {
+    await mkdir(summarizeRoot, { recursive: true });
+    await Promise.all([
+      readFile(join(requestDirectory, 'summarize', 'summarize.prompt.md'), 'utf8').then((value) => writeFile(join(summarizeRoot, 'summarize.prompt.md'), value)),
+      readFile(join(requestDirectory, 'summarize', 'summarize.outputSchema.json'), 'utf8').then((value) => writeFile(join(summarizeRoot, 'summarize.outputSchema.json'), value)),
+    ]);
+    await writeFile(join(summarizeRoot, 'summarize.defaults.json'), '{}');
+    const prepared = await buildSummarizeRequest({ requestDirectory: root, content: 'fallback input' });
+    try {
+      assert.equal(prepared.request.provider, 'openrouter');
+      assert.equal(prepared.request.model, 'openai/gpt-5.6-luna');
+      assert.equal(prepared.request.thinking, 'high');
+    } finally {
+      if (prepared.temporaryRoot) await rm(prepared.temporaryRoot, { recursive: true, force: true });
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('summarize settings reject malformed and unsupported defaults', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'llm-summarize-invalid-settings-'));
+  const summarizeRoot = join(root, 'summarize');
+  try {
+    await mkdir(summarizeRoot, { recursive: true });
+    await Promise.all([
+      readFile(join(requestDirectory, 'summarize', 'summarize.prompt.md'), 'utf8').then((value) => writeFile(join(summarizeRoot, 'summarize.prompt.md'), value)),
+      readFile(join(requestDirectory, 'summarize', 'summarize.outputSchema.json'), 'utf8').then((value) => writeFile(join(summarizeRoot, 'summarize.outputSchema.json'), value)),
+    ]);
+    await writeFile(join(summarizeRoot, 'summarize.defaults.json'), '{"unsupported":true}');
+    await assert.rejects(() => buildSummarizeRequest({ requestDirectory: root, content: 'invalid settings' }), /Unsupported settings/u);
+    await writeFile(join(summarizeRoot, 'summarize.defaults.json'), '{');
+    await assert.rejects(() => buildSummarizeRequest({ requestDirectory: root, content: 'invalid JSON' }), /must contain valid JSON/u);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('summarize settings are required from the configured request directory', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'llm-summarize-missing-settings-'));
+  const summarizeRoot = join(root, 'summarize');
+  try {
+    await mkdir(summarizeRoot, { recursive: true });
+    await Promise.all([
+      readFile(join(requestDirectory, 'summarize', 'summarize.prompt.md'), 'utf8').then((value) => writeFile(join(summarizeRoot, 'summarize.prompt.md'), value)),
+      readFile(join(requestDirectory, 'summarize', 'summarize.outputSchema.json'), 'utf8').then((value) => writeFile(join(summarizeRoot, 'summarize.outputSchema.json'), value)),
+    ]);
+    await assert.rejects(() => buildSummarizeRequest({ requestDirectory: root, content: 'missing settings' }), /summarize\.defaults\.json/u);
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
 

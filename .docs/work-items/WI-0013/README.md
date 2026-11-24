@@ -29,11 +29,9 @@ and raw/full output behavior.
 
 ## Naming clarification required by the request
 
-The request names `requests/summarize/summarize.settings.json` as the asset to
-add, but separately says that `llm summarize` should consult
-`summarize.defaults.json`. These names are inconsistent. Implementation must
-select and record one canonical asset name before changing code. It must not
-silently create two competing settings files or read an untracked fallback.
+The canonical asset selected for this work is
+`requests/summarize/summarize.defaults.json`. The request also mentioned
+`summarize.settings.json`; that alternate name is not created or consulted.
 
 ## Scope
 

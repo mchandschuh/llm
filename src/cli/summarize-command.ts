@@ -5,9 +5,10 @@ import { complete } from '../complete.js';
 import { LlmFailure } from '../errors.js';
 import { resolveRequestsDirectory, type RequestsDirectoryResolutionOptions } from '../requests-config.js';
 import { parseSchema } from '../schema.js';
-import { REQUEST_SCHEMA, type LlmOutput, type LlmProvider, type LlmRequest, type ReferenceFile } from '../types.js';
+import { REQUEST_SCHEMA, type LlmOutput, type LlmProvider, type LlmRequest, type ReferenceFile, type Thinking } from '../types.js';
 import { debugSink, printResponse, type OutputWriter } from './output.js';
 import type { ResponseFormat } from './arguments.js';
+import { readSummarizeSettings, resolveSummarizeSettings } from './summarize-settings.js';
 
 const SUMMARIZE_DIRECTORY = 'summarize';
 const PROMPT_FILE = 'summarize.prompt.md';
@@ -21,6 +22,9 @@ export interface SummarizeCommandOptions extends RequestsDirectoryResolutionOpti
   readonly format?: ResponseFormat;
   readonly requestDirectory?: string;
   readonly provider?: LlmProvider;
+  readonly providerName?: string;
+  readonly model?: string;
+  readonly thinking?: Thinking;
   readonly write?: OutputWriter;
   readonly writeError?: OutputWriter;
 }
@@ -41,8 +45,9 @@ function assetPath(requestDirectory: string, name: string): string {
   return resolve(requestDirectory, SUMMARIZE_DIRECTORY, name);
 }
 
-async function readRequestAssets(requestDirectory: string): Promise<{ readonly prompt: string; readonly outputSchema: Record<string, unknown> }> {
+async function readRequestAssets(requestDirectory: string): Promise<{ readonly prompt: string; readonly outputSchema: Record<string, unknown>; readonly settings: ReturnType<typeof resolveSummarizeSettings> }> {
   const prompt = await readFile(assetPath(requestDirectory, PROMPT_FILE), 'utf8');
+  const settings = resolveSummarizeSettings(await readSummarizeSettings(requestDirectory));
   let outputSchema: unknown;
   try {
     outputSchema = JSON.parse(await readFile(assetPath(requestDirectory, OUTPUT_SCHEMA_FILE), 'utf8')) as unknown;
@@ -53,7 +58,7 @@ async function readRequestAssets(requestDirectory: string): Promise<{ readonly p
     throw new LlmFailure('CONFIGURATION_INVALID', 'configuration', 'The llm summarize output schema must be a JSON object.');
   }
   parseSchema(outputSchema as Record<string, unknown>, assetPath(requestDirectory, OUTPUT_SCHEMA_FILE));
-  return { prompt, outputSchema: outputSchema as Record<string, unknown> };
+  return { prompt, outputSchema: outputSchema as Record<string, unknown>, settings };
 }
 
 function sourceFile(relativePath: string): ReferenceFile {
@@ -139,12 +144,16 @@ function rawSummary(output: LlmOutput | null): string | undefined {
   return undefined;
 }
 
-export async function buildSummarizeRequest(options: Pick<SummarizeCommandOptions, 'path' | 'content'> & { readonly requestDirectory: string }): Promise<PreparedRequest> {
+export async function buildSummarizeRequest(options: Pick<SummarizeCommandOptions, 'path' | 'content' | 'providerName' | 'model' | 'thinking'> & { readonly requestDirectory: string }): Promise<PreparedRequest> {
   const assets = await readRequestAssets(options.requestDirectory);
   const source = await prepareSource(options as SummarizeCommandOptions);
+  const settings = resolveSummarizeSettings(assets.settings, { provider: options.providerName, model: options.model, thinking: options.thinking });
   return {
     request: {
       schema: REQUEST_SCHEMA,
+      provider: settings.provider,
+      model: settings.model,
+      thinking: settings.thinking,
       task: 'Summarize the content of all supplied files.',
       systemPrompt: assets.prompt,
       files: source.files,
@@ -160,7 +169,7 @@ export async function runSummarizeCommand(options: SummarizeCommandOptions): Pro
   let temporaryRoot: string | undefined;
   try {
     const requestDirectory = options.requestDirectory ?? await resolveRequestsDirectory(options);
-    const prepared = await buildSummarizeRequest({ path: options.path, content: options.content, requestDirectory });
+    const prepared = await buildSummarizeRequest({ path: options.path, content: options.content, providerName: options.providerName, model: options.model, thinking: options.thinking, requestDirectory });
     temporaryRoot = prepared.temporaryRoot;
     const result = await complete(prepared.request, {
       configurationRoot: prepared.configurationRoot,
