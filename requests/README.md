@@ -128,7 +128,7 @@ The implementation must support:
 
 ``` json
 {
-  "x-llm-parameter": {
+  "x-llm-req-parameter": {
     "validation": {
       "function": "<json function implementation to implement validation to be defined as implementation progresses"
     }
