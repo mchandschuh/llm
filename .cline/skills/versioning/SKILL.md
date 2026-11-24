@@ -11,7 +11,7 @@ auto_load: false
 metadata:
   importance: high
   always_load: false
-  current_version: 0.3.0
+  current_version: 0.3.1
   semver_specification: 2.0.0
   relevance: Applies when selecting, documenting, validating, or committing a project version.
 capabilities:
@@ -30,7 +30,7 @@ token_budget: small
 # Semantic Versioning
 
 This project follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
-The current project version is **0.3.0**.
+The current project version is **0.3.1**.
 
 ## Version format
 
