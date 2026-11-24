@@ -11,6 +11,8 @@ references:
   required:
   - .docs/work-items/WI-0019/work-item.json
   - .docs/work-items/WI-0019/README.md
+  - requests/README.md
+  - requests/decisions.md
   - .docs/work-items/WI-0019/steps/WI-0019-10000000-test-strategy.yaml
   - src/cli/arguments.ts
   - src/cli.ts
@@ -142,11 +144,11 @@ task:
     - src/cli/output.ts
     - tests/cli.test.ts
     nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#library-and-cli-boundaries; requests/README.md#parameter-contract. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not make authenticated provider calls, publish, deploy, or claim production
       readiness.
     - Do not modify unrelated commands, providers, schemas, or persistence outside
       the declared owned paths.
-    - Do not commit or mutate Git history as part of the implementation task.
     steps:
     - Add the req command branch and capture request name plus dynamic parameter tokens.
     - Preserve common format and debug flags in all supported positions.

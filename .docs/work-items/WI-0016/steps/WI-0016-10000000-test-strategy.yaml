@@ -12,6 +12,8 @@ references:
   required:
   - .docs/work-items/WI-0016/work-item.json
   - .docs/work-items/WI-0016/README.md
+  - requests/README.md
+  - requests/decisions.md
   - src/schema.ts
   - src/cli/arguments.ts
   - package.json
@@ -168,6 +170,7 @@ task:
       invariantRefs:
       - '#intent/invariants/WI-0016-10000000_INV-004'
     nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#request-defaults-and-parameter-defaults; requests/README.md#parameter-contract; requests/README.md#x-llm-req-parameter-metadata. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not claim implementation, provider, deployment, release, or production behavior.
   result:
     status: defined

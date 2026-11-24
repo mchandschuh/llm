@@ -13,6 +13,8 @@ references:
   required:
   - .docs/work-items/WI-0017/work-item.json
   - .docs/work-items/WI-0017/README.md
+  - requests/README.md
+  - requests/decisions.md
   - src/schema.ts
   - src/prompt.ts
   - src/normalize.ts
@@ -170,6 +172,7 @@ task:
       invariantRefs:
       - '#intent/invariants/WI-0017-10000000_INV-004'
     nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#placeholder-substitution; requests/README.md#processing-order. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not claim implementation, provider, deployment, release, or production behavior.
   result:
     status: defined

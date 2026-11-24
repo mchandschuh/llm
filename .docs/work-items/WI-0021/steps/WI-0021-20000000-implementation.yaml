@@ -16,6 +16,8 @@ references:
   - src/cli/summarize-command.ts
   - src/cli.ts
   - tests/summarize.test.ts
+  - requests/README.md
+  - requests/decisions.md
   - README.md
   - SKILL.md
   - package.json
@@ -33,6 +35,7 @@ governance:
   - src/cli/request-command.ts
   - tests/summarize.test.ts
   - requests/README.md
+  - requests/decisions.md
   commitSubject: 'WI-0021: feat(llm): implement request feature slice'
   commitBody:
     requiredSections:
@@ -142,11 +145,11 @@ task:
     - tests/summarize.test.ts
     - requests/README.md
     nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#prompt-schema-and-summarize-compatibility; requests/README.md#additional-input-files. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not make authenticated provider calls, publish, deploy, or claim production
       readiness.
     - Do not modify unrelated commands, providers, schemas, or persistence outside
       the declared owned paths.
-    - Do not commit or mutate Git history as part of the implementation task.
     steps:
     - Align summarize assets with the documented generic prompt, system, schema, and
       defaults mapping.

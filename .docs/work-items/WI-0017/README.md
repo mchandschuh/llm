@@ -17,6 +17,12 @@ recordType: work-item-summary
 - Steps: `/home/michael/src/github/llm/.docs/work-items/WI-0017/steps/`
 - Baseline: `51984b6064503b576c52ca460d7cf21cc356f52b`
 
+## Authoritative request contract
+
+This work item implements these exact sections of [`requests/README.md`](../../../requests/README.md): [Placeholder substitution](../../../requests/README.md#placeholder-substitution), [Processing order](../../../requests/README.md#processing-order). The contract is authoritative for this batch. Explicit human operator confirmation is required before any work-item or task modifies `/home/michael/src/github/llm/requests/README.md`; implementation and validation agents may persist evidence in their governed task records.
+
+The decision log is [`requests/decisions.md`](../../../requests/decisions.md). Historical `baseline` values record declaration time and are not processing blockers.
+
 ## Intended outcome
 
 Replace every $${variableName}$$ placeholder across request assets using constructed parameters, JSON-serializing complex values and failing on unresolved variables.
@@ -44,8 +50,8 @@ Replace every $${variableName}$$ placeholder across request assets using constru
 
 ## Test strategy expectation
 
-The strategy must include at least one required executable provider-free test case per requirement and explicit mappings for every acceptance criterion. Validation must execute focused tests, package gates, and changed-path checks. Review must independently inspect scope, non-goals, and evidence limitations.
+The strategy must include at least one required executable provider-free test case per requirement and explicit mappings for every acceptance criterion. Validation must execute the full repository gate `npm run typecheck && npm test && npm run build && git diff --check`; focused tests are additional evidence. The full suite must pass before this work item is complete or the next work item begins, followed by `sdlc work-item validate --work-item WI-0017`. Review must independently inspect scope, non-goals, and evidence limitations.
 
 ## Evidence boundary
 
-These artifacts define future evidence; they do not report implementation, tests, validation, review, provider calls, deployment, release, or completion. No commit is authorized by this work item.
+These artifacts define future evidence; they do not report implementation, tests, validation, review, provider calls, deployment, release, or completion. Implementation, validation, review, and completion evidence may be committed under the governed task records. Contract-document edits still require explicit human operator confirmation.

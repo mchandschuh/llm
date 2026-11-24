@@ -12,6 +12,8 @@ references:
   required:
   - .docs/work-items/WI-0016/work-item.json
   - .docs/work-items/WI-0016/README.md
+  - requests/README.md
+  - requests/decisions.md
   - src/schema.ts
   - .docs/work-items/WI-0016/steps/WI-0016-80000000-validation.yaml
   - .docs/work-items/WI-0016/steps/WI-0016-20000000-implementation.yaml
@@ -97,6 +99,8 @@ task:
       required: true
       minimumTier: inspection
     nonGoals:
+    - id: NON-002
+      statement: "Explicit human operator confirmation is required before modifying requests/README.md; this task must apply contract sections requests/README.md#request-defaults-and-parameter-defaults; requests/README.md#parameter-contract; requests/README.md#x-llm-req-parameter-metadata. Explicit human operator confirmation is required before modifying requests/README.md."
     - id: NON-001
       statement: This review does not claim implementation, provider, completion,
         release, deployment, or production readiness.

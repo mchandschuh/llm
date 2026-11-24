@@ -11,6 +11,8 @@ references:
   required:
   - .docs/work-items/WI-0017/work-item.json
   - .docs/work-items/WI-0017/README.md
+  - requests/README.md
+  - requests/decisions.md
   - .docs/work-items/WI-0017/steps/WI-0017-10000000-test-strategy.yaml
   - src/schema.ts
   - src/prompt.ts
@@ -134,11 +136,11 @@ task:
     - src/request-variables.ts
     - tests/request-variables.test.ts
     nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#placeholder-substitution; requests/README.md#processing-order. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not make authenticated provider calls, publish, deploy, or claim production
       readiness.
     - Do not modify unrelated commands, providers, schemas, or persistence outside
       the declared owned paths.
-    - Do not commit or mutate Git history as part of the implementation task.
     steps:
     - Implement exact $${variableName}$$ matching and nested parameter lookup.
     - Render primitive values and JSON-serialize arrays and objects without replacement-string

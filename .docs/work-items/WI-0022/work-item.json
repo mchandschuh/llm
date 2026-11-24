@@ -4,7 +4,7 @@
   "status": "planned",
   "title": "Validate dynamic request lookup and evidence coverage",
   "type": "feature",
-  "objective": "Run the complete provider-free matrix, package gates, documentation checks, scope audit, and non-goal review for dynamic request lookup.",
+  "objective": "Run the complete provider-free matrix, package gates, documentation checks, scope audit, and non-goal review for dynamic request lookup. Contract sections: requests/README.md#work-item-validation-gates; requests/README.md#evidence-boundary. Explicit human operator confirmation is required before modifying requests/README.md.",
   "repository": {
     "root": "/home/michael/src/github/llm",
     "authority": "local"
@@ -33,7 +33,7 @@
     },
     {
       "name": "package-gates",
-      "description": "Typecheck, tests, build, declarations, and diff checks pass.",
+      "description": "The full repository gate npm run typecheck && npm test && npm run build && git diff --check passes before this work item is complete or the next work item begins.",
       "reason": "The package must remain consistent."
     },
     {
@@ -45,6 +45,11 @@
       "name": "documentation-consistency",
       "description": "Public docs and help match implementation.",
       "reason": "The feature is user-facing."
+    },
+    {
+      "name": "authoritative-contract",
+      "description": "Implement only the authoritative contract sections [Work-item validation gates](#work-item-validation-gates), [Evidence boundary](#evidence-boundary). Do not modify requests/README.md without explicit human operator confirmation.",
+      "reason": "The request README is the source of truth for this implementation batch."
     }
   ],
   "nonGoals": [
@@ -101,12 +106,12 @@
       {
         "id": "WI-0022_REQ_002",
         "name": "package-gates",
-        "description": "Typecheck, tests, build, declarations, and diff checks pass.",
+        "description": "The full repository gate (npm run typecheck && npm test && npm run build && git diff --check) passes before this work item is complete or the next work item begins.",
         "reason": "The package must remain consistent.",
         "acceptanceCriteria": [
           {
             "id": "WI-0022_REQ_002_AC_001",
-            "description": "All package commands pass."
+            "description": "The full repository gate passes, including the entire npm test suite."
           },
           {
             "id": "WI-0022_REQ_002_AC_002",
@@ -126,7 +131,7 @@
           },
           {
             "id": "WI-0022_REQ_003_AC_002",
-            "description": "No commit or release action occurs."
+            "description": "Completion evidence may be committed under governance; no release action occurs."
           }
         ]
       },

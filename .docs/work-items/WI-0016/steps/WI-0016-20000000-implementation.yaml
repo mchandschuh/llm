@@ -11,6 +11,8 @@ references:
   required:
   - .docs/work-items/WI-0016/work-item.json
   - .docs/work-items/WI-0016/README.md
+  - requests/README.md
+  - requests/decisions.md
   - .docs/work-items/WI-0016/steps/WI-0016-10000000-test-strategy.yaml
   - src/schema.ts
   - src/cli/arguments.ts
@@ -132,11 +134,11 @@ task:
     - src/request-parameters.ts
     - tests/request-parameters.test.ts
     nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#request-defaults-and-parameter-defaults; requests/README.md#parameter-contract; requests/README.md#x-llm-req-parameter-metadata. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not make authenticated provider calls, publish, deploy, or claim production
       readiness.
     - Do not modify unrelated commands, providers, schemas, or persistence outside
       the declared owned paths.
-    - Do not commit or mutate Git history as part of the implementation task.
     steps:
     - Implement flat parameter-schema loading and reserved parameter-name validation.
     - Implement root, dotted, array-index, map-key, scalar, and object-valued assignments.

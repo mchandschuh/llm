@@ -2,7 +2,7 @@
   "schema": "https://schemas.handschuh.dev/sdlc/classification-result/v1",
   "status": "classified",
   "workItemRef": "sdlc://repo/local%2Fllm/WI-0015#work-item.json%23work-item/WI-0015",
-  "workItemSha256": "sha256:5ba8c8da719dae9f7b60ae02d3fa0171b6662611e2fb2aeb31511810f9437cad",
+  "workItemSha256": "sha256:45496dc9bb4eed43984b2ed207f67418aa446a0e15df5870895192f8eb526953",
   "classification": {
     "workKind": "feature",
     "scopeClass": "composite",
@@ -22,7 +22,7 @@
         ]
       },
       {
-        "statement": "The work item has explicit provider-free and no-commit boundaries.",
+        "statement": "The work item has explicit provider-free and evidence boundaries.",
         "sourceRefs": [
           "#/nonGoals",
           "#/objective"

@@ -12,6 +12,8 @@ references:
   required:
   - .docs/work-items/WI-0020/work-item.json
   - .docs/work-items/WI-0020/README.md
+  - requests/README.md
+  - requests/decisions.md
   - src/cli.ts
   - src/cli/arguments.ts
   - src/cli/output.ts
@@ -169,6 +171,7 @@ task:
       invariantRefs:
       - '#intent/invariants/WI-0020-10000000_INV-004'
     nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#additional-input-files; requests/README.md#library-and-cli-boundaries; requests/README.md#request-name-and-filesystem-safety. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not claim implementation, provider, deployment, release, or production behavior.
   result:
     status: defined

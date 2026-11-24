@@ -12,6 +12,8 @@ references:
   required:
   - .docs/work-items/WI-0021/work-item.json
   - .docs/work-items/WI-0021/README.md
+  - requests/README.md
+  - requests/decisions.md
   - requests/summarize/
   - src/cli/summarize-command.ts
   - src/cli.ts
@@ -170,6 +172,7 @@ task:
       invariantRefs:
       - '#intent/invariants/WI-0021-10000000_INV-004'
     nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#prompt-schema-and-summarize-compatibility; requests/README.md#additional-input-files. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not claim implementation, provider, deployment, release, or production behavior.
   result:
     status: defined

@@ -17,13 +17,19 @@ recordType: work-item-summary
 - Steps: `/home/michael/src/github/llm/.docs/work-items/WI-0020/steps/`
 - Baseline: `51984b6064503b576c52ca460d7cf21cc356f52b`
 
+## Authoritative request contract
+
+This work item implements these exact sections of [`requests/README.md`](../../../requests/README.md): [Additional input files](../../../requests/README.md#additional-input-files), [Library and CLI boundaries](../../../requests/README.md#library-and-cli-boundaries), [Request-name and filesystem safety](../../../requests/README.md#request-name-and-filesystem-safety). The contract is authoritative for this batch. Explicit human operator confirmation is required before any work-item or task modifies `/home/michael/src/github/llm/requests/README.md`; implementation and validation agents may persist evidence in their governed task records.
+
+The decision log is [`requests/decisions.md`](../../../requests/decisions.md). Historical `baseline` values record declaration time and are not processing blockers.
+
 ## Intended outcome
 
 Resolve configured request directories, construct parameters, call completeRequest, and print dynamic responses using existing output and exit semantics.
 
 ## Scope
 
-- **configured-lookup:** llm req resolves configured root and request name before loading. Bundles must not be hard-coded.
+- **configured-lookup:** llm req resolves configured root and request name before loading and supports summarize-compatible additional input files.
 - **shared-completion:** Valid input constructs parameters and calls completeRequest once. Shared behavior is central.
 - **output-contract:** Raw/full success and JSON failure output follow existing writers and exit codes. Callers need stable serialization.
 - **cli-regression:** Existing command behavior remains covered. Integration must not regress current modes.
@@ -44,8 +50,8 @@ Resolve configured request directories, construct parameters, call completeReque
 
 ## Test strategy expectation
 
-The strategy must include at least one required executable provider-free test case per requirement and explicit mappings for every acceptance criterion. Validation must execute focused tests, package gates, and changed-path checks. Review must independently inspect scope, non-goals, and evidence limitations.
+The strategy must include at least one required executable provider-free test case per requirement and explicit mappings for every acceptance criterion. Validation must execute the full repository gate `npm run typecheck && npm test && npm run build && git diff --check`; focused tests are additional evidence. The full suite must pass before this work item is complete or the next work item begins, followed by `sdlc work-item validate --work-item WI-0020`. Review must independently inspect scope, non-goals, and evidence limitations.
 
 ## Evidence boundary
 
-These artifacts define future evidence; they do not report implementation, tests, validation, review, provider calls, deployment, release, or completion. No commit is authorized by this work item.
+These artifacts define future evidence; they do not report implementation, tests, validation, review, provider calls, deployment, release, or completion. Implementation, validation, review, and completion evidence may be committed under the governed task records. Contract-document edits still require explicit human operator confirmation.

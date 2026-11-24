@@ -4,7 +4,7 @@
   "status": "planned",
   "title": "Implement schema-aware request parameter construction",
   "type": "feature",
-  "objective": "Construct and validate parameters from a flat schema, nested dot/index assignments, and full --parameters JSON with deterministic precedence and errors.",
+  "objective": "Construct and validate parameters from a flat schema, nested dot/index assignments, and full --parameters JSON with deterministic precedence and errors. Contract sections: requests/README.md#request-defaults-and-parameter-defaults; requests/README.md#parameter-contract; requests/README.md#x-llm-req-parameter-metadata. Explicit human operator confirmation is required before modifying requests/README.md.",
   "repository": {
     "root": "/home/michael/src/github/llm",
     "authority": "local"
@@ -43,8 +43,13 @@
     },
     {
       "name": "schema-validation",
-      "description": "The complete object is validated against parameters.schema.json before substitution.",
+      "description": "The complete object is validated against parameters.schema.json, including x-llm-req-parameter metadata, before substitution.",
       "reason": "Schema violations must not invoke completion."
+    },
+    {
+      "name": "authoritative-contract",
+      "description": "Implement only the authoritative contract sections [Request defaults and parameter defaults](#request-defaults-and-parameter-defaults), [Parameter contract](#parameter-contract), [x-llm-req-parameter metadata](#x-llm-req-parameter-metadata). Do not modify requests/README.md without explicit human operator confirmation.",
+      "reason": "The request README is the source of truth for this implementation batch."
     }
   ],
   "nonGoals": [
@@ -125,12 +130,12 @@
       {
         "id": "WI-0016_REQ_004",
         "name": "schema-validation",
-        "description": "The complete object is validated against parameters.schema.json before substitution.",
+        "description": "The complete object is validated against parameters.schema.json, including x-llm-req-parameter metadata, before substitution.",
         "reason": "Schema violations must not invoke completion.",
         "acceptanceCriteria": [
           {
             "id": "WI-0016_REQ_004_AC_001",
-            "description": "Required, type, enum, additional-property, and nested violations fail before provider use."
+            "description": "Required, type, enum, additional-property, nested, and unsupported custom-metadata violations fail before provider use."
           }
         ]
       }

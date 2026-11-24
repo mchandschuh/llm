@@ -4,7 +4,7 @@
   "status": "planned",
   "title": "Add the shared completeRequest library boundary",
   "type": "feature",
-  "objective": "Expose completeRequest(requestDirectory, parameters, options) that loads assets, substitutes values, constructs an existing LlmRequest, and delegates to complete.",
+  "objective": "Expose completeRequest(requestDirectory, parameters, options) that loads assets, substitutes values, constructs an existing LlmRequest, and delegates to complete. Contract sections: requests/README.md#library-and-cli-boundaries; requests/README.md#prompt-schema-and-summarize-compatibility; requests/README.md#additional-input-files. Explicit human operator confirmation is required before modifying requests/README.md.",
   "repository": {
     "root": "/home/michael/src/github/llm",
     "authority": "local"
@@ -43,8 +43,13 @@
     },
     {
       "name": "relative-root",
-      "description": "Relative sources and completion options use requestDirectory and pass through controls.",
+      "description": "Relative --path/--content sources follow the summarize boundary, attach files under LlmRequest.files, and completion options use requestDirectory.",
       "reason": "Bundles need safe local references and runtime controls."
+    },
+    {
+      "name": "authoritative-contract",
+      "description": "Implement only the authoritative contract sections [Library and CLI boundaries](#library-and-cli-boundaries), [Prompt, schema, and summarize compatibility](#prompt-schema-and-summarize-compatibility), [Additional input files](#additional-input-files). Do not modify requests/README.md without explicit human operator confirmation.",
+      "reason": "The request README is the source of truth for this implementation batch."
     }
   ],
   "nonGoals": [
@@ -125,7 +130,7 @@
       {
         "id": "WI-0018_REQ_004",
         "name": "relative-root",
-        "description": "Relative sources and completion options use requestDirectory and pass through controls.",
+        "description": "Additional --path/--content sources use the summarize boundary and attach to LlmRequest.files while completion options use requestDirectory.",
         "reason": "Bundles need safe local references and runtime controls.",
         "acceptanceCriteria": [
           {

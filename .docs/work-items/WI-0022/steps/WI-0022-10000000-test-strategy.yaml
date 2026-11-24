@@ -12,6 +12,8 @@ references:
   required:
   - .docs/work-items/WI-0022/work-item.json
   - .docs/work-items/WI-0022/README.md
+  - requests/README.md
+  - requests/decisions.md
   - .docs/work-items/
   - requests/
   - src/
@@ -170,6 +172,7 @@ task:
       invariantRefs:
       - '#intent/invariants/WI-0022-10000000_INV-004'
     nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#work-item-validation-gates; requests/README.md#evidence-boundary. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not claim implementation, provider, deployment, release, or production behavior.
   result:
     status: defined

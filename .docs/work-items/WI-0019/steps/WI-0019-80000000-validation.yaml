@@ -12,6 +12,8 @@ references:
   required:
   - .docs/work-items/WI-0019/work-item.json
   - .docs/work-items/WI-0019/README.md
+  - requests/README.md
+  - requests/decisions.md
   - src/cli/arguments.ts
   - .docs/work-items/WI-0019/steps/WI-0019-20000000-implementation.yaml
   - src/cli.ts
@@ -46,6 +48,11 @@ governance:
     arguments:
     - run
     - typecheck
+    expectedExitCode: 0
+  - id: full-suite
+    executable: npm
+    arguments:
+    - test
     expectedExitCode: 0
   requiredForExecution: true
 task:
@@ -114,7 +121,8 @@ task:
         executionMode: executable
         target: Provider-free request feature test matrix
         steps:
-        - Run focused and full tests.
+        - Run focused tests and the entire repository test suite.
+        - The entire repository test suite must pass before this work item is complete or the next work item begins.
         - Run typecheck and build.
         - Inspect declarations, docs, and changed paths.
         command: npm run typecheck && npm test && npm run build && git diff --check
@@ -127,6 +135,6 @@ task:
       evidenceTier: cli-audit
       required: true
     nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#library-and-cli-boundaries; requests/README.md#parameter-contract. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not claim authenticated provider, deployment, release, downstream, or production
       behavior.
-    - Do not commit or mutate Git history during validation.

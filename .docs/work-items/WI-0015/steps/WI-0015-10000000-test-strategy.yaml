@@ -13,6 +13,8 @@ references:
   required:
   - .docs/work-items/WI-0015/work-item.json
   - .docs/work-items/WI-0015/README.md
+  - requests/README.md
+  - requests/decisions.md
   - src/requests-config.ts
   - src/errors.ts
   - src/source.ts
@@ -173,6 +175,7 @@ task:
       invariantRefs:
       - '#intent/invariants/WI-0015-10000000_INV-004'
     nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#request-bundle-layout; requests/README.md#asset-mapping-and-optionality; requests/README.md#processing-order; requests/README.md#request-name-and-filesystem-safety. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not claim implementation, provider, deployment, release, or production behavior.
   result:
     status: defined

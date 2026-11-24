@@ -4,7 +4,7 @@
   "status": "planned",
   "title": "Integrate llm req execution and output",
   "type": "feature",
-  "objective": "Resolve configured request directories, construct parameters, call completeRequest, and print dynamic responses using existing output and exit semantics.",
+  "objective": "Resolve configured request directories, construct parameters, call completeRequest, and print dynamic responses using existing output and exit semantics. Contract sections: requests/README.md#additional-input-files; requests/README.md#library-and-cli-boundaries; requests/README.md#request-name-and-filesystem-safety. Explicit human operator confirmation is required before modifying requests/README.md.",
   "repository": {
     "root": "/home/michael/src/github/llm",
     "authority": "local"
@@ -28,7 +28,7 @@
   "scope": [
     {
       "name": "configured-lookup",
-      "description": "llm req resolves configured root and request name before loading.",
+      "description": "llm req resolves configured root and request name before loading and supports summarize-compatible additional input files.",
       "reason": "Bundles must not be hard-coded."
     },
     {
@@ -45,6 +45,11 @@
       "name": "cli-regression",
       "description": "Existing command behavior remains covered.",
       "reason": "Integration must not regress current modes."
+    },
+    {
+      "name": "authoritative-contract",
+      "description": "Implement only the authoritative contract sections [Additional input files](#additional-input-files), [Library and CLI boundaries](#library-and-cli-boundaries), [Request-name and filesystem safety](#request-name-and-filesystem-safety). Do not modify requests/README.md without explicit human operator confirmation.",
+      "reason": "The request README is the source of truth for this implementation batch."
     }
   ],
   "nonGoals": [
@@ -85,7 +90,7 @@
       {
         "id": "WI-0020_REQ_001",
         "name": "configured-lookup",
-        "description": "llm req resolves configured root and request name before loading.",
+        "description": "llm req resolves configured root and request name before loading and supports summarize-compatible --path/--content additional files.",
         "reason": "Bundles must not be hard-coded.",
         "acceptanceCriteria": [
           {

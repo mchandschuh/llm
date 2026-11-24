@@ -11,6 +11,8 @@ references:
   required:
   - .docs/work-items/WI-0015/work-item.json
   - .docs/work-items/WI-0015/README.md
+  - requests/README.md
+  - requests/decisions.md
   - .docs/work-items/WI-0015/steps/WI-0015-10000000-test-strategy.yaml
   - src/requests-config.ts
   - src/errors.ts
@@ -134,11 +136,11 @@ task:
     - src/request-directory.ts
     - tests/request-directory.test.ts
     nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#request-bundle-layout; requests/README.md#asset-mapping-and-optionality; requests/README.md#processing-order; requests/README.md#request-name-and-filesystem-safety. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not make authenticated provider calls, publish, deploy, or claim production
       readiness.
     - Do not modify unrelated commands, providers, schemas, or persistence outside
       the declared owned paths.
-    - Do not commit or mutate Git history as part of the implementation task.
     steps:
     - Implement safe request-name and request-directory resolution beneath requestsDirectory.
     - Discover the documented defaults, prompt, system prompt, task schema, parameters

@@ -12,6 +12,8 @@ references:
   required:
   - .docs/work-items/WI-0022/work-item.json
   - .docs/work-items/WI-0022/README.md
+  - requests/README.md
+  - requests/decisions.md
   - .docs/work-items/
   - .docs/work-items/WI-0022/steps/WI-0022-80000000-validation.yaml
   - .docs/work-items/WI-0022/steps/WI-0022-20000000-implementation.yaml
@@ -100,6 +102,8 @@ task:
       required: true
       minimumTier: inspection
     nonGoals:
+    - id: NON-002
+      statement: "Explicit human operator confirmation is required before modifying requests/README.md; this task must apply contract sections requests/README.md#work-item-validation-gates; requests/README.md#evidence-boundary. Explicit human operator confirmation is required before modifying requests/README.md."
     - id: NON-001
       statement: This review does not claim implementation, provider, completion,
         release, deployment, or production readiness.

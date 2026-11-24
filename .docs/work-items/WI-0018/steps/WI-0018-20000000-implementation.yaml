@@ -11,6 +11,8 @@ references:
   required:
   - .docs/work-items/WI-0018/work-item.json
   - .docs/work-items/WI-0018/README.md
+  - requests/README.md
+  - requests/decisions.md
   - .docs/work-items/WI-0018/steps/WI-0018-10000000-test-strategy.yaml
   - src/complete.ts
   - src/index.ts
@@ -139,11 +141,11 @@ task:
     - src/types.ts
     - tests/request.test.ts
     nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#library-and-cli-boundaries; requests/README.md#prompt-schema-and-summarize-compatibility; requests/README.md#additional-input-files. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not make authenticated provider calls, publish, deploy, or claim production
       readiness.
     - Do not modify unrelated commands, providers, schemas, or persistence outside
       the declared owned paths.
-    - Do not commit or mutate Git history as part of the implementation task.
     steps:
     - Define the completeRequest API and request-directory preparation types.
     - Load assets, construct parameters, substitute values, and build the existing
