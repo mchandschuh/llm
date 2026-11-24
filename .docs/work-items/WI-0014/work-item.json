@@ -1,0 +1,148 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0014",
+  "status": "planned",
+  "title": "Document and finalize the dynamic request-directory contract",
+  "type": "feature",
+  "objective": "Define the request-directory layout, asset mapping, parameter syntax, placeholder syntax, processing order, compatibility decisions, and evidence boundary before implementation.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0014-request-directory-contract",
+      "created": false,
+      "rationale": "The record captures bounded planning without creating or switching a branch."
+    }
+  },
+  "baseline": "51984b6064503b576c52ca460d7cf21cc356f52b",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare small, testable work items for dynamic request lookup: document requests/README.md; support request asset discovery; schema-aware CLI parameters including dot/index paths and --parameters JSON; $${variableName}$$ substitution; completeRequest(requestDirectory, parameters); llm req CLI integration; raw/full output; summarize compatibility; provider-free validation; and no commit.",
+    "sha256": "ae74e74f0fdd1d75cdc2432a4172625e2642f41b13168f380292ef0befc75254"
+  },
+  "scope": [
+    {
+      "name": "documentation",
+      "description": "The request-directory contract is documented at requests/README.md.",
+      "reason": "Implementers and users need one source of truth."
+    },
+    {
+      "name": "prompt-mapping",
+      "description": "The contract explicitly maps prompt.md and prompt.system.md to existing LlmRequest fields and records summarize compatibility.",
+      "reason": "Otherwise generic construction can invert task and system instructions."
+    },
+    {
+      "name": "parameter-contract",
+      "description": "The contract defines direct, nested, indexed, object-valued, full-object, precedence, duplicate, conversion, and schema-validation rules.",
+      "reason": "Parameter behavior must be deterministic and independently testable."
+    },
+    {
+      "name": "evidence-boundary",
+      "description": "The contract defines provider-free evidence and explicit non-goals for subsequent work.",
+      "reason": "Planning must distinguish requirements from implementation claims."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "implementation",
+      "description": "Do not implement behavior outside this work item.",
+      "reason": "Keep the slice independently reviewable.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "provider-and-release",
+      "description": "Do not make authenticated calls, publish, deploy, or claim production readiness.",
+      "reason": "Evidence is local and provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "unrelated-refactor",
+      "description": "Do not redesign unrelated commands, providers, schemas, or persistence.",
+      "reason": "Scope is limited to dynamic request lookup.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0014_REQ_001",
+        "name": "documentation",
+        "description": "The request-directory contract is documented at requests/README.md.",
+        "reason": "Implementers and users need one source of truth.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0014_REQ_001_AC_001",
+            "description": "The README documents the exact supported tree, file mappings, optionality, processing order, examples, and output behavior."
+          },
+          {
+            "id": "WI-0014_REQ_001_AC_002",
+            "description": "The README documents request-name safety, parameter grammar, --parameters precedence, reserved naming, and placeholder failure behavior."
+          }
+        ]
+      },
+      {
+        "id": "WI-0014_REQ_002",
+        "name": "prompt-mapping",
+        "description": "The contract explicitly maps prompt.md and prompt.system.md to existing LlmRequest fields and records summarize compatibility.",
+        "reason": "Otherwise generic construction can invert task and system instructions.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0014_REQ_002_AC_001",
+            "description": "The mapping is unambiguous and identifies summarize migration, wrapper, or compatibility handling."
+          },
+          {
+            "id": "WI-0014_REQ_002_AC_002",
+            "description": "The contract preserves the existing LlmRequest boundary."
+          }
+        ]
+      },
+      {
+        "id": "WI-0014_REQ_003",
+        "name": "parameter-contract",
+        "description": "The contract defines direct, nested, indexed, object-valued, full-object, precedence, duplicate, conversion, and schema-validation rules.",
+        "reason": "Parameter behavior must be deterministic and independently testable.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0014_REQ_003_AC_001",
+            "description": "Every requested CLI example appears with expected semantics."
+          },
+          {
+            "id": "WI-0014_REQ_003_AC_002",
+            "description": "Reserved names, duplicate assignment, scalar conversion, JSON values, and validation timing are defined."
+          }
+        ]
+      },
+      {
+        "id": "WI-0014_REQ_004",
+        "name": "evidence-boundary",
+        "description": "The contract defines provider-free evidence and explicit non-goals for subsequent work.",
+        "reason": "Planning must distinguish requirements from implementation claims.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0014_REQ_004_AC_001",
+            "description": "The record identifies the later test matrix and states that planning makes no provider or production claim."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0014/steps/"
+}

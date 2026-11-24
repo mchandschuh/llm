@@ -1,0 +1,144 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0018",
+  "status": "planned",
+  "title": "Add the shared completeRequest library boundary",
+  "type": "feature",
+  "objective": "Expose completeRequest(requestDirectory, parameters, options) that loads assets, substitutes values, constructs an existing LlmRequest, and delegates to complete.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0018-complete-request-library",
+      "created": false,
+      "rationale": "The record captures bounded planning without creating or switching a branch."
+    }
+  },
+  "baseline": "51984b6064503b576c52ca460d7cf21cc356f52b",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare small, testable work items for dynamic request lookup: document requests/README.md; support request asset discovery; schema-aware CLI parameters including dot/index paths and --parameters JSON; $${variableName}$$ substitution; completeRequest(requestDirectory, parameters); llm req CLI integration; raw/full output; summarize compatibility; provider-free validation; and no commit.",
+    "sha256": "ae74e74f0fdd1d75cdc2432a4172625e2642f41b13168f380292ef0befc75254"
+  },
+  "scope": [
+    {
+      "name": "exported-api",
+      "description": "completeRequest is exported with usable types and accepts directory, parameters, and completion controls.",
+      "reason": "Consumers need a stable programmatic boundary."
+    },
+    {
+      "name": "constructed-request",
+      "description": "The function creates a valid existing LlmRequest from assets and parameters.",
+      "reason": "The dynamic layer must not invent a parallel contract."
+    },
+    {
+      "name": "single-delegation",
+      "description": "Valid input delegates once and invalid input produces zero provider calls.",
+      "reason": "CLI and library behavior must align."
+    },
+    {
+      "name": "relative-root",
+      "description": "Relative sources and completion options use requestDirectory and pass through controls.",
+      "reason": "Bundles need safe local references and runtime controls."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "implementation",
+      "description": "Do not implement behavior outside this work item.",
+      "reason": "Keep the slice independently reviewable.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "provider-and-release",
+      "description": "Do not make authenticated calls, publish, deploy, or claim production readiness.",
+      "reason": "Evidence is local and provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "unrelated-refactor",
+      "description": "Do not redesign unrelated commands, providers, schemas, or persistence.",
+      "reason": "Scope is limited to dynamic request lookup.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0018_REQ_001",
+        "name": "exported-api",
+        "description": "completeRequest is exported with usable types and accepts directory, parameters, and completion controls.",
+        "reason": "Consumers need a stable programmatic boundary.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0018_REQ_001_AC_001",
+            "description": "Declarations expose it and a fake-provider import test works."
+          }
+        ]
+      },
+      {
+        "id": "WI-0018_REQ_002",
+        "name": "constructed-request",
+        "description": "The function creates a valid existing LlmRequest from assets and parameters.",
+        "reason": "The dynamic layer must not invent a parallel contract.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0018_REQ_002_AC_001",
+            "description": "Provider capture covers provider/model/task/systemPrompt/taskSchema/outputSchema/files/defaults."
+          },
+          {
+            "id": "WI-0018_REQ_002_AC_002",
+            "description": "Prompt mapping follows WI-0014."
+          }
+        ]
+      },
+      {
+        "id": "WI-0018_REQ_003",
+        "name": "single-delegation",
+        "description": "Valid input delegates once and invalid input produces zero provider calls.",
+        "reason": "CLI and library behavior must align.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0018_REQ_003_AC_001",
+            "description": "Success, malformed asset, invalid parameter, and missing-variable cases are covered."
+          }
+        ]
+      },
+      {
+        "id": "WI-0018_REQ_004",
+        "name": "relative-root",
+        "description": "Relative sources and completion options use requestDirectory and pass through controls.",
+        "reason": "Bundles need safe local references and runtime controls.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0018_REQ_004_AC_001",
+            "description": "Relative files resolve under the request directory."
+          },
+          {
+            "id": "WI-0018_REQ_004_AC_002",
+            "description": "Provider, debug, signal, and output controls remain available."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0018/steps/"
+}

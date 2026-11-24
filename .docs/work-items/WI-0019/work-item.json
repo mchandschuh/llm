@@ -1,0 +1,140 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0019",
+  "status": "planned",
+  "title": "Add llm req CLI argument parsing",
+  "type": "feature",
+  "objective": "Recognize llm req <request-name> <request-parameters> while preserving current modes and common format/debug flags.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0019-request-cli-arguments",
+      "created": false,
+      "rationale": "The record captures bounded planning without creating or switching a branch."
+    }
+  },
+  "baseline": "51984b6064503b576c52ca460d7cf21cc356f52b",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare small, testable work items for dynamic request lookup: document requests/README.md; support request asset discovery; schema-aware CLI parameters including dot/index paths and --parameters JSON; $${variableName}$$ substitution; completeRequest(requestDirectory, parameters); llm req CLI integration; raw/full output; summarize compatibility; provider-free validation; and no commit.",
+    "sha256": "ae74e74f0fdd1d75cdc2432a4172625e2642f41b13168f380292ef0befc75254"
+  },
+  "scope": [
+    {
+      "name": "req-shape",
+      "description": "The parser recognizes req with a request name and parameter tail.",
+      "reason": "The command needs unambiguous syntax."
+    },
+    {
+      "name": "common-output-flags",
+      "description": "Dynamic requests accept existing raw/full and debug controls in common positions.",
+      "reason": "Output must remain consistent."
+    },
+    {
+      "name": "parameter-forwarding",
+      "description": "The parser forwards --parameters and arbitrary property tokens without schema interpretation.",
+      "reason": "Request-specific schemas remain dynamic."
+    },
+    {
+      "name": "existing-modes",
+      "description": "Existing parser modes retain their shapes and exit codes.",
+      "reason": "The new branch must be additive."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "implementation",
+      "description": "Do not implement behavior outside this work item.",
+      "reason": "Keep the slice independently reviewable.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "provider-and-release",
+      "description": "Do not make authenticated calls, publish, deploy, or claim production readiness.",
+      "reason": "Evidence is local and provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "unrelated-refactor",
+      "description": "Do not redesign unrelated commands, providers, schemas, or persistence.",
+      "reason": "Scope is limited to dynamic request lookup.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0019_REQ_001",
+        "name": "req-shape",
+        "description": "The parser recognizes req with a request name and parameter tail.",
+        "reason": "The command needs unambiguous syntax.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0019_REQ_001_AC_001",
+            "description": "Valid, missing-name, empty-tail, and malformed forms have defined results."
+          }
+        ]
+      },
+      {
+        "id": "WI-0019_REQ_002",
+        "name": "common-output-flags",
+        "description": "Dynamic requests accept existing raw/full and debug controls in common positions.",
+        "reason": "Output must remain consistent.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0019_REQ_002_AC_001",
+            "description": "Both format spellings work and duplicate/invalid/legacy selectors remain rejected."
+          }
+        ]
+      },
+      {
+        "id": "WI-0019_REQ_003",
+        "name": "parameter-forwarding",
+        "description": "The parser forwards --parameters and arbitrary property tokens without schema interpretation.",
+        "reason": "Request-specific schemas remain dynamic.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0019_REQ_003_AC_001",
+            "description": "Full-object, dotted, indexed, and object-valued tokens survive exactly."
+          },
+          {
+            "id": "WI-0019_REQ_003_AC_002",
+            "description": "Common flags are not forwarded."
+          }
+        ]
+      },
+      {
+        "id": "WI-0019_REQ_004",
+        "name": "existing-modes",
+        "description": "Existing parser modes retain their shapes and exit codes.",
+        "reason": "The new branch must be additive.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0019_REQ_004_AC_001",
+            "description": "Prompt, chat, continuation, summarize, and config parser tests remain green."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0019/steps/"
+}

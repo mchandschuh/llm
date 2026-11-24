@@ -1,0 +1,140 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0016",
+  "status": "planned",
+  "title": "Implement schema-aware request parameter construction",
+  "type": "feature",
+  "objective": "Construct and validate parameters from a flat schema, nested dot/index assignments, and full --parameters JSON with deterministic precedence and errors.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0016-request-parameter-construction",
+      "created": false,
+      "rationale": "The record captures bounded planning without creating or switching a branch."
+    }
+  },
+  "baseline": "51984b6064503b576c52ca460d7cf21cc356f52b",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare small, testable work items for dynamic request lookup: document requests/README.md; support request asset discovery; schema-aware CLI parameters including dot/index paths and --parameters JSON; $${variableName}$$ substitution; completeRequest(requestDirectory, parameters); llm req CLI integration; raw/full output; summarize compatibility; provider-free validation; and no commit.",
+    "sha256": "ae74e74f0fdd1d75cdc2432a4172625e2642f41b13168f380292ef0befc75254"
+  },
+  "scope": [
+    {
+      "name": "root-properties",
+      "description": "Flat root properties are exposed as CLI parameters and parameter is reserved.",
+      "reason": "The schema defines the request-specific namespace."
+    },
+    {
+      "name": "nested-paths",
+      "description": "Dot notation and array/map indexes update nested values without corrupting siblings.",
+      "reason": "Structured request parameters need navigable assignment."
+    },
+    {
+      "name": "full-object",
+      "description": "--parameters accepts full JSON and individual assignments follow documented precedence.",
+      "reason": "Full-object callers and targeted operators both need deterministic behavior."
+    },
+    {
+      "name": "schema-validation",
+      "description": "The complete object is validated against parameters.schema.json before substitution.",
+      "reason": "Schema violations must not invoke completion."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "implementation",
+      "description": "Do not implement behavior outside this work item.",
+      "reason": "Keep the slice independently reviewable.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "provider-and-release",
+      "description": "Do not make authenticated calls, publish, deploy, or claim production readiness.",
+      "reason": "Evidence is local and provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "unrelated-refactor",
+      "description": "Do not redesign unrelated commands, providers, schemas, or persistence.",
+      "reason": "Scope is limited to dynamic request lookup.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0016_REQ_001",
+        "name": "root-properties",
+        "description": "Flat root properties are exposed as CLI parameters and parameter is reserved.",
+        "reason": "The schema defines the request-specific namespace.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0016_REQ_001_AC_001",
+            "description": "Direct root assignments construct typed values."
+          },
+          {
+            "id": "WI-0016_REQ_001_AC_002",
+            "description": "Unknown roots and reserved parameter fail."
+          }
+        ]
+      },
+      {
+        "id": "WI-0016_REQ_002",
+        "name": "nested-paths",
+        "description": "Dot notation and array/map indexes update nested values without corrupting siblings.",
+        "reason": "Structured request parameters need navigable assignment.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0016_REQ_002_AC_001",
+            "description": "Object, array, map, object-valued, conflict, invalid-index, and duplicate cases are covered."
+          }
+        ]
+      },
+      {
+        "id": "WI-0016_REQ_003",
+        "name": "full-object",
+        "description": "--parameters accepts full JSON and individual assignments follow documented precedence.",
+        "reason": "Full-object callers and targeted operators both need deterministic behavior.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0016_REQ_003_AC_001",
+            "description": "Valid full JSON, malformed JSON, conflicts, and precedence are tested."
+          }
+        ]
+      },
+      {
+        "id": "WI-0016_REQ_004",
+        "name": "schema-validation",
+        "description": "The complete object is validated against parameters.schema.json before substitution.",
+        "reason": "Schema violations must not invoke completion.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0016_REQ_004_AC_001",
+            "description": "Required, type, enum, additional-property, and nested violations fail before provider use."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0016/steps/"
+}

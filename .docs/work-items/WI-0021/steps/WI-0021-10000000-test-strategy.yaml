@@ -1,0 +1,328 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0021
+taskUid: WI-0021-10000000
+orderKey: '10000000'
+parentTaskUid: null
+taskType: test-strategy
+processingStatus: processing_completed
+title: Define Migrate and validate the summarize request example test strategy
+objective: Make summarize an explicit generic request example while preserving specialized
+  path/content source behavior, output formats, and compatibility.
+references:
+  required:
+  - .docs/work-items/WI-0021/work-item.json
+  - .docs/work-items/WI-0021/README.md
+  - requests/summarize/
+  - src/cli/summarize-command.ts
+  - src/cli.ts
+  - tests/summarize.test.ts
+  - README.md
+  - SKILL.md
+  - package.json
+  - tests/
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0021/steps/WI-0021-10000000-test-strategy.yaml
+  commitSubject: 'WI-0021: plan: define test-strategy evidence'
+  commitBody:
+    requiredSections:
+    - Why
+    - What
+    - How
+    - Decisions
+    - Validation
+    - Evidence
+    - Refs
+    - Next
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments:
+    - run
+    - typecheck
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/result
+  intent:
+    summary: Define deterministic evidence for Migrate and validate the summarize
+      request example.
+    inputs:
+    - id: WI-0021-10000000_INPUT-REQ-001
+      kind: requirement
+      ref: WI-0021#work-item.json#requirement/WI-0021_REQ_001
+      purpose: Define generic-example.
+      required: true
+    - id: WI-0021-10000000_INPUT-REQ-002
+      kind: requirement
+      ref: WI-0021#work-item.json#requirement/WI-0021_REQ_002
+      purpose: Define compatibility.
+      required: true
+    - id: WI-0021-10000000_INPUT-REQ-003
+      kind: requirement
+      ref: WI-0021#work-item.json#requirement/WI-0021_REQ_003
+      purpose: Define source-regressions.
+      required: true
+    - id: WI-0021-10000000_INPUT-REQ-004
+      kind: requirement
+      ref: WI-0021#work-item.json#requirement/WI-0021_REQ_004
+      purpose: Define example-quality.
+      required: true
+    requirements:
+    - id: REQ-001
+      kind: requirement
+      statement: Summarize assets execute through llm req with documented parameters.
+      inputRefs:
+      - WI-0021-10000000_INPUT-REQ-001
+      required: true
+    - id: REQ-002
+      kind: requirement
+      statement: Existing llm summarize delegates to or clearly wraps generic behavior
+        without semantic drift.
+      inputRefs:
+      - WI-0021-10000000_INPUT-REQ-002
+      required: true
+    - id: REQ-003
+      kind: requirement
+      statement: Path, directory, symlink, content, raw, and full cases remain covered.
+      inputRefs:
+      - WI-0021-10000000_INPUT-REQ-003
+      required: true
+    - id: REQ-004
+      kind: requirement
+      statement: Assets and tests introduce no unrelated scope or provider claims.
+      inputRefs:
+      - WI-0021-10000000_INPUT-REQ-004
+      required: true
+    invariants:
+    - id: WI-0021-10000000_INV-001
+      statement: The generic-example boundary remains explicit, deterministic, and
+        provider-free.
+      inputRefs:
+      - WI-0021-10000000_INPUT-REQ-001
+      required: true
+    - id: WI-0021-10000000_INV-002
+      statement: The compatibility boundary remains explicit, deterministic, and provider-free.
+      inputRefs:
+      - WI-0021-10000000_INPUT-REQ-002
+      required: true
+    - id: WI-0021-10000000_INV-003
+      statement: The source-regressions boundary remains explicit, deterministic,
+        and provider-free.
+      inputRefs:
+      - WI-0021-10000000_INPUT-REQ-003
+      required: true
+    - id: WI-0021-10000000_INV-004
+      statement: The example-quality boundary remains explicit, deterministic, and
+        provider-free.
+      inputRefs:
+      - WI-0021-10000000_INPUT-REQ-004
+      required: true
+    objectives:
+    - id: WI-0021-10000000_OBJ-001
+      statement: Verify generic-example.
+      inputRefs:
+      - WI-0021-10000000_INPUT-REQ-001
+      requirementRefs:
+      - WI-0021_REQ_001
+      acceptanceCriterionRefs:
+      - WI-0021_REQ_001_AC_001
+      - WI-0021_REQ_001_AC_002
+      invariantRefs:
+      - '#intent/invariants/WI-0021-10000000_INV-001'
+    - id: WI-0021-10000000_OBJ-002
+      statement: Verify compatibility.
+      inputRefs:
+      - WI-0021-10000000_INPUT-REQ-002
+      requirementRefs:
+      - WI-0021_REQ_002
+      acceptanceCriterionRefs:
+      - WI-0021_REQ_002_AC_001
+      - WI-0021_REQ_002_AC_002
+      invariantRefs:
+      - '#intent/invariants/WI-0021-10000000_INV-002'
+    - id: WI-0021-10000000_OBJ-003
+      statement: Verify source-regressions.
+      inputRefs:
+      - WI-0021-10000000_INPUT-REQ-003
+      requirementRefs:
+      - WI-0021_REQ_003
+      acceptanceCriterionRefs:
+      - WI-0021_REQ_003_AC_001
+      invariantRefs:
+      - '#intent/invariants/WI-0021-10000000_INV-003'
+    - id: WI-0021-10000000_OBJ-004
+      statement: Verify example-quality.
+      inputRefs:
+      - WI-0021-10000000_INPUT-REQ-004
+      requirementRefs:
+      - WI-0021_REQ_004
+      acceptanceCriterionRefs:
+      - WI-0021_REQ_004_AC_001
+      invariantRefs:
+      - '#intent/invariants/WI-0021-10000000_INV-004'
+    nonGoals:
+    - Do not claim implementation, provider, deployment, release, or production behavior.
+  result:
+    status: defined
+    testCases:
+    - id: WI-0021-10000000_TC-GENERIC-EXAMPLE
+      title: generic-example required cases
+      type: unit
+      requirementLevel: required
+      purpose: Prove Summarize assets execute through llm req with documented parameters.
+      procedure:
+        executionMode: executable
+        target: Focused tests for generic-example
+        steps:
+        - Arrange positive and negative fixtures.
+        - Run the focused implementation boundary.
+        - Assert required behavior and bounded failure.
+        command: npm test
+      expectedOutcome: generic-example satisfies the requirement and fails closed
+        at its boundary.
+      passCriteria: The command exits zero and all named assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations:
+      - Provider-free local evidence does not establish authenticated provider or
+        production behavior.
+    - id: WI-0021-10000000_TC-COMPATIBILITY
+      title: compatibility required cases
+      type: unit
+      requirementLevel: required
+      purpose: Prove Existing llm summarize delegates to or clearly wraps generic
+        behavior without semantic drift.
+      procedure:
+        executionMode: executable
+        target: Focused tests for compatibility
+        steps:
+        - Arrange positive and negative fixtures.
+        - Run the focused implementation boundary.
+        - Assert required behavior and bounded failure.
+        command: npm test
+      expectedOutcome: compatibility satisfies the requirement and fails closed at
+        its boundary.
+      passCriteria: The command exits zero and all named assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations:
+      - Provider-free local evidence does not establish authenticated provider or
+        production behavior.
+    - id: WI-0021-10000000_TC-SOURCE-REGRESSIONS
+      title: source-regressions required cases
+      type: unit
+      requirementLevel: required
+      purpose: Prove Path, directory, symlink, content, raw, and full cases remain
+        covered.
+      procedure:
+        executionMode: executable
+        target: Focused tests for source-regressions
+        steps:
+        - Arrange positive and negative fixtures.
+        - Run the focused implementation boundary.
+        - Assert required behavior and bounded failure.
+        command: npm test
+      expectedOutcome: source-regressions satisfies the requirement and fails closed
+        at its boundary.
+      passCriteria: The command exits zero and all named assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations:
+      - Provider-free local evidence does not establish authenticated provider or
+        production behavior.
+    - id: WI-0021-10000000_TC-EXAMPLE-QUALITY
+      title: example-quality required cases
+      type: integration
+      requirementLevel: required
+      purpose: Prove Assets and tests introduce no unrelated scope or provider claims.
+      procedure:
+        executionMode: executable
+        target: Focused tests for example-quality
+        steps:
+        - Arrange positive and negative fixtures.
+        - Run the focused implementation boundary.
+        - Assert required behavior and bounded failure.
+        command: npm test
+      expectedOutcome: example-quality satisfies the requirement and fails closed
+        at its boundary.
+      passCriteria: The command exits zero and all named assertions pass.
+      evidenceTier: integration
+      fixtureRefs: []
+      limitations:
+      - Provider-free local evidence does not establish authenticated provider or
+        production behavior.
+    fixtures: []
+    coverage:
+    - id: COV-001
+      requirementRefs:
+      - WI-0021_REQ_001
+      invariantRefs:
+      - '#intent/invariants/WI-0021-10000000_INV-001'
+      objectiveRefs:
+      - '#objective/WI-0021-10000000_OBJ-001'
+      testCaseRefs:
+      - '#result/testCases/WI-0021-10000000_TC-GENERIC-EXAMPLE'
+      rationale: The generic-example case covers the requirement and every declared
+        criterion.
+      acceptanceCriterionRefs:
+      - WI-0021_REQ_001_AC_001
+      - WI-0021_REQ_001_AC_002
+    - id: COV-002
+      requirementRefs:
+      - WI-0021_REQ_002
+      invariantRefs:
+      - '#intent/invariants/WI-0021-10000000_INV-002'
+      objectiveRefs:
+      - '#objective/WI-0021-10000000_OBJ-002'
+      testCaseRefs:
+      - '#result/testCases/WI-0021-10000000_TC-COMPATIBILITY'
+      rationale: The compatibility case covers the requirement and every declared
+        criterion.
+      acceptanceCriterionRefs:
+      - WI-0021_REQ_002_AC_001
+      - WI-0021_REQ_002_AC_002
+    - id: COV-003
+      requirementRefs:
+      - WI-0021_REQ_003
+      invariantRefs:
+      - '#intent/invariants/WI-0021-10000000_INV-003'
+      objectiveRefs:
+      - '#objective/WI-0021-10000000_OBJ-003'
+      testCaseRefs:
+      - '#result/testCases/WI-0021-10000000_TC-SOURCE-REGRESSIONS'
+      rationale: The source-regressions case covers the requirement and every declared
+        criterion.
+      acceptanceCriterionRefs:
+      - WI-0021_REQ_003_AC_001
+    - id: COV-004
+      requirementRefs:
+      - WI-0021_REQ_004
+      invariantRefs:
+      - '#intent/invariants/WI-0021-10000000_INV-004'
+      objectiveRefs:
+      - '#objective/WI-0021-10000000_OBJ-004'
+      testCaseRefs:
+      - '#result/testCases/WI-0021-10000000_TC-EXAMPLE-QUALITY'
+      rationale: The example-quality case covers the requirement and every declared
+        criterion.
+      acceptanceCriterionRefs:
+      - WI-0021_REQ_004_AC_001
+    minimumRequiredTestCaseRefs:
+    - '#result/testCases/WI-0021-10000000_TC-GENERIC-EXAMPLE'
+    - '#result/testCases/WI-0021-10000000_TC-COMPATIBILITY'
+    - '#result/testCases/WI-0021-10000000_TC-SOURCE-REGRESSIONS'
+    - '#result/testCases/WI-0021-10000000_TC-EXAMPLE-QUALITY'
+    recommendedTestCaseRefs: []
+    evidenceLimitations:
+    - This strategy defines evidence but does not claim execution or pass status.
+    - No authenticated provider, deployment, release, downstream, or production evidence
+      is in scope.

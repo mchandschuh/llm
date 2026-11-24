@@ -1,0 +1,140 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0020",
+  "status": "planned",
+  "title": "Integrate llm req execution and output",
+  "type": "feature",
+  "objective": "Resolve configured request directories, construct parameters, call completeRequest, and print dynamic responses using existing output and exit semantics.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0020-request-cli-integration",
+      "created": false,
+      "rationale": "The record captures bounded planning without creating or switching a branch."
+    }
+  },
+  "baseline": "51984b6064503b576c52ca460d7cf21cc356f52b",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare small, testable work items for dynamic request lookup: document requests/README.md; support request asset discovery; schema-aware CLI parameters including dot/index paths and --parameters JSON; $${variableName}$$ substitution; completeRequest(requestDirectory, parameters); llm req CLI integration; raw/full output; summarize compatibility; provider-free validation; and no commit.",
+    "sha256": "ae74e74f0fdd1d75cdc2432a4172625e2642f41b13168f380292ef0befc75254"
+  },
+  "scope": [
+    {
+      "name": "configured-lookup",
+      "description": "llm req resolves configured root and request name before loading.",
+      "reason": "Bundles must not be hard-coded."
+    },
+    {
+      "name": "shared-completion",
+      "description": "Valid input constructs parameters and calls completeRequest once.",
+      "reason": "Shared behavior is central."
+    },
+    {
+      "name": "output-contract",
+      "description": "Raw/full success and JSON failure output follow existing writers and exit codes.",
+      "reason": "Callers need stable serialization."
+    },
+    {
+      "name": "cli-regression",
+      "description": "Existing command behavior remains covered.",
+      "reason": "Integration must not regress current modes."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "implementation",
+      "description": "Do not implement behavior outside this work item.",
+      "reason": "Keep the slice independently reviewable.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "provider-and-release",
+      "description": "Do not make authenticated calls, publish, deploy, or claim production readiness.",
+      "reason": "Evidence is local and provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "unrelated-refactor",
+      "description": "Do not redesign unrelated commands, providers, schemas, or persistence.",
+      "reason": "Scope is limited to dynamic request lookup.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0020_REQ_001",
+        "name": "configured-lookup",
+        "description": "llm req resolves configured root and request name before loading.",
+        "reason": "Bundles must not be hard-coded.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0020_REQ_001_AC_001",
+            "description": "Valid roots work and missing/unsafe names fail before provider use."
+          }
+        ]
+      },
+      {
+        "id": "WI-0020_REQ_002",
+        "name": "shared-completion",
+        "description": "Valid input constructs parameters and calls completeRequest once.",
+        "reason": "Shared behavior is central.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0020_REQ_002_AC_001",
+            "description": "Provider capture matches library behavior."
+          },
+          {
+            "id": "WI-0020_REQ_002_AC_002",
+            "description": "Invalid parameters/assets/placeholders make zero calls."
+          }
+        ]
+      },
+      {
+        "id": "WI-0020_REQ_003",
+        "name": "output-contract",
+        "description": "Raw/full success and JSON failure output follow existing writers and exit codes.",
+        "reason": "Callers need stable serialization.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0020_REQ_003_AC_001",
+            "description": "Raw is only successful raw output; full is the envelope; errors are JSON stderr with nonzero exit."
+          }
+        ]
+      },
+      {
+        "id": "WI-0020_REQ_004",
+        "name": "cli-regression",
+        "description": "Existing command behavior remains covered.",
+        "reason": "Integration must not regress current modes.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0020_REQ_004_AC_001",
+            "description": "Full provider-free CLI suite remains green."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0020/steps/"
+}

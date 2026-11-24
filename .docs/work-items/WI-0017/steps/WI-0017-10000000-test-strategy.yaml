@@ -1,0 +1,328 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0017
+taskUid: WI-0017-10000000
+orderKey: '10000000'
+parentTaskUid: null
+taskType: test-strategy
+processingStatus: processing_completed
+title: Define Implement request-variable substitution test strategy
+objective: Replace every $${variableName}$$ placeholder across request assets using
+  constructed parameters, JSON-serializing complex values and failing on unresolved
+  variables.
+references:
+  required:
+  - .docs/work-items/WI-0017/work-item.json
+  - .docs/work-items/WI-0017/README.md
+  - src/schema.ts
+  - src/prompt.ts
+  - src/normalize.ts
+  - tests/llm.test.ts
+  - tests/summarize.test.ts
+  - package.json
+  - tests/
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0017/steps/WI-0017-10000000-test-strategy.yaml
+  commitSubject: 'WI-0017: plan: define test-strategy evidence'
+  commitBody:
+    requiredSections:
+    - Why
+    - What
+    - How
+    - Decisions
+    - Validation
+    - Evidence
+    - Refs
+    - Next
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments:
+    - run
+    - typecheck
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/result
+  intent:
+    summary: Define deterministic evidence for Implement request-variable substitution.
+    inputs:
+    - id: WI-0017-10000000_INPUT-REQ-001
+      kind: requirement
+      ref: WI-0017#work-item.json#requirement/WI-0017_REQ_001
+      purpose: Define exact-syntax.
+      required: true
+    - id: WI-0017-10000000_INPUT-REQ-002
+      kind: requirement
+      ref: WI-0017#work-item.json#requirement/WI-0017_REQ_002
+      purpose: Define value-serialization.
+      required: true
+    - id: WI-0017-10000000_INPUT-REQ-003
+      kind: requirement
+      ref: WI-0017#work-item.json#requirement/WI-0017_REQ_003
+      purpose: Define complete-asset-pass.
+      required: true
+    - id: WI-0017-10000000_INPUT-REQ-004
+      kind: requirement
+      ref: WI-0017#work-item.json#requirement/WI-0017_REQ_004
+      purpose: Define missing-values.
+      required: true
+    requirements:
+    - id: REQ-001
+      kind: requirement
+      statement: The engine matches exact syntax and resolves nested parameter paths.
+      inputRefs:
+      - WI-0017-10000000_INPUT-REQ-001
+      required: true
+    - id: REQ-002
+      kind: requirement
+      statement: Primitive and complex values render predictably through safe JSON
+        serialization.
+      inputRefs:
+      - WI-0017-10000000_INPUT-REQ-002
+      required: true
+    - id: REQ-003
+      kind: requirement
+      statement: Every configured asset receives replacement before parsing.
+      inputRefs:
+      - WI-0017-10000000_INPUT-REQ-003
+      required: true
+    - id: REQ-004
+      kind: requirement
+      statement: Missing variables fail before completion and no unresolved placeholder
+        reaches the request.
+      inputRefs:
+      - WI-0017-10000000_INPUT-REQ-004
+      required: true
+    invariants:
+    - id: WI-0017-10000000_INV-001
+      statement: The exact-syntax boundary remains explicit, deterministic, and provider-free.
+      inputRefs:
+      - WI-0017-10000000_INPUT-REQ-001
+      required: true
+    - id: WI-0017-10000000_INV-002
+      statement: The value-serialization boundary remains explicit, deterministic,
+        and provider-free.
+      inputRefs:
+      - WI-0017-10000000_INPUT-REQ-002
+      required: true
+    - id: WI-0017-10000000_INV-003
+      statement: The complete-asset-pass boundary remains explicit, deterministic,
+        and provider-free.
+      inputRefs:
+      - WI-0017-10000000_INPUT-REQ-003
+      required: true
+    - id: WI-0017-10000000_INV-004
+      statement: The missing-values boundary remains explicit, deterministic, and
+        provider-free.
+      inputRefs:
+      - WI-0017-10000000_INPUT-REQ-004
+      required: true
+    objectives:
+    - id: WI-0017-10000000_OBJ-001
+      statement: Verify exact-syntax.
+      inputRefs:
+      - WI-0017-10000000_INPUT-REQ-001
+      requirementRefs:
+      - WI-0017_REQ_001
+      acceptanceCriterionRefs:
+      - WI-0017_REQ_001_AC_001
+      invariantRefs:
+      - '#intent/invariants/WI-0017-10000000_INV-001'
+    - id: WI-0017-10000000_OBJ-002
+      statement: Verify value-serialization.
+      inputRefs:
+      - WI-0017-10000000_INPUT-REQ-002
+      requirementRefs:
+      - WI-0017_REQ_002
+      acceptanceCriterionRefs:
+      - WI-0017_REQ_002_AC_001
+      - WI-0017_REQ_002_AC_002
+      invariantRefs:
+      - '#intent/invariants/WI-0017-10000000_INV-002'
+    - id: WI-0017-10000000_OBJ-003
+      statement: Verify complete-asset-pass.
+      inputRefs:
+      - WI-0017-10000000_INPUT-REQ-003
+      requirementRefs:
+      - WI-0017_REQ_003
+      acceptanceCriterionRefs:
+      - WI-0017_REQ_003_AC_001
+      invariantRefs:
+      - '#intent/invariants/WI-0017-10000000_INV-003'
+    - id: WI-0017-10000000_OBJ-004
+      statement: Verify missing-values.
+      inputRefs:
+      - WI-0017-10000000_INPUT-REQ-004
+      requirementRefs:
+      - WI-0017_REQ_004
+      acceptanceCriterionRefs:
+      - WI-0017_REQ_004_AC_001
+      - WI-0017_REQ_004_AC_002
+      invariantRefs:
+      - '#intent/invariants/WI-0017-10000000_INV-004'
+    nonGoals:
+    - Do not claim implementation, provider, deployment, release, or production behavior.
+  result:
+    status: defined
+    testCases:
+    - id: WI-0017-10000000_TC-EXACT-SYNTAX
+      title: exact-syntax required cases
+      type: unit
+      requirementLevel: required
+      purpose: Prove The engine matches exact syntax and resolves nested parameter
+        paths.
+      procedure:
+        executionMode: executable
+        target: Focused tests for exact-syntax
+        steps:
+        - Arrange positive and negative fixtures.
+        - Run the focused implementation boundary.
+        - Assert required behavior and bounded failure.
+        command: npm test
+      expectedOutcome: exact-syntax satisfies the requirement and fails closed at
+        its boundary.
+      passCriteria: The command exits zero and all named assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations:
+      - Provider-free local evidence does not establish authenticated provider or
+        production behavior.
+    - id: WI-0017-10000000_TC-VALUE-SERIALIZATION
+      title: value-serialization required cases
+      type: unit
+      requirementLevel: required
+      purpose: Prove Primitive and complex values render predictably through safe
+        JSON serialization.
+      procedure:
+        executionMode: executable
+        target: Focused tests for value-serialization
+        steps:
+        - Arrange positive and negative fixtures.
+        - Run the focused implementation boundary.
+        - Assert required behavior and bounded failure.
+        command: npm test
+      expectedOutcome: value-serialization satisfies the requirement and fails closed
+        at its boundary.
+      passCriteria: The command exits zero and all named assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations:
+      - Provider-free local evidence does not establish authenticated provider or
+        production behavior.
+    - id: WI-0017-10000000_TC-COMPLETE-ASSET-PASS
+      title: complete-asset-pass required cases
+      type: unit
+      requirementLevel: required
+      purpose: Prove Every configured asset receives replacement before parsing.
+      procedure:
+        executionMode: executable
+        target: Focused tests for complete-asset-pass
+        steps:
+        - Arrange positive and negative fixtures.
+        - Run the focused implementation boundary.
+        - Assert required behavior and bounded failure.
+        command: npm test
+      expectedOutcome: complete-asset-pass satisfies the requirement and fails closed
+        at its boundary.
+      passCriteria: The command exits zero and all named assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations:
+      - Provider-free local evidence does not establish authenticated provider or
+        production behavior.
+    - id: WI-0017-10000000_TC-MISSING-VALUES
+      title: missing-values required cases
+      type: integration
+      requirementLevel: required
+      purpose: Prove Missing variables fail before completion and no unresolved placeholder
+        reaches the request.
+      procedure:
+        executionMode: executable
+        target: Focused tests for missing-values
+        steps:
+        - Arrange positive and negative fixtures.
+        - Run the focused implementation boundary.
+        - Assert required behavior and bounded failure.
+        command: npm test
+      expectedOutcome: missing-values satisfies the requirement and fails closed at
+        its boundary.
+      passCriteria: The command exits zero and all named assertions pass.
+      evidenceTier: integration
+      fixtureRefs: []
+      limitations:
+      - Provider-free local evidence does not establish authenticated provider or
+        production behavior.
+    fixtures: []
+    coverage:
+    - id: COV-001
+      requirementRefs:
+      - WI-0017_REQ_001
+      invariantRefs:
+      - '#intent/invariants/WI-0017-10000000_INV-001'
+      objectiveRefs:
+      - '#objective/WI-0017-10000000_OBJ-001'
+      testCaseRefs:
+      - '#result/testCases/WI-0017-10000000_TC-EXACT-SYNTAX'
+      rationale: The exact-syntax case covers the requirement and every declared criterion.
+      acceptanceCriterionRefs:
+      - WI-0017_REQ_001_AC_001
+    - id: COV-002
+      requirementRefs:
+      - WI-0017_REQ_002
+      invariantRefs:
+      - '#intent/invariants/WI-0017-10000000_INV-002'
+      objectiveRefs:
+      - '#objective/WI-0017-10000000_OBJ-002'
+      testCaseRefs:
+      - '#result/testCases/WI-0017-10000000_TC-VALUE-SERIALIZATION'
+      rationale: The value-serialization case covers the requirement and every declared
+        criterion.
+      acceptanceCriterionRefs:
+      - WI-0017_REQ_002_AC_001
+      - WI-0017_REQ_002_AC_002
+    - id: COV-003
+      requirementRefs:
+      - WI-0017_REQ_003
+      invariantRefs:
+      - '#intent/invariants/WI-0017-10000000_INV-003'
+      objectiveRefs:
+      - '#objective/WI-0017-10000000_OBJ-003'
+      testCaseRefs:
+      - '#result/testCases/WI-0017-10000000_TC-COMPLETE-ASSET-PASS'
+      rationale: The complete-asset-pass case covers the requirement and every declared
+        criterion.
+      acceptanceCriterionRefs:
+      - WI-0017_REQ_003_AC_001
+    - id: COV-004
+      requirementRefs:
+      - WI-0017_REQ_004
+      invariantRefs:
+      - '#intent/invariants/WI-0017-10000000_INV-004'
+      objectiveRefs:
+      - '#objective/WI-0017-10000000_OBJ-004'
+      testCaseRefs:
+      - '#result/testCases/WI-0017-10000000_TC-MISSING-VALUES'
+      rationale: The missing-values case covers the requirement and every declared
+        criterion.
+      acceptanceCriterionRefs:
+      - WI-0017_REQ_004_AC_001
+      - WI-0017_REQ_004_AC_002
+    minimumRequiredTestCaseRefs:
+    - '#result/testCases/WI-0017-10000000_TC-EXACT-SYNTAX'
+    - '#result/testCases/WI-0017-10000000_TC-VALUE-SERIALIZATION'
+    - '#result/testCases/WI-0017-10000000_TC-COMPLETE-ASSET-PASS'
+    - '#result/testCases/WI-0017-10000000_TC-MISSING-VALUES'
+    recommendedTestCaseRefs: []
+    evidenceLimitations:
+    - This strategy defines evidence but does not claim execution or pass status.
+    - No authenticated provider, deployment, release, downstream, or production evidence
+      is in scope.

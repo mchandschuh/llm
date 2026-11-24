@@ -1,0 +1,111 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0020
+taskUid: WI-0020-90000000
+orderKey: '90000000'
+parentTaskUid: WI-0020-80000000
+taskType: review
+processingStatus: unprocessed
+title: Review Integrate llm req execution and output scope and evidence
+objective: Resolve configured request directories, construct parameters, call completeRequest,
+  and print dynamic responses using existing output and exit semantics.
+references:
+  required:
+  - .docs/work-items/WI-0020/work-item.json
+  - .docs/work-items/WI-0020/README.md
+  - src/cli.ts
+  - .docs/work-items/WI-0020/steps/WI-0020-80000000-validation.yaml
+  - .docs/work-items/WI-0020/steps/WI-0020-20000000-implementation.yaml
+  - src/cli/arguments.ts
+  - src/cli/output.ts
+  - src/requests-config.ts
+  - tests/cli.test.ts
+  - tests/summarize.test.ts
+  - package.json
+  - tests/
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0020-80000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0020/steps/WI-0020-90000000-review.yaml
+  commitSubject: 'WI-0020: plan: define review evidence'
+  commitBody:
+    requiredSections:
+    - Why
+    - What
+    - How
+    - Decisions
+    - Validation
+    - Evidence
+    - Refs
+    - Next
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments:
+    - run
+    - typecheck
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review whether evidence for Integrate llm req execution and output is
+      sufficient, traceable, and in scope.
+    reviewKind: planning
+    target:
+      taskType: test-strategy
+      taskRef: WI-0020-10000000
+      result:
+        ref: WI-0020-10000000#result/testCases/WI-0020-10000000_TC-CONFIGURED-LOOKUP
+        sha256: null
+    gateId: test-strategy
+    policyRef:
+      ref: repository-local-review-policy
+      sha256: null
+    criteria:
+    - id: CRIT-001
+      statement: Every requirement and acceptance criterion has explicit strategy
+        and validation coverage.
+      purpose: Prevent unproven obligations.
+      required: true
+      evidenceRefs:
+      - WI-0020-10000000#result/testCases/WI-0020-10000000_TC-CONFIGURED-LOOKUP
+    - id: CRIT-002
+      statement: The strategy preserves non-goals and evidence limitations without
+        provider or production overclaiming.
+      purpose: Prevent scope expansion.
+      required: true
+      evidenceRefs:
+      - WI-0020#work-item.json#requirement/WI-0020_REQ_001
+    - id: CRIT-003
+      statement: The validation task can execute the strategy and inspect package,
+        documentation, and changed-path gates.
+      purpose: Ensure later completion evidence is sufficient.
+      required: true
+      evidenceRefs:
+      - WI-0020-80000000
+      - WI-0020-20000000
+    evidenceRequirements:
+    - id: EVID-001
+      kind: test
+      ref: WI-0020-10000000#result/testCases/WI-0020-10000000_TC-CONFIGURED-LOOKUP
+      purpose: Provide the declared strategy cases.
+      required: true
+      minimumTier: inspection
+    nonGoals:
+    - id: NON-001
+      statement: This review does not claim implementation, provider, completion,
+        release, deployment, or production readiness.
+    context:
+    - id: CTX-001
+      kind: contract
+      ref: .docs/work-items/WI-0020/README.md
+      purpose: Apply declared scope and evidence boundary.
+      required: true

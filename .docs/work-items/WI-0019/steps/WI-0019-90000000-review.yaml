@@ -1,0 +1,109 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0019
+taskUid: WI-0019-90000000
+orderKey: '90000000'
+parentTaskUid: WI-0019-80000000
+taskType: review
+processingStatus: unprocessed
+title: Review Add llm req CLI argument parsing scope and evidence
+objective: Recognize llm req <request-name> <request-parameters> while preserving
+  current modes and common format/debug flags.
+references:
+  required:
+  - .docs/work-items/WI-0019/work-item.json
+  - .docs/work-items/WI-0019/README.md
+  - src/cli/arguments.ts
+  - .docs/work-items/WI-0019/steps/WI-0019-80000000-validation.yaml
+  - .docs/work-items/WI-0019/steps/WI-0019-20000000-implementation.yaml
+  - src/cli.ts
+  - tests/cli.test.ts
+  - tests/summarize.test.ts
+  - package.json
+  - tests/
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0019-80000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0019/steps/WI-0019-90000000-review.yaml
+  commitSubject: 'WI-0019: plan: define review evidence'
+  commitBody:
+    requiredSections:
+    - Why
+    - What
+    - How
+    - Decisions
+    - Validation
+    - Evidence
+    - Refs
+    - Next
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments:
+    - run
+    - typecheck
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review whether evidence for Add llm req CLI argument parsing is sufficient,
+      traceable, and in scope.
+    reviewKind: planning
+    target:
+      taskType: test-strategy
+      taskRef: WI-0019-10000000
+      result:
+        ref: WI-0019-10000000#result/testCases/WI-0019-10000000_TC-REQ-SHAPE
+        sha256: null
+    gateId: test-strategy
+    policyRef:
+      ref: repository-local-review-policy
+      sha256: null
+    criteria:
+    - id: CRIT-001
+      statement: Every requirement and acceptance criterion has explicit strategy
+        and validation coverage.
+      purpose: Prevent unproven obligations.
+      required: true
+      evidenceRefs:
+      - WI-0019-10000000#result/testCases/WI-0019-10000000_TC-REQ-SHAPE
+    - id: CRIT-002
+      statement: The strategy preserves non-goals and evidence limitations without
+        provider or production overclaiming.
+      purpose: Prevent scope expansion.
+      required: true
+      evidenceRefs:
+      - WI-0019#work-item.json#requirement/WI-0019_REQ_001
+    - id: CRIT-003
+      statement: The validation task can execute the strategy and inspect package,
+        documentation, and changed-path gates.
+      purpose: Ensure later completion evidence is sufficient.
+      required: true
+      evidenceRefs:
+      - WI-0019-80000000
+      - WI-0019-20000000
+    evidenceRequirements:
+    - id: EVID-001
+      kind: test
+      ref: WI-0019-10000000#result/testCases/WI-0019-10000000_TC-REQ-SHAPE
+      purpose: Provide the declared strategy cases.
+      required: true
+      minimumTier: inspection
+    nonGoals:
+    - id: NON-001
+      statement: This review does not claim implementation, provider, completion,
+        release, deployment, or production readiness.
+    context:
+    - id: CTX-001
+      kind: contract
+      ref: .docs/work-items/WI-0019/README.md
+      purpose: Apply declared scope and evidence boundary.
+      required: true

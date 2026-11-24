@@ -1,0 +1,154 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0018
+taskUid: WI-0018-20000000
+orderKey: '20000000'
+parentTaskUid: WI-0018-10000000
+taskType: implementation
+processingStatus: unprocessed
+title: Implement the shared completeRequest library boundary
+objective: Implement the shared completeRequest library boundary
+references:
+  required:
+  - .docs/work-items/WI-0018/work-item.json
+  - .docs/work-items/WI-0018/README.md
+  - .docs/work-items/WI-0018/steps/WI-0018-10000000-test-strategy.yaml
+  - src/complete.ts
+  - src/index.ts
+  - src/types.ts
+  - src/normalize.ts
+  - src/source.ts
+  - tests/llm.test.ts
+  - package.json
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0018-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0018/steps/WI-0018-20000000-implementation.yaml
+  - src/request.ts
+  - src/index.ts
+  - src/types.ts
+  - tests/request.test.ts
+  commitSubject: 'WI-0018: feat(llm): implement request feature slice'
+  commitBody:
+    requiredSections:
+    - Why
+    - What
+    - How
+    - Decisions
+    - Validation
+    - Evidence
+    - Refs
+    - Next
+  validationProcedures:
+  - id: typecheck
+    executable: npm
+    arguments:
+    - run
+    - typecheck
+    expectedExitCode: 0
+  - id: build
+    executable: npm
+    arguments:
+    - run
+    - build
+    expectedExitCode: 0
+  - id: focused-tests
+    executable: npm
+    arguments:
+    - test
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement the shared completeRequest library boundary. Implement only
+      the declared request-feature behavior and its focused tests.
+    changeTypes:
+    - production-code
+    - test-code
+    changeIntent: feature
+    inputs:
+    - id: WI-0018-20000000_INPUT-STRATEGY
+      kind: testStrategy
+      ref: WI-0018-10000000#result/R-001
+      purpose: Provide the authoritative strategy test-case set and coverage boundary.
+      required: true
+    - id: WI-0018-20000000_INPUT-REQ-001
+      kind: requirement
+      ref: WI-0018#work-item.json#requirement/WI-0018_REQ_001
+      purpose: Provide the authoritative WI-0018_REQ_001 requirement.
+      required: true
+    - id: WI-0018-20000000_INPUT-REQ-002
+      kind: requirement
+      ref: WI-0018#work-item.json#requirement/WI-0018_REQ_002
+      purpose: Provide the authoritative WI-0018_REQ_002 requirement.
+      required: true
+    - id: WI-0018-20000000_INPUT-REQ-003
+      kind: requirement
+      ref: WI-0018#work-item.json#requirement/WI-0018_REQ_003
+      purpose: Provide the authoritative WI-0018_REQ_003 requirement.
+      required: true
+    - id: WI-0018-20000000_INPUT-REQ-004
+      kind: requirement
+      ref: WI-0018#work-item.json#requirement/WI-0018_REQ_004
+      purpose: Provide the authoritative WI-0018_REQ_004 requirement.
+      required: true
+    objectives:
+    - id: WI-0018-20000000_OBJ-001
+      statement: Implement the behavior required by WI-0018_REQ_001 within the declared
+        scope.
+      inputRefs:
+      - WI-0018-20000000_INPUT-STRATEGY
+      - WI-0018-20000000_INPUT-REQ-001
+      testCaseRefs:
+      - WI-0018-10000000#test-case/WI-0018-10000000_TC-EXPORTED-API
+    - id: WI-0018-20000000_OBJ-002
+      statement: Implement the behavior required by WI-0018_REQ_002 within the declared
+        scope.
+      inputRefs:
+      - WI-0018-20000000_INPUT-STRATEGY
+      - WI-0018-20000000_INPUT-REQ-002
+      testCaseRefs:
+      - WI-0018-10000000#test-case/WI-0018-10000000_TC-CONSTRUCTED-REQUEST
+    - id: WI-0018-20000000_OBJ-003
+      statement: Implement the behavior required by WI-0018_REQ_003 within the declared
+        scope.
+      inputRefs:
+      - WI-0018-20000000_INPUT-STRATEGY
+      - WI-0018-20000000_INPUT-REQ-003
+      testCaseRefs:
+      - WI-0018-10000000#test-case/WI-0018-10000000_TC-SINGLE-DELEGATION
+    - id: WI-0018-20000000_OBJ-004
+      statement: Implement the behavior required by WI-0018_REQ_004 within the declared
+        scope.
+      inputRefs:
+      - WI-0018-20000000_INPUT-STRATEGY
+      - WI-0018-20000000_INPUT-REQ-004
+      testCaseRefs:
+      - WI-0018-10000000#test-case/WI-0018-10000000_TC-RELATIVE-ROOT
+    ownedPaths:
+    - src/request.ts
+    - src/index.ts
+    - src/types.ts
+    - tests/request.test.ts
+    nonGoals:
+    - Do not make authenticated provider calls, publish, deploy, or claim production
+      readiness.
+    - Do not modify unrelated commands, providers, schemas, or persistence outside
+      the declared owned paths.
+    - Do not commit or mutate Git history as part of the implementation task.
+    steps:
+    - Define the completeRequest API and request-directory preparation types.
+    - Load assets, construct parameters, substitute values, and build the existing
+      LlmRequest shape.
+    - Delegate exactly once to complete while passing provider, debug, signal, source-root,
+      and output controls.
+    - Add provider-free library tests for valid requests, invalid requests, relative
+      sources, and public exports.

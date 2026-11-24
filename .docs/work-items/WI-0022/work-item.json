@@ -1,0 +1,148 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0022",
+  "status": "planned",
+  "title": "Validate dynamic request lookup and evidence coverage",
+  "type": "feature",
+  "objective": "Run the complete provider-free matrix, package gates, documentation checks, scope audit, and non-goal review for dynamic request lookup.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0022-request-feature-validation",
+      "created": false,
+      "rationale": "The record captures bounded planning without creating or switching a branch."
+    }
+  },
+  "baseline": "51984b6064503b576c52ca460d7cf21cc356f52b",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare small, testable work items for dynamic request lookup: document requests/README.md; support request asset discovery; schema-aware CLI parameters including dot/index paths and --parameters JSON; $${variableName}$$ substitution; completeRequest(requestDirectory, parameters); llm req CLI integration; raw/full output; summarize compatibility; provider-free validation; and no commit.",
+    "sha256": "ae74e74f0fdd1d75cdc2432a4172625e2642f41b13168f380292ef0befc75254"
+  },
+  "scope": [
+    {
+      "name": "matrix-coverage",
+      "description": "Every preceding required case is executed or explicitly accounted for.",
+      "reason": "Completion evidence must be traceable."
+    },
+    {
+      "name": "package-gates",
+      "description": "Typecheck, tests, build, declarations, and diff checks pass.",
+      "reason": "The package must remain consistent."
+    },
+    {
+      "name": "scope-review",
+      "description": "Final review finds no out-of-scope implementation and records limitations.",
+      "reason": "Tests alone do not prove scope adherence."
+    },
+    {
+      "name": "documentation-consistency",
+      "description": "Public docs and help match implementation.",
+      "reason": "The feature is user-facing."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "implementation",
+      "description": "Do not implement behavior outside this work item.",
+      "reason": "Keep the slice independently reviewable.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "provider-and-release",
+      "description": "Do not make authenticated calls, publish, deploy, or claim production readiness.",
+      "reason": "Evidence is local and provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "unrelated-refactor",
+      "description": "Do not redesign unrelated commands, providers, schemas, or persistence.",
+      "reason": "Scope is limited to dynamic request lookup.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0022_REQ_001",
+        "name": "matrix-coverage",
+        "description": "Every preceding required case is executed or explicitly accounted for.",
+        "reason": "Completion evidence must be traceable.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0022_REQ_001_AC_001",
+            "description": "Every requirement has focused/full-suite evidence."
+          },
+          {
+            "id": "WI-0022_REQ_001_AC_002",
+            "description": "Negative, boundary, compatibility, and provider-free cases are included."
+          }
+        ]
+      },
+      {
+        "id": "WI-0022_REQ_002",
+        "name": "package-gates",
+        "description": "Typecheck, tests, build, declarations, and diff checks pass.",
+        "reason": "The package must remain consistent.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0022_REQ_002_AC_001",
+            "description": "All package commands pass."
+          },
+          {
+            "id": "WI-0022_REQ_002_AC_002",
+            "description": "completeRequest appears in generated declarations."
+          }
+        ]
+      },
+      {
+        "id": "WI-0022_REQ_003",
+        "name": "scope-review",
+        "description": "Final review finds no out-of-scope implementation and records limitations.",
+        "reason": "Tests alone do not prove scope adherence.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0022_REQ_003_AC_001",
+            "description": "Changed paths are checked against non-goals."
+          },
+          {
+            "id": "WI-0022_REQ_003_AC_002",
+            "description": "No commit or release action occurs."
+          }
+        ]
+      },
+      {
+        "id": "WI-0022_REQ_004",
+        "name": "documentation-consistency",
+        "description": "Public docs and help match implementation.",
+        "reason": "The feature is user-facing.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0022_REQ_004_AC_001",
+            "description": "All docs, help, flags, names, and mapping agree."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0022/steps/"
+}

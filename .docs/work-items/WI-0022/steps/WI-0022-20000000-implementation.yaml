@@ -1,0 +1,155 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0022
+taskUid: WI-0022-20000000
+orderKey: '20000000'
+parentTaskUid: WI-0022-10000000
+taskType: implementation
+processingStatus: unprocessed
+title: Implement final request-feature integration evidence
+objective: Implement final request-feature integration evidence
+references:
+  required:
+  - .docs/work-items/WI-0022/work-item.json
+  - .docs/work-items/WI-0022/README.md
+  - .docs/work-items/WI-0022/steps/WI-0022-10000000-test-strategy.yaml
+  - .docs/work-items/
+  - requests/
+  - src/
+  - tests/
+  - README.md
+  - SKILL.md
+  - package.json
+  - package-lock.json
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0022-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0022/steps/WI-0022-20000000-implementation.yaml
+  - tests/request-integration.test.ts
+  - README.md
+  - SKILL.md
+  - requests/README.md
+  commitSubject: 'WI-0022: feat(llm): implement request feature slice'
+  commitBody:
+    requiredSections:
+    - Why
+    - What
+    - How
+    - Decisions
+    - Validation
+    - Evidence
+    - Refs
+    - Next
+  validationProcedures:
+  - id: typecheck
+    executable: npm
+    arguments:
+    - run
+    - typecheck
+    expectedExitCode: 0
+  - id: build
+    executable: npm
+    arguments:
+    - run
+    - build
+    expectedExitCode: 0
+  - id: focused-tests
+    executable: npm
+    arguments:
+    - test
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement final request-feature integration evidence. Implement only
+      the declared request-feature behavior and its focused tests.
+    changeTypes:
+    - test-code
+    - documentation
+    changeIntent: maintenance
+    inputs:
+    - id: WI-0022-20000000_INPUT-STRATEGY
+      kind: testStrategy
+      ref: WI-0022-10000000#result/R-001
+      purpose: Provide the authoritative strategy test-case set and coverage boundary.
+      required: true
+    - id: WI-0022-20000000_INPUT-REQ-001
+      kind: requirement
+      ref: WI-0022#work-item.json#requirement/WI-0022_REQ_001
+      purpose: Provide the authoritative WI-0022_REQ_001 requirement.
+      required: true
+    - id: WI-0022-20000000_INPUT-REQ-002
+      kind: requirement
+      ref: WI-0022#work-item.json#requirement/WI-0022_REQ_002
+      purpose: Provide the authoritative WI-0022_REQ_002 requirement.
+      required: true
+    - id: WI-0022-20000000_INPUT-REQ-003
+      kind: requirement
+      ref: WI-0022#work-item.json#requirement/WI-0022_REQ_003
+      purpose: Provide the authoritative WI-0022_REQ_003 requirement.
+      required: true
+    - id: WI-0022-20000000_INPUT-REQ-004
+      kind: requirement
+      ref: WI-0022#work-item.json#requirement/WI-0022_REQ_004
+      purpose: Provide the authoritative WI-0022_REQ_004 requirement.
+      required: true
+    objectives:
+    - id: WI-0022-20000000_OBJ-001
+      statement: Implement the behavior required by WI-0022_REQ_001 within the declared
+        scope.
+      inputRefs:
+      - WI-0022-20000000_INPUT-STRATEGY
+      - WI-0022-20000000_INPUT-REQ-001
+      testCaseRefs:
+      - WI-0022-10000000#test-case/WI-0022-10000000_TC-MATRIX-COVERAGE
+    - id: WI-0022-20000000_OBJ-002
+      statement: Implement the behavior required by WI-0022_REQ_002 within the declared
+        scope.
+      inputRefs:
+      - WI-0022-20000000_INPUT-STRATEGY
+      - WI-0022-20000000_INPUT-REQ-002
+      testCaseRefs:
+      - WI-0022-10000000#test-case/WI-0022-10000000_TC-PACKAGE-GATES
+    - id: WI-0022-20000000_OBJ-003
+      statement: Implement the behavior required by WI-0022_REQ_003 within the declared
+        scope.
+      inputRefs:
+      - WI-0022-20000000_INPUT-STRATEGY
+      - WI-0022-20000000_INPUT-REQ-003
+      testCaseRefs:
+      - WI-0022-10000000#test-case/WI-0022-10000000_TC-SCOPE-REVIEW
+    - id: WI-0022-20000000_OBJ-004
+      statement: Implement the behavior required by WI-0022_REQ_004 within the declared
+        scope.
+      inputRefs:
+      - WI-0022-20000000_INPUT-STRATEGY
+      - WI-0022-20000000_INPUT-REQ-004
+      testCaseRefs:
+      - WI-0022-10000000#test-case/WI-0022-10000000_TC-DOCUMENTATION-CONSISTENCY
+    ownedPaths:
+    - tests/request-integration.test.ts
+    - README.md
+    - SKILL.md
+    - requests/README.md
+    nonGoals:
+    - Do not make authenticated provider calls, publish, deploy, or claim production
+      readiness.
+    - Do not modify unrelated commands, providers, schemas, or persistence outside
+      the declared owned paths.
+    - Do not commit or mutate Git history as part of the implementation task.
+    steps:
+    - Add only the final integration tests needed to execute the preceding strategy
+      cases together.
+    - Align public documentation and help references with the implemented command
+      and library behavior.
+    - Add or update local traceability/scope checks without introducing runtime feature
+      scope.
+    - Run the complete provider-free package and documentation evidence matrix.

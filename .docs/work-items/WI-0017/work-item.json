@@ -1,0 +1,144 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0017",
+  "status": "planned",
+  "title": "Implement request-variable substitution",
+  "type": "feature",
+  "objective": "Replace every $${variableName}$$ placeholder across request assets using constructed parameters, JSON-serializing complex values and failing on unresolved variables.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "wi-0017-request-variable-substitution",
+      "created": false,
+      "rationale": "The record captures bounded planning without creating or switching a branch."
+    }
+  },
+  "baseline": "51984b6064503b576c52ca460d7cf21cc356f52b",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare small, testable work items for dynamic request lookup: document requests/README.md; support request asset discovery; schema-aware CLI parameters including dot/index paths and --parameters JSON; $${variableName}$$ substitution; completeRequest(requestDirectory, parameters); llm req CLI integration; raw/full output; summarize compatibility; provider-free validation; and no commit.",
+    "sha256": "ae74e74f0fdd1d75cdc2432a4172625e2642f41b13168f380292ef0befc75254"
+  },
+  "scope": [
+    {
+      "name": "exact-syntax",
+      "description": "The engine matches exact syntax and resolves nested parameter paths.",
+      "reason": "The syntax avoids interpolation collisions."
+    },
+    {
+      "name": "value-serialization",
+      "description": "Primitive and complex values render predictably through safe JSON serialization.",
+      "reason": "Files must receive valid inspectable content."
+    },
+    {
+      "name": "complete-asset-pass",
+      "description": "Every configured asset receives replacement before parsing.",
+      "reason": "Variables can occur in every supported file."
+    },
+    {
+      "name": "missing-values",
+      "description": "Missing variables fail before completion and no unresolved placeholder reaches the request.",
+      "reason": "Explicit failure is safer than silent configuration drift."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "implementation",
+      "description": "Do not implement behavior outside this work item.",
+      "reason": "Keep the slice independently reviewable.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "provider-and-release",
+      "description": "Do not make authenticated calls, publish, deploy, or claim production readiness.",
+      "reason": "Evidence is local and provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "unrelated-refactor",
+      "description": "Do not redesign unrelated commands, providers, schemas, or persistence.",
+      "reason": "Scope is limited to dynamic request lookup.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0017_REQ_001",
+        "name": "exact-syntax",
+        "description": "The engine matches exact syntax and resolves nested parameter paths.",
+        "reason": "The syntax avoids interpolation collisions.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0017_REQ_001_AC_001",
+            "description": "Valid placeholders and nested paths replace; near-miss behavior follows documentation."
+          }
+        ]
+      },
+      {
+        "id": "WI-0017_REQ_002",
+        "name": "value-serialization",
+        "description": "Primitive and complex values render predictably through safe JSON serialization.",
+        "reason": "Files must receive valid inspectable content.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0017_REQ_002_AC_001",
+            "description": "Objects and arrays serialize as JSON."
+          },
+          {
+            "id": "WI-0017_REQ_002_AC_002",
+            "description": "Dollar signs, quotes, newlines, and Unicode survive safely."
+          }
+        ]
+      },
+      {
+        "id": "WI-0017_REQ_003",
+        "name": "complete-asset-pass",
+        "description": "Every configured asset receives replacement before parsing.",
+        "reason": "Variables can occur in every supported file.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0017_REQ_003_AC_001",
+            "description": "Repeated and cross-file placeholders replace consistently."
+          }
+        ]
+      },
+      {
+        "id": "WI-0017_REQ_004",
+        "name": "missing-values",
+        "description": "Missing variables fail before completion and no unresolved placeholder reaches the request.",
+        "reason": "Explicit failure is safer than silent configuration drift.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0017_REQ_004_AC_001",
+            "description": "Missing paths produce bounded errors."
+          },
+          {
+            "id": "WI-0017_REQ_004_AC_002",
+            "description": "A provider capture proves no unresolved placeholder remains."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0017/steps/"
+}
