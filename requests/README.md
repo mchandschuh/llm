@@ -33,8 +33,8 @@ supporting file is read by this contract.
 | Asset | Required | Resulting request value | Format |
 | --- | --- | --- | --- |
 | `<request-name>.defaults.json` | No | Request defaults merged before completion | JSON object |
-| `<request-name>.prompt.md` | Yes | `LlmRequest.task` | UTF-8 text |
-| `<request-name>.prompt.system.md` | Yes | `LlmRequest.systemPrompt` | UTF-8 text |
+| `<request-name>.prompt.md` -or- `<request-name>.task.json` | Yes | `LlmRequest.task` | UTF-8 text/json, `<request-name>.taskSchema.json` required when `<require-name>.task.json` is used |
+| `<request-name>.prompt.system.md` | No | `LlmRequest.systemPrompt` | UTF-8 text |
 | `<request-name>.taskSchema.json` | No | `LlmRequest.taskSchema` | JSON Schema object |
 | `<request-name>.parameters.schema.json` | No | Parameter grammar and validation | JSON Schema object |
 | `<request-name>.outputSchema.json` | No | `LlmRequest.outputSchema` | JSON Schema object |
@@ -124,6 +124,17 @@ The implementation must support:
 - JSON object or array values, supplied as one JSON value, such as
   `--metadata '{"team":"platform"}'`; and
 - one complete JSON parameter object supplied with `--parameters`.
+- `parameters.schema.json` can define custom validation:
+
+``` json
+{
+  "x-llm-parameter": {
+    "validation": {
+      "function": "<json function implementation to implement validation to be defined as implementation progresses"
+    }
+  }
+}
+```
 
 The CLI form is:
 
