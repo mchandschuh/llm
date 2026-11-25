@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0015",
-  "status": "planned",
+  "status": "complete",
   "title": "Implement request-directory discovery and asset loading",
   "type": "feature",
   "objective": "Resolve a safe request name beneath configured requestsDirectory, discover recognized assets, parse contents, and report bounded configuration failures before completion. Contract sections: requests/README.md#request-bundle-layout; requests/README.md#asset-mapping-and-optionality; requests/README.md#processing-order; requests/README.md#request-name-and-filesystem-safety. Explicit human operator confirmation is required before modifying requests/README.md.",

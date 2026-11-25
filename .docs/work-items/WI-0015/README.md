@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 workItemId: WI-0015
 recordType: work-item-summary
 ---
@@ -8,7 +8,7 @@ recordType: work-item-summary
 
 ## Status
 
-`planned`. This record defines a bounded planning slice. It does not claim implementation, test execution, provider availability, production readiness, release, or commit.
+`complete` for the bounded request-directory discovery and asset-loading scope. The loader, provider-free focused tests, validation evidence, and review record are present. No authenticated provider, deployment, publication, production-readiness, or Git commit claim is made.
 
 ## Authority
 
@@ -43,15 +43,15 @@ Resolve a safe request name beneath configured requestsDirectory, discover recog
 
 | Order | Task | Dependency | Evidence |
 | --- | --- | --- | --- |
-| `10000000` | Define test strategy | none | Strategy only |
-| `20000000` | Implement the declared feature slice | `10000000` | Planned implementation task |
-| `80000000` | Validate implementation | `10000000`, `20000000` | Planned validation procedures |
-| `90000000` | Review scope and coverage | `80000000` | Planned review gate |
+| `10000000` | Define test strategy | none | Complete strategy |
+| `20000000` | Implement the declared feature slice | `10000000` | Complete loader and test implementation |
+| `80000000` | Validate implementation | `10000000`, `20000000` | Passed provider-free validation |
+| `90000000` | Review scope and coverage | `80000000` | Accepted review |
 
 ## Test strategy expectation
 
-The strategy must include at least one required executable provider-free test case per requirement and explicit mappings for every acceptance criterion. Validation must execute the full repository gate `npm run typecheck && npm test && npm run build && git diff --check`; focused tests are additional evidence. The full suite must pass before this work item is complete or the next work item begins, followed by `sdlc work-item validate --work-item WI-0015`. Review must independently inspect scope, non-goals, and evidence limitations.
+The strategy includes one required executable provider-free test case per requirement and explicit mappings for every acceptance criterion. The implementation maps all four cases to trace-marked tests in `tests/request-directory.test.ts`. Validation executed the focused loader tests, full repository gate, and changed-path checks; review independently inspected scope, non-goals, and evidence limitations.
 
 ## Evidence boundary
 
-These artifacts define future evidence; they do not report implementation, tests, validation, review, provider calls, deployment, release, or completion. Implementation, validation, review, and completion evidence may be committed under the governed task records. Contract-document edits still require explicit human operator confirmation.
+Evidence is local and provider-free. It establishes safe request-directory resolution, recognized asset discovery, bounded parsing failures, configuration reuse, and package gates for this bounded scope. It does not establish authenticated provider behavior, deployment, publication, downstream integration, or production readiness. Changes remain uncommitted for human operator review. The authoritative contract was not modified.
