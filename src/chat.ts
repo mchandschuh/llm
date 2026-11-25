@@ -89,7 +89,7 @@ class ChatSession implements LlmChatSession {
     const normalized = await this.normalized();
     const prompt = composeRequestPrompt(normalized);
     this.messages.push(
-      { role: 'system', content: normalized.systemPrompt.value },
+      ...(normalized.systemPrompt.value !== null ? [{ role: 'system' as const, content: normalized.systemPrompt.value }] : []),
       { role: 'user', content: prompt },
       ...normalized.messages,
     );

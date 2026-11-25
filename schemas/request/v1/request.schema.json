@@ -7,8 +7,7 @@
   "additionalProperties": false,
   "required": [
     "schema",
-    "task",
-    "systemPrompt"
+    "task"
   ],
   "properties": {
     "schema": {
@@ -110,11 +109,11 @@
       ]
     },
     "systemPrompt": {
-      "type": "string",
-      "minLength": 1,
-      "description": "System-level instructions passed separately to the provider rather than embedded in the composed llmPrompt XML. This value may be literal content or a repository-approved file reference.",
+      "type": ["string", "null"],
+      "description": "Optional system-level instructions passed separately to the provider rather than embedded in the composed llmPrompt XML. When omitted or null, the provider adapter may omit the system message or apply a provider-specific fallback.",
       "examples": [
         "You are an SDLC assessment agent. Return only JSON that conforms to outputSchema.",
+        null,
         ".sdlc/prompts/assessment-system.txt"
       ]
     },

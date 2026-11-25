@@ -85,3 +85,11 @@ test('OpenRouterProvider serializes the projection and keeps credentials in auth
     globalThis.fetch = originalFetch;
   }
 });
+
+test('OpenRouterHttpProjection omits the system message when systemPrompt is absent', () => {
+  const body = new OpenRouterHttpProjection().project({
+    ...request([{ role: 'user', content: '<llmPrompt version="1" />' }]),
+    systemPrompt: undefined,
+  });
+  assert.deepEqual(body.messages.map((message) => message.role), ['user']);
+});

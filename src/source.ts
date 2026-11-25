@@ -34,8 +34,8 @@ function isTraversal(path: string): boolean {
   return path.split(/[\\/]/u).some((segment) => segment === '..');
 }
 
-function assertSafeCandidate(candidate: string): void {
-  if (!candidate || isAbsolute(candidate) || isTraversal(candidate) || hasForbiddenSegment(candidate)) {
+function assertSafeCandidate(candidate: string, allowExternal = false): void {
+  if (!candidate || (!allowExternal && (isAbsolute(candidate) || isTraversal(candidate) || hasForbiddenSegment(candidate)))) {
     throw sourceFailure('The configured source path is not permitted.');
   }
 }
@@ -45,9 +45,9 @@ interface ResolvedCandidate {
   readonly canonicalPath: string;
 }
 
-async function readCandidate(candidate: string, root: string, allowFinalSymlink: boolean): Promise<ResolvedCandidate | undefined> {
-  assertSafeCandidate(candidate);
-  const absolute = resolve(root, candidate);
+async function readCandidate(candidate: string, root: string, allowFinalSymlink: boolean, allowExternal = false): Promise<ResolvedCandidate | undefined> {
+  assertSafeCandidate(candidate, allowExternal);
+  const absolute = allowExternal && isAbsolute(candidate) ? resolve(candidate) : resolve(root, candidate);
   const relativeCandidate = relative(resolve(root), absolute);
   let current = resolve(root);
   const segments = relativeCandidate.split(sep).filter(Boolean);
@@ -91,7 +91,7 @@ async function readCandidate(candidate: string, root: string, allowFinalSymlink:
     throw sourceFailure('The configured source could not be resolved.');
   }
   const escaped = relative(canonicalRoot, canonicalPath).startsWith('..') || isAbsolute(relative(canonicalRoot, canonicalPath));
-  if ((escaped && !(allowFinalSymlink && finalSymlink)) || hasForbiddenSegment(relative(canonicalRoot, canonicalPath))) {
+  if ((!allowExternal && escaped && !(allowFinalSymlink && finalSymlink)) || (!allowExternal && hasForbiddenSegment(relative(canonicalRoot, canonicalPath)))) {
     throw sourceFailure('The configured source is outside the permitted root.');
   }
   return { path: candidate, canonicalPath };
@@ -113,9 +113,9 @@ function encodingFor(type: string): FileEncoding {
   return type.startsWith('text/') || UTF8_MIME_TYPES.has(type) ? 'utf8' : 'base64';
 }
 
-async function readFileAttachment(candidate: string, type: string, encoding: FileEncoding | undefined, root: string, allowFinalSymlink: boolean): Promise<ResolvedSource & { readonly path: string; readonly encoding: FileEncoding }> {
+async function readFileAttachment(candidate: string, type: string, encoding: FileEncoding | undefined, root: string, allowFinalSymlink: boolean, allowExternal = false): Promise<ResolvedSource & { readonly path: string; readonly encoding: FileEncoding }> {
   assertMimeType(type);
-  const resolved = await readCandidate(candidate, root, allowFinalSymlink);
+  const resolved = await readCandidate(candidate, root, allowFinalSymlink, allowExternal);
   if (!resolved?.path) throw sourceFailure('Configured reference files must resolve to regular files.');
   let bytes: Buffer;
   try {
@@ -149,6 +149,6 @@ export async function resolveSource(source: string, root: string): Promise<Resol
   }
 }
 
-export async function resolveRequiredFile(source: string, root: string, type = 'text/plain', encoding?: FileEncoding, options: { readonly allowFinalSymlink?: boolean } = {}): Promise<ResolvedSource & { readonly path: string; readonly encoding: FileEncoding }> {
-  return readFileAttachment(source, type, encoding, root, options.allowFinalSymlink === true);
+export async function resolveRequiredFile(source: string, root: string, type = 'text/plain', encoding?: FileEncoding, options: { readonly allowFinalSymlink?: boolean; readonly allowExternal?: boolean } = {}): Promise<ResolvedSource & { readonly path: string; readonly encoding: FileEncoding }> {
+  return readFileAttachment(source, type, encoding, root, options.allowFinalSymlink === true, options.allowExternal === true);
 }

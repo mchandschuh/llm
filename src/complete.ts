@@ -72,7 +72,7 @@ function toolCallCount(calls: ToolCalls): number {
 
 function initialMessages(request: NormalizedRequest, prompt: string): LlmChatMessage[] {
   return [
-    { role: 'system', content: request.systemPrompt.value },
+    ...(request.systemPrompt.value !== null ? [{ role: 'system' as const, content: request.systemPrompt.value }] : []),
     { role: 'user', content: prompt },
     ...request.messages,
   ];
@@ -205,7 +205,7 @@ async function completeToolInternalImpl(request: LlmRequest | unknown, options: 
     }
     let providerResult: ProviderCompletionResponse;
     try {
-      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, task: normalized.task, taskSchema: normalized.taskSchema, messages: messages.slice(), files: normalized.files, credentials: normalized.credentials, signal: options.signal, toolOptions: normalized.toolOptions, toolResults };
+      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, ...(normalized.systemPrompt.value !== null ? { systemPrompt: normalized.systemPrompt.value } : {}), llmPrompt: prompt, task: normalized.task, taskSchema: normalized.taskSchema, messages: messages.slice(), files: normalized.files, credentials: normalized.credentials, signal: options.signal, toolOptions: normalized.toolOptions, toolResults };
       emitDebug(options.debug, 'llm.request', request);
       emitDebug(options.debug, 'llm.provider.request', providerRequest);
       providerResult = await provider.complete(providerRequest);
@@ -344,7 +344,7 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
   while (iterations < normalized.maxIterations) {
     let raw: string;
     try {
-      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, systemPrompt: normalized.systemPrompt.value, llmPrompt: prompt, task: normalized.task, taskSchema: normalized.taskSchema, messages: conversationMessages(normalized, prompt, options.conversationHistory), files: normalized.files, credentials: normalized.credentials, signal: options.signal };
+      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, ...(normalized.systemPrompt.value !== null ? { systemPrompt: normalized.systemPrompt.value } : {}), llmPrompt: prompt, task: normalized.task, taskSchema: normalized.taskSchema, messages: conversationMessages(normalized, prompt, options.conversationHistory), files: normalized.files, credentials: normalized.credentials, signal: options.signal };
       emitDebug(options.debug, 'llm.request', request);
       emitDebug(options.debug, 'llm.provider.request', providerRequest);
       raw = (await provider.complete(providerRequest)).content ?? '';

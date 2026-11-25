@@ -155,7 +155,7 @@ export async function buildSummarizeRequest(options: Pick<SummarizeCommandOption
       model: settings.model,
       thinking: settings.thinking,
       task: 'Summarize the content of all supplied files.',
-      systemPrompt: assets.prompt,
+      systemPrompt: null,
       files: source.files,
       outputSchema: assets.outputSchema,
     },

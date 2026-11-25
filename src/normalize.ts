@@ -12,6 +12,8 @@ const DEFAULTS = {
   maxIterations: 3,
 };
 
+export const DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant.' as const;
+
 const TOOL_DEFAULTS = {
   maxRounds: 3,
   maxCalls: 128,
@@ -36,18 +38,26 @@ function inlineSchema(value: unknown, name: string): Record<string, unknown> | u
   return value as Record<string, unknown>;
 }
 
-export async function normalizeRequest(value: unknown, options: { readonly configurationFilePath?: string; readonly configurationRoot?: string; readonly allowFinalSymlinkFiles?: boolean } = {}): Promise<NormalizedRequest> {
+export async function normalizeRequest(value: unknown, options: { readonly configurationFilePath?: string; readonly configurationRoot?: string; readonly allowFinalSymlinkFiles?: boolean; readonly files?: readonly import('./types.js').ReferenceFile[] } = {}): Promise<NormalizedRequest> {
   assertRequestShape(value);
   const request = value as unknown as LlmRequest;
   validateMessages(request.messages ?? []);
   const root = resolve(options.configurationRoot ?? (options.configurationFilePath ? resolve(options.configurationFilePath, '..') : process.cwd()));
   const task = typeof request.task === 'string' ? (await resolveSource(request.task, root)).value : request.task;
-  const systemPrompt = await resolveSource(request.systemPrompt, root);
+  const systemPrompt = request.systemPrompt === undefined
+    ? { value: DEFAULT_SYSTEM_PROMPT }
+    : request.systemPrompt === null
+      ? { value: null }
+      : await resolveSource(request.systemPrompt, root);
   const taskSchema = inlineSchema(request.taskSchema, 'taskSchema');
   const outputSchema = inlineSchema(request.outputSchema, 'outputSchema');
   const files: Array<ReferenceFile & { readonly encoding: 'utf8' | 'base64'; readonly content: string; readonly resolvedPath: string }> = [];
   for (const file of request.files ?? []) {
     const resolved = await resolveRequiredFile(file.path, root, file.type, file.encoding, { allowFinalSymlink: options.allowFinalSymlinkFiles === true });
+    files.push({ ...file, encoding: resolved.encoding, content: resolved.value, resolvedPath: resolved.path });
+  }
+  for (const file of options.files ?? []) {
+    const resolved = await resolveRequiredFile(file.path, process.cwd(), file.type, file.encoding, { allowFinalSymlink: true, allowExternal: true });
     files.push({ ...file, encoding: resolved.encoding, content: resolved.value, resolvedPath: resolved.path });
   }
   return {

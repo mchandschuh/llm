@@ -194,7 +194,7 @@ test('missing requestsDirectory configuration provides actionable guidance', asy
 test('buildSummarizeRequest loads the prompt/schema assets and constructs inline content as a synthetic file', async () => {
   const prepared = await buildSummarizeRequest({ requestDirectory, content: 'inline\nsummary input' });
   try {
-    assert.match(prepared.request.systemPrompt, /summarize the content of every file supplied in `<files>`/iu);
+    assert.equal(prepared.request.systemPrompt, null);
     assert.equal(prepared.request.outputSchema?.['$id'], 'https://schemas.handschuh.dev/llm/llm-summarize/output/v1');
     assert.deepEqual(prepared.request.files, [{
       name: 'content',

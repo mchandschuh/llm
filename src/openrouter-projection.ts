@@ -85,7 +85,7 @@ function projectMessage(message: LlmChatMessage, request: ProviderCompletionRequ
 
 function legacyMessages(request: ProviderCompletionRequest): OpenRouterMessage[] {
   return [
-    { role: 'system', content: request.systemPrompt },
+    ...(request.systemPrompt !== undefined ? [{ role: 'system' as const, content: request.systemPrompt }] : []),
     { role: 'user', content: initialUserContent(request) },
     ...(request.toolResults ?? []).map((result) => ({
       role: 'tool' as const,
