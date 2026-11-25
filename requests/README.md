@@ -293,7 +293,7 @@ Dynamic requests preserve the existing `LlmRequest` boundary:
 {
   schema: REQUEST_SCHEMA,
   task: promptMdTextOrTaskJson,
-  systemPrompt: promptSystemMdTextOrDefault,
+  systemPrompt: promptSystemMdTextOrNull,
   taskSchema?: parsedTaskSchema,
   files?: sourceFiles,
   outputSchema?: parsedOutputSchema,
@@ -311,7 +311,7 @@ explicit compatibility requirement; its current
 `--path`, recursive directory, symlink-file, `--content`, raw, and full behavior
 is unchanged. It will transition to `llm req summarize` with no or minimal
 changes because the generic loader uses the same source boundary and supplies
-the default system prompt when `summarize.prompt.system.md` is absent.
+null system prompt when `summarize.prompt.system.md` is absent.
 
 ## Request-name and filesystem safety
 

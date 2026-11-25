@@ -13,20 +13,21 @@ use an optional task schema.
 
 ## D02 — Optional system prompt
 
-`<request-name>.prompt.system.md` is optional. When absent, the loader supplies
-the documented non-empty default system prompt so the existing `LlmRequest`
-schema remains valid. Generic requests therefore do not require a system-prompt
-asset.
+`<request-name>.prompt.system.md` is optional. When absent, the request uses
+`systemPrompt: null`. Providers omit the system message or may use the explicit
+provider fallback `You are a helpful assistant.` when required.
 
 ## D03 — Parameter metadata and custom validation
 
 `x-llm-req-parameter` is the one supported JSON Schema extension metadata key for
 parameter metadata. Its first use case is custom validation that ordinary JSON
-Schema cannot express. The metadata is declarative and bounded; arbitrary
-JavaScript source, `eval`, shell execution, module loading, provider calls, and
-credential access are prohibited. WI-0023 records the request; a separately
-qualified implementation work item must own the approved custom-validation
-implementation and tests.
+Schema cannot express. The validator function is evaluated and invoked directly with `context` and the
+fully resolved `parameters`. The minimum context includes request-directory file
+contents; the return contract is deferred and is expected to communicate success
+or bounded failure errors. Security implications are accepted limitations for
+this planned feature. WI-0023 records the request; a separately qualified
+implementation work item must own the approved custom-validation implementation
+and tests.
 
 ## D04 — README consistency gate
 
@@ -40,7 +41,8 @@ must agree across all sections.
 Dynamic requests use the existing summarize source pattern. One `--path` file or
 directory, or one `--content` value, may add input files to `LlmRequest.files`.
 Directory traversal, regular-file handling, symlink behavior, deterministic
-ordering, and synthetic content-file behavior match summarize.
+ordering, and synthetic content-file behavior match summarize. Additional files
+may be anywhere on disk; relative paths resolve from application CWD.
 
 ## D06 — Summarize compatibility
 
