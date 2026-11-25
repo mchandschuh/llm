@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0016",
-  "status": "planned",
+  "status": "complete",
   "title": "Implement schema-aware request parameter construction",
   "type": "feature",
   "objective": "Construct and validate parameters from a flat schema, nested dot/index assignments, and full --parameters JSON with deterministic precedence and errors. Contract sections: requests/README.md#request-defaults-and-parameter-defaults; requests/README.md#parameter-contract; requests/README.md#x-llm-req-parameter-metadata. Explicit human operator confirmation is required before modifying requests/README.md.",
