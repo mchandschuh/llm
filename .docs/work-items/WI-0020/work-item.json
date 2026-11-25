@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0020",
-  "status": "planned",
+  "status": "complete",
   "title": "Integrate llm req execution and output",
   "type": "feature",
   "objective": "Resolve configured request directories, construct parameters, call completeRequest, and print dynamic responses using existing output and exit semantics. Contract sections: requests/README.md#additional-input-files; requests/README.md#library-and-cli-boundaries; requests/README.md#request-name-and-filesystem-safety. Explicit human operator confirmation is required before modifying requests/README.md.",

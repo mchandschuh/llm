@@ -4,7 +4,7 @@ taskUid: WI-0020-80000000
 orderKey: '80000000'
 parentTaskUid: WI-0020-20000000
 taskType: validation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Validate Integrate llm req execution and output
 objective: Resolve configured request directories, construct parameters, call completeRequest,
   and print dynamic responses using existing output and exit semantics.
@@ -58,7 +58,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
@@ -140,3 +140,38 @@ task:
     - "Implement only these authoritative contract sections: requests/README.md#additional-input-files; requests/README.md#library-and-cli-boundaries; requests/README.md#request-name-and-filesystem-safety. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not claim authenticated provider, deployment, release, downstream, or production
       behavior.
+  result:
+    status: passed
+    summary: WI-0020 configured-lookup, shared-completion, output-contract, and cli-regression evidence passed with the full provider-free package gate.
+    executions:
+    - id: WI-0020-80000000_EXEC-ALL
+      procedureRef: '#procedure/WI-0020-80000000_VAL-ALL'
+      status: passed
+      observed:
+        outcome: passed
+        exitCode: 0
+        summary: Focused request CLI tests passed all four strategy cases; the complete package gate passed 145 tests, typecheck, build, and whitespace checks.
+        assertions:
+        - Four WI-0020 focused tests passed with task-ID-prefixed trace markers.
+        - npm run typecheck exited zero.
+        - npm test passed 145 of 145 tests.
+        - npm run build exited zero.
+        - git diff --check exited zero.
+        - No provider or production claim was made.
+      evidenceTier: cli-audit
+      evidence:
+      - kind: test
+        source: tests/request-cli.test.ts
+        claim: All four WI-0020 strategy cases passed.
+        command: node --import tsx --test tests/request-cli.test.ts
+      - kind: command
+        source: repository package gate
+        claim: The complete provider-free package gate passed.
+        command: npm run typecheck && npm test && npm run build && git diff --check
+    findings: []
+    evidenceTier: cli-audit
+    limitations:
+    - The installed SDLC registry lacks sdlc-task-test-strategy/v2, so the strategy task cannot be independently schema-validated in this environment.
+    - Provider-free local validation does not establish authenticated provider behavior, deployment, publication, downstream integration, or production readiness.
+    nonClaims:
+    - This validation does not authorize deployment, publication, or a Git commit.
