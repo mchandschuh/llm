@@ -4,7 +4,7 @@
   "status": "planned",
   "title": "Add the shared completeRequest library boundary",
   "type": "feature",
-  "objective": "Expose completeRequest(requestDirectory, parameters, options) that loads assets, substitutes values, constructs an existing LlmRequest, and delegates to complete. Contract sections: requests/README.md#library-and-cli-boundaries; requests/README.md#prompt-schema-and-summarize-compatibility; requests/README.md#additional-input-files. Explicit human operator confirmation is required before modifying requests/README.md.",
+  "objective": "Expose completeRequest(options: CompleteRequestOptions) with requestName, parameters, optional files, and completion controls; resolve the named request bundle, construct a ProviderCompletionRequest, invoke provider.complete, and return ProviderCompletionResponse. Contract sections: requests/README.md#library-and-cli-boundaries; requests/README.md#additional-input-files. Explicit human operator confirmation is required before modifying requests/README.md.",
   "repository": {
     "root": "/home/michael/src/github/llm",
     "authority": "local"
@@ -22,18 +22,18 @@
   "baseline": "51984b6064503b576c52ca460d7cf21cc356f52b",
   "request": {
     "source": "conversation",
-    "text": "Prepare small, testable work items for dynamic request lookup: document requests/README.md; support request asset discovery; schema-aware CLI parameters including dot/index paths and --parameters JSON; $${variableName}$$ substitution; completeRequest(requestDirectory, parameters); llm req CLI integration; raw/full output; summarize compatibility; provider-free validation; and no commit.",
-    "sha256": "ae74e74f0fdd1d75cdc2432a4172625e2642f41b13168f380292ef0befc75254"
+    "text": "Prepare small, testable work items for dynamic request lookup: document requests/README.md; support request asset discovery; schema-aware CLI parameters including dot/index paths and --parameters JSON; $${variableName}$$ substitution; completeRequest({ requestName, parameters, files, ... }); llm req CLI integration; raw/full output; summarize compatibility; provider-free validation.",
+    "sha256": "6947fefadc20888caa47bb1e4f148f89f8188681ed40da54ec0ac59e4f7fd085"
   },
   "scope": [
     {
       "name": "exported-api",
-      "description": "completeRequest is exported with usable types and accepts directory, parameters, and completion controls.",
+      "description": "completeRequest is exported with CompleteRequestOptions containing requestName, parameters, optional files, and completion controls.",
       "reason": "Consumers need a stable programmatic boundary."
     },
     {
       "name": "constructed-request",
-      "description": "The function creates a valid existing LlmRequest from assets and parameters.",
+      "description": "The function creates a ProviderCompletionRequest from request assets, resolved parameters, and optional external files.",
       "reason": "The dynamic layer must not invent a parallel contract."
     },
     {
@@ -43,7 +43,7 @@
     },
     {
       "name": "relative-root",
-      "description": "Relative --path/--content sources follow the summarize boundary, attach files under LlmRequest.files, and completion options use requestDirectory.",
+      "description": "CompletionOptions.files and CompleteRequestOptions.files resolve relative paths from application CWD; additional files may be anywhere on disk.",
       "reason": "Bundles need safe local references and runtime controls."
     },
     {
@@ -90,7 +90,7 @@
       {
         "id": "WI-0018_REQ_001",
         "name": "exported-api",
-        "description": "completeRequest is exported with usable types and accepts directory, parameters, and completion controls.",
+        "description": "completeRequest is exported with CompleteRequestOptions and returns ProviderCompletionResponse.",
         "reason": "Consumers need a stable programmatic boundary.",
         "acceptanceCriteria": [
           {
@@ -102,7 +102,7 @@
       {
         "id": "WI-0018_REQ_002",
         "name": "constructed-request",
-        "description": "The function creates a valid existing LlmRequest from assets and parameters.",
+        "description": "The function creates a valid ProviderCompletionRequest from assets, parameters, and files.",
         "reason": "The dynamic layer must not invent a parallel contract.",
         "acceptanceCriteria": [
           {
@@ -130,7 +130,7 @@
       {
         "id": "WI-0018_REQ_004",
         "name": "relative-root",
-        "description": "Additional --path/--content sources use the summarize boundary and attach to LlmRequest.files while completion options use requestDirectory.",
+        "description": "Additional files are resolved from application CWD and may be external to the repository.",
         "reason": "Bundles need safe local references and runtime controls.",
         "acceptanceCriteria": [
           {

@@ -6,9 +6,9 @@ parentTaskUid: null
 taskType: test-strategy
 processingStatus: processing_completed
 title: Define Add the shared completeRequest library boundary test strategy
-objective: Expose completeRequest(requestDirectory, parameters, options) that loads
+objective: "Expose completeRequest(options: CompleteRequestOptions) returning ProviderCompletionResponse that loads
   assets, substitutes values, constructs an existing LlmRequest, and delegates to
-  complete.
+  complete."
 references:
   required:
   - .docs/work-items/WI-0018/work-item.json
@@ -103,8 +103,7 @@ task:
       required: true
     - id: REQ-004
       kind: requirement
-      statement: Relative sources and completion options use requestDirectory and
-        pass through controls.
+      statement: CompleteRequestOptions.files and CompletionOptions.files resolve from application CWD and pass through controls.
       inputRefs:
       - WI-0018-10000000_INPUT-REQ-004
       required: true
@@ -250,8 +249,7 @@ task:
       title: relative-root required cases
       type: integration
       requirementLevel: required
-      purpose: Prove Relative sources and completion options use requestDirectory
-        and pass through controls.
+      purpose: Prove External files resolve from application CWD and completion controls pass through.
       procedure:
         executionMode: executable
         target: Focused tests for relative-root

@@ -64,17 +64,12 @@ of `LlmRequest.task`. When `task.json` is used, `taskSchema.json` is required an
 validates the structured task before completion. A task schema is optional for a
 text prompt, but if present it validates the resulting task value.
 
-`prompt.system.md` is optional. When it exists, its complete UTF-8 text becomes
-`LlmRequest.systemPrompt`. When it is absent, the loader supplies this exact
-non-empty default so the existing `LlmRequest` boundary remains valid:
-
-```text
-Follow the task instructions and return the requested result.
-```
-
-No request is required to provide a system-prompt file. The loader must not
-invert task and system instructions or silently use the task content as the
-system prompt.
+`<request-name>.prompt.system.md` is optional. When it exists, its complete UTF-8 text becomes
+`LlmRequest.systemPrompt`. When it is absent, the request uses `systemPrompt: null`.
+The provider adapter omits the system message when the value is null, or may use
+the provider-specific fallback `You are a helpful assistant.` when the provider
+explicitly requires a system prompt. The loader must not silently replace null
+with a generic prompt.
 
 Missing optional assets have no value and are not replaced with an empty object.
 Missing required assets, both task sources present, malformed JSON, unreadable
@@ -168,17 +163,24 @@ The metadata shape is:
 }
 ```
 
-The `function` value is a reference/intent for an approved validation
-implementation; it is not JavaScript source and must never be evaluated with
-`eval`, `Function`, a shell, a module path, or an arbitrary child process. The
-custom validator runs only after ordinary JSON Schema validation and before
-substitution. It receives the completed parameter object, returns a bounded
-pass/fail result, and cannot read credentials, escape the request root, or make
-provider calls. Unsupported or malformed metadata fails closed before provider
-invocation. The WI-0023 request identifies the follow-up; a separately qualified
-implementation work item must own the extension details and tests. WI-0015
-through WI-0022 preserve the metadata and validation boundary without inventing
-a second key.
+The `function` value is evaluated and invoked directly by `llm req` with:
+
+```js
+function validate(context, parameters) {
+  // context minimally includes request-directory file contents
+  // parameters is the fully resolved parameter object
+}
+```
+
+The validator runs after parameter resolution and before substitution. A future
+implementation may instead include substituted assets and the constructed
+request in `context` for richer validation. The minimum `context` shape includes
+request-directory file contents. The validator return contract is deferred; it
+is expected to communicate success/failure and bounded errors when defined.
+Security implications of direct function evaluation are an accepted limitation
+for this planned feature and must remain visible in implementation/review
+limitations. The WI-0023 request identifies the follow-up; a separately
+qualified implementation work item must own the extension details and tests.
 
 ## Processing order
 
@@ -194,17 +196,20 @@ Implementations must use this order and fail closed at each boundary:
 4. Construct request settings and the complete parameter object using
    [Request defaults and parameter defaults](#request-defaults-and-parameter-defaults)
    and [Parameter contract](#parameter-contract).
-5. Validate JSON Schema and approved `x-llm-req-parameter` metadata before
-   substitution.
-6. Apply `$${variableName}$$` substitution to every recognized asset's raw
+5. Load and validate `<request-name>.parameters.schema.json` before parameter
+   resolution. This asset cannot contain placeholders and is never substituted.
+6. Resolve parameters, then invoke custom validation as defined in
+   [x-llm-req-parameter metadata](#x-llm-req-parameter-metadata).
+7. Apply `$${variableName}$$` substitution to every other recognized asset's raw
    content, including Markdown and JSON, before parsing or constructing the
    request.
-7. Resolve additional input files using
+8. Resolve additional input files using
    [Additional input files](#additional-input-files), construct the existing
-   `LlmRequest` with `REQUEST_SCHEMA`, and keep files under the permitted root.
-8. Delegate once to the existing `complete` function. Invalid configuration,
+   `LlmRequest` with `REQUEST_SCHEMA`, and resolve external files from the
+   application current working directory.
+9. Delegate once to the existing `complete` function. Invalid configuration,
    parameters, metadata, schemas, or substitutions produce zero provider calls.
-9. Serialize through the existing raw/full response contract.
+10. Serialize through the existing raw/full response contract.
 
 ## Additional input files
 
@@ -218,9 +223,11 @@ request task or request assets.
 recursively in deterministic sorted order. Regular files and final symlink files
 are included; symlink directories are not traversed, broken links are skipped,
 and a directly supplied symlink directory is rejected. Each included file is
-attached to `LlmRequest.files` with a stable relative name, path, MIME type, and
-purpose. Relative paths resolve from the current working directory using the
-same boundary as summarize, then remain contained by the permitted source root.
+attached to `LlmRequest.files` with a stable name, path, MIME type, and purpose.
+Relative paths resolve from the application current working directory. Absolute
+paths are also allowed. Additional files are not required to be contained within
+the request directory or repository; request asset files remain subject to the
+request-directory safety rules.
 
 `--content` creates one synthetic UTF-8 file named `content` and marks its
 purpose as command-line content rather than a filesystem file. The source files
@@ -251,14 +258,22 @@ provider.
 The shared library API is:
 
 ```ts
-completeRequest(requestDirectory, parameters, options?)
+interface CompleteRequestOptions {
+  requestName: string;
+  parameters: Record<string, unknown>;
+  files?: readonly ReferenceFile[];
+}
+
+completeRequest(options: CompleteRequestOptions): Promise<ProviderCompletionResponse>
 ```
 
-It loads one already-selected request bundle, applies the processing order,
-constructs the existing `LlmRequest`, attaches any additional source files, and
-delegates once to `complete`. `options` passes through the injected provider,
-configuration root, debug sink, cancellation signal, and other existing
-completion controls. The CLI and library share this construction path.
+The function resolves `requestName` beneath the configured requests directory,
+loads assets, applies the processing order, constructs a
+`ProviderCompletionRequest`, invokes `provider.complete`, and returns that
+provider result. `files` are resolved from application current working
+ directory and are not repository-contained. The CLI resolves the request
+ directory and schema first, parses dynamic parameters, then invokes
+`completeRequest({ requestName, parameters, files, ... })`.
 
 The CLI form is:
 
@@ -303,7 +318,9 @@ the default system prompt when `summarize.prompt.system.md` is absent.
 Request names are selectors, not paths. The loader rejects absolute paths,
 traversal, path separators, empty names, missing directories, symlinked
 directories, non-directory targets, and assets outside the selected request
-directory. It rejects `.env`, `.env.*`, `credentials/`, and `secrets/` paths.
+directory. Request asset loading rejects `.env`, `.env.*`, `credentials/`, and
+`secrets/` paths. Additional `LlmRequest.files` inputs are intentionally exempt
+from repository/request-directory containment and resolve from application CWD.
 
 The loader does not execute shell text, JavaScript source, module paths,
 templates, metadata function source, or provider configuration found in an

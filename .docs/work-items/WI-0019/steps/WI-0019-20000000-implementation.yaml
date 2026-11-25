@@ -150,7 +150,7 @@ task:
     - Do not modify unrelated commands, providers, schemas, or persistence outside
       the declared owned paths.
     steps:
-    - Add the req command branch and capture request name plus dynamic parameter tokens.
+    - Add the req command branch and resolve request name, load parameters.schema.json, and capture schema-allowed dynamic parameter tokens.
     - Preserve common format and debug flags in all supported positions.
     - Forward --parameters and request-specific assignment tokens without schema-specific
       parsing.

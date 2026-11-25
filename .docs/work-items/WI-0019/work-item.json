@@ -4,7 +4,7 @@
   "status": "planned",
   "title": "Add llm req CLI argument parsing",
   "type": "feature",
-  "objective": "Recognize llm req <request-name> <request-parameters> while preserving current modes and common format/debug flags. Contract sections: requests/README.md#library-and-cli-boundaries; requests/README.md#parameter-contract. Explicit human operator confirmation is required before modifying requests/README.md.",
+  "objective": "Recognize llm req <request-name> <request-parameters>, resolve the request schema before dynamic parameter parsing, and preserve current modes and common format/debug flags. Contract sections: requests/README.md#library-and-cli-boundaries; requests/README.md#parameter-contract. Explicit human operator confirmation is required before modifying requests/README.md.",
   "repository": {
     "root": "/home/michael/src/github/llm",
     "authority": "local"
@@ -22,8 +22,8 @@
   "baseline": "51984b6064503b576c52ca460d7cf21cc356f52b",
   "request": {
     "source": "conversation",
-    "text": "Prepare small, testable work items for dynamic request lookup: document requests/README.md; support request asset discovery; schema-aware CLI parameters including dot/index paths and --parameters JSON; $${variableName}$$ substitution; completeRequest(requestDirectory, parameters); llm req CLI integration; raw/full output; summarize compatibility; provider-free validation; and no commit.",
-    "sha256": "ae74e74f0fdd1d75cdc2432a4172625e2642f41b13168f380292ef0befc75254"
+    "text": "Prepare small, testable work items for dynamic request lookup: document requests/README.md; support request asset discovery; schema-aware CLI parameters including dot/index paths and --parameters JSON; $${variableName}$$ substitution; completeRequest({ requestName, parameters, files, ... }); llm req CLI integration; raw/full output; summarize compatibility; provider-free validation.",
+    "sha256": "6947fefadc20888caa47bb1e4f148f89f8188681ed40da54ec0ac59e4f7fd085"
   },
   "scope": [
     {
@@ -38,7 +38,7 @@
     },
     {
       "name": "parameter-forwarding",
-      "description": "The parser forwards --parameters and arbitrary property tokens without schema interpretation.",
+      "description": "The parser resolves the request schema before interpreting unmatched argv keys, then forwards --parameters and schema-defined property tokens to completeRequest.",
       "reason": "Request-specific schemas remain dynamic."
     },
     {
@@ -114,7 +114,7 @@
       {
         "id": "WI-0019_REQ_003",
         "name": "parameter-forwarding",
-        "description": "The parser forwards --parameters and arbitrary property tokens without schema interpretation.",
+        "description": "The parser loads parameters.schema.json, resolves allowable names/types, and forwards --parameters and dynamic property tokens without losing values.",
         "reason": "Request-specific schemas remain dynamic.",
         "acceptanceCriteria": [
           {

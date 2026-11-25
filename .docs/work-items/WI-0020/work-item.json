@@ -22,8 +22,8 @@
   "baseline": "51984b6064503b576c52ca460d7cf21cc356f52b",
   "request": {
     "source": "conversation",
-    "text": "Prepare small, testable work items for dynamic request lookup: document requests/README.md; support request asset discovery; schema-aware CLI parameters including dot/index paths and --parameters JSON; $${variableName}$$ substitution; completeRequest(requestDirectory, parameters); llm req CLI integration; raw/full output; summarize compatibility; provider-free validation; and no commit.",
-    "sha256": "ae74e74f0fdd1d75cdc2432a4172625e2642f41b13168f380292ef0befc75254"
+    "text": "Prepare small, testable work items for dynamic request lookup: document requests/README.md; support request asset discovery; schema-aware CLI parameters including dot/index paths and --parameters JSON; $${variableName}$$ substitution; completeRequest({ requestName, parameters, files, ... }); llm req CLI integration; raw/full output; summarize compatibility; provider-free validation.",
+    "sha256": "6947fefadc20888caa47bb1e4f148f89f8188681ed40da54ec0ac59e4f7fd085"
   },
   "scope": [
     {
@@ -33,7 +33,7 @@
     },
     {
       "name": "shared-completion",
-      "description": "Valid input constructs parameters and calls completeRequest once.",
+      "description": "Valid input constructs parameters and calls completeRequest({ requestName, parameters, files, ... }) once.",
       "reason": "Shared behavior is central."
     },
     {

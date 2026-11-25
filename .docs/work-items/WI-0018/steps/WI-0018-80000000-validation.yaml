@@ -6,9 +6,9 @@ parentTaskUid: WI-0018-20000000
 taskType: validation
 processingStatus: unprocessed
 title: Validate Add the shared completeRequest library boundary
-objective: Expose completeRequest(requestDirectory, parameters, options) that loads
+objective: "Expose completeRequest(options: CompleteRequestOptions) returning ProviderCompletionResponse that loads
   assets, substitutes values, constructs an existing LlmRequest, and delegates to
-  complete.
+  complete."
 references:
   required:
   - .docs/work-items/WI-0018/work-item.json

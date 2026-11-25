@@ -147,10 +147,9 @@ task:
     - Do not modify unrelated commands, providers, schemas, or persistence outside
       the declared owned paths.
     steps:
-    - Define the completeRequest API and request-directory preparation types.
+    - Define CompleteRequestOptions with requestName, parameters, files, and completion controls.
     - Load assets, construct parameters, substitute values, and build the existing
       LlmRequest shape.
-    - Delegate exactly once to complete while passing provider, debug, signal, source-root,
-      and output controls.
+    - Resolve requestName, construct ProviderCompletionRequest, and delegate exactly once to provider.complete while passing files and completion controls.
     - Add provider-free library tests for valid requests, invalid requests, relative
       sources, and public exports.

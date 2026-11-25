@@ -25,14 +25,14 @@ The decision log is [`requests/decisions.md`](../../../requests/decisions.md). H
 
 ## Intended outcome
 
-Expose completeRequest(requestDirectory, parameters, options) that loads assets, substitutes values, constructs an existing LlmRequest, and delegates to complete.
+Expose completeRequest(options: CompleteRequestOptions) that resolves requestName, constructs a ProviderCompletionRequest, invokes provider.complete, and returns ProviderCompletionResponse.
 
 ## Scope
 
 - **exported-api:** completeRequest is exported with usable types and accepts directory, parameters, and completion controls. Consumers need a stable programmatic boundary.
 - **constructed-request:** The function creates a valid existing LlmRequest from assets and parameters. The dynamic layer must not invent a parallel contract.
 - **single-delegation:** Valid input delegates once and invalid input produces zero provider calls. CLI and library behavior must align.
-- **relative-root:** Relative --path/--content sources follow the summarize boundary, attach files under LlmRequest.files, and completion options use requestDirectory.
+- **relative-root:** CompleteRequestOptions.files and CompletionOptions.files resolve relative paths from application CWD; additional files may be anywhere on disk.
 
 ## Non-goals
 
