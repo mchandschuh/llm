@@ -14,7 +14,7 @@
       "branch": "master"
     },
     "branch": {
-      "name": "wi-0014-request-directory-contract",
+      "name": "llm-request-lookup",
       "created": false,
       "rationale": "The record captures bounded planning without creating or switching a branch."
     }
