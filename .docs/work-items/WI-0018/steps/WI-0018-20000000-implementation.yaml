@@ -4,7 +4,7 @@ taskUid: WI-0018-20000000
 orderKey: '20000000'
 parentTaskUid: WI-0018-10000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement the shared completeRequest library boundary
 objective: Implement the shared completeRequest library boundary
 references:
@@ -65,7 +65,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -153,3 +153,78 @@ task:
     - Resolve requestName, construct ProviderCompletionRequest, and delegate exactly once to provider.complete while passing files and completion controls.
     - Add provider-free library tests for valid requests, invalid requests, relative
       sources, and public exports.
+  result:
+    status: implemented
+    implementation:
+      summary: Added the exported completeRequest library boundary that resolves the shared request configuration, loads request assets, constructs the existing LlmRequest/provider request contract, forwards controls and external files, and delegates once to provider.complete.
+      changes:
+      - id: WI-0018-20000000_CHANGE-001
+        type: production-code
+        summary: Added completeRequest and exported it with the existing CompleteRequestOptions and ProviderCompletionResponse types.
+        objectiveRefs:
+        - WI-0018-20000000_OBJ-001
+        - WI-0018-20000000_OBJ-002
+        - WI-0018-20000000_OBJ-003
+        - WI-0018-20000000_OBJ-004
+        paths:
+        - src/request.ts
+        - src/index.ts
+        - src/types.ts
+      - id: WI-0018-20000000_CHANGE-002
+        type: test-code
+        summary: Added four provider-free library boundary tests with task-ID-prefixed trace markers.
+        objectiveRefs:
+        - WI-0018-20000000_OBJ-001
+        - WI-0018-20000000_OBJ-002
+        - WI-0018-20000000_OBJ-003
+        - WI-0018-20000000_OBJ-004
+        paths:
+        - tests/request.test.ts
+      testImplementations:
+      - testCaseRef: WI-0018-10000000#test-case/WI-0018-10000000_TC-EXPORTED-API
+        path: tests/request.test.ts
+        selector: WI-0018-10000000_TC-EXPORTED-API
+        traceMarker: WI-0018-10000000_TC-EXPORTED-API
+      - testCaseRef: WI-0018-10000000#test-case/WI-0018-10000000_TC-CONSTRUCTED-REQUEST
+        path: tests/request.test.ts
+        selector: WI-0018-10000000_TC-CONSTRUCTED-REQUEST
+        traceMarker: WI-0018-10000000_TC-CONSTRUCTED-REQUEST
+      - testCaseRef: WI-0018-10000000#test-case/WI-0018-10000000_TC-SINGLE-DELEGATION
+        path: tests/request.test.ts
+        selector: WI-0018-10000000_TC-SINGLE-DELEGATION
+        traceMarker: WI-0018-10000000_TC-SINGLE-DELEGATION
+      - testCaseRef: WI-0018-10000000#test-case/WI-0018-10000000_TC-RELATIVE-ROOT
+        path: tests/request.test.ts
+        selector: WI-0018-10000000_TC-RELATIVE-ROOT
+        traceMarker: WI-0018-10000000_TC-RELATIVE-ROOT
+    verification:
+      status: passed
+      objectiveRefs:
+      - WI-0018-20000000_OBJ-001
+      - WI-0018-20000000_OBJ-002
+      - WI-0018-20000000_OBJ-003
+      - WI-0018-20000000_OBJ-004
+      tests:
+      - id: WI-0018-20000000_EXEC-FOCUSED
+        type: component
+        testCaseRefs:
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-EXPORTED-API
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-CONSTRUCTED-REQUEST
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-SINGLE-DELEGATION
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-RELATIVE-ROOT
+        command: node --import tsx --test tests/request.test.ts
+        status: passed
+        result: All four WI-0018 focused test cases passed.
+      - id: WI-0018-20000000_EXEC-PACKAGE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-EXPORTED-API
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-CONSTRUCTED-REQUEST
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-SINGLE-DELEGATION
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-RELATIVE-ROOT
+        command: npm run typecheck && npm test && npm run build && git diff --check
+        status: passed
+        result: Typecheck, the full 137-test provider-free suite, build, whitespace, and conflict-marker checks passed.
+    limitations:
+    - This boundary is not yet wired to the dynamic CLI; that responsibility belongs to later work items.
+    - Provider-free local evidence does not establish authenticated provider behavior, deployment, publication, downstream integration, or production readiness.

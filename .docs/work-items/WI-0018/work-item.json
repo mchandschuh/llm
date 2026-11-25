@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0018",
-  "status": "planned",
+  "status": "complete",
   "title": "Add the shared completeRequest library boundary",
   "type": "feature",
   "objective": "Expose completeRequest(options: CompleteRequestOptions) with requestName, parameters, optional files, and completion controls; resolve the named request bundle, construct a ProviderCompletionRequest, invoke provider.complete, and return ProviderCompletionResponse. Contract sections: requests/README.md#library-and-cli-boundaries; requests/README.md#additional-input-files. Explicit human operator confirmation is required before modifying requests/README.md.",

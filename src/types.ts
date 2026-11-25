@@ -172,6 +172,7 @@ export interface ProviderCompletionRequestBase {
   readonly llmPrompt: string;
   readonly task: TaskValue;
   readonly taskSchema?: InlineJsonSchema;
+  readonly outputSchema?: InlineJsonSchema;
   readonly messages: readonly LlmChatMessage[];
   readonly files: readonly (ReferenceFile & { readonly encoding: FileEncoding; readonly content: string; readonly resolvedPath: string })[];
   readonly credentials?: Credentials;
