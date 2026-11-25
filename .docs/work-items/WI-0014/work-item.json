@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0014",
-  "status": "planned",
+  "status": "complete",
   "title": "Document and finalize the dynamic request-directory contract",
   "type": "feature",
   "objective": "Define the request-directory layout, asset mapping, parameter syntax, placeholder syntax, processing order, compatibility decisions, and evidence boundary before implementation.",

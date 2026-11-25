@@ -29,6 +29,7 @@ governance:
   ownedPaths:
   - .docs/work-items/WI-0014/steps/WI-0014-20000000-implementation.yaml
   - requests/README.md
+  - tests/wi-0014-contract.test.ts
   commitSubject: 'WI-0014: feat(llm): implement request feature slice'
   commitBody:
     requiredSections:
@@ -69,6 +70,7 @@ task:
       declared request-feature behavior and its focused tests.
     changeTypes:
     - documentation
+    - test-code
     changeIntent: maintenance
     inputs:
     - id: WI-0014-20000000_INPUT-STRATEGY
@@ -131,6 +133,7 @@ task:
       - WI-0014-10000000#test-case/WI-0014-10000000_TC-EVIDENCE-BOUNDARY
     ownedPaths:
     - requests/README.md
+    - tests/wi-0014-contract.test.ts
     nonGoals:
     - Do not make authenticated provider calls, publish, deploy, or claim production
       readiness.
@@ -150,7 +153,7 @@ task:
     implementation:
       summary: Documented the dynamic request-directory contract, including exact asset mapping, parameter and placeholder semantics, processing order, existing LlmRequest compatibility, output behavior, security boundaries, and provider-free evidence limits.
       changes:
-      - id: CHANGE-001
+      - id: WI-0014-20000000_CHANGE-001
         type: documentation
         summary: Added requests/README.md as the source of truth for the six supported request assets and their mapping to LlmRequest.
         objectiveRefs:
@@ -158,7 +161,7 @@ task:
         - WI-0014-20000000_OBJ-002
         paths:
         - requests/README.md
-      - id: CHANGE-002
+      - id: WI-0014-20000000_CHANGE-002
         type: documentation
         summary: Defined deterministic parameter grammar, precedence, duplicate/conflict behavior, JSON conversion, schema-validation timing, placeholder substitution, CLI/library boundaries, summarize compatibility, and safety limits.
         objectiveRefs:
@@ -166,7 +169,33 @@ task:
         - WI-0014-20000000_OBJ-004
         paths:
         - requests/README.md
-      testImplementations: []
+      - id: WI-0014-20000000_CHANGE-003
+        type: test-code
+        summary: Added four provider-free contract-audit tests mapped one-to-one to the WI-0014 strategy cases.
+        objectiveRefs:
+        - WI-0014-20000000_OBJ-001
+        - WI-0014-20000000_OBJ-002
+        - WI-0014-20000000_OBJ-003
+        - WI-0014-20000000_OBJ-004
+        paths:
+        - tests/wi-0014-contract.test.ts
+      testImplementations:
+      - testCaseRef: WI-0014-10000000#test-case/WI-0014-10000000_TC-DOCUMENTATION
+        path: tests/wi-0014-contract.test.ts
+        selector: WI-0014-10000000_TC-DOCUMENTATION
+        traceMarker: WI-0014-10000000_TC-DOCUMENTATION
+      - testCaseRef: WI-0014-10000000#test-case/WI-0014-10000000_TC-PROMPT-MAPPING
+        path: tests/wi-0014-contract.test.ts
+        selector: WI-0014-10000000_TC-PROMPT-MAPPING
+        traceMarker: WI-0014-10000000_TC-PROMPT-MAPPING
+      - testCaseRef: WI-0014-10000000#test-case/WI-0014-10000000_TC-PARAMETER-CONTRACT
+        path: tests/wi-0014-contract.test.ts
+        selector: WI-0014-10000000_TC-PARAMETER-CONTRACT
+        traceMarker: WI-0014-10000000_TC-PARAMETER-CONTRACT
+      - testCaseRef: WI-0014-10000000#test-case/WI-0014-10000000_TC-EVIDENCE-BOUNDARY
+        path: tests/wi-0014-contract.test.ts
+        selector: WI-0014-10000000_TC-EVIDENCE-BOUNDARY
+        traceMarker: WI-0014-10000000_TC-EVIDENCE-BOUNDARY
     verification:
       status: passed
       objectiveRefs:
@@ -193,7 +222,7 @@ task:
         - WI-0014-10000000#test-case/WI-0014-10000000_TC-EVIDENCE-BOUNDARY
         command: npm run typecheck && npm test && npm run build && git diff --check
         status: passed
-        result: Typecheck passed, all 120 provider-free tests passed, the TypeScript build passed, and Git whitespace checks passed.
+        result: Typecheck passed, all 125 provider-free tests passed, the TypeScript build passed, and Git whitespace checks passed.
       - id: WI-0014-20000000_EXEC-TASK-ENVELOPE
         type: static
         testCaseRefs:

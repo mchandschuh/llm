@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 workItemId: WI-0014
 recordType: work-item-summary
 ---
@@ -8,7 +8,7 @@ recordType: work-item-summary
 
 ## Status
 
-`planned`. This record defines a bounded planning slice. It does not claim implementation, test execution, provider availability, production readiness, release, or commit.
+`complete` for the bounded local contract/documentation scope. The request-directory contract, provider-free contract tests, validation evidence, and review record are present. No authenticated provider, deployment, publication, production-readiness, or Git commit claim is made.
 
 ## Authority
 
@@ -37,15 +37,15 @@ Define the request-directory layout, asset mapping, parameter syntax, placeholde
 
 | Order | Task | Dependency | Evidence |
 | --- | --- | --- | --- |
-| `10000000` | Define test strategy | none | Strategy only |
-| `20000000` | Implement the declared feature slice | `10000000` | Planned implementation task |
-| `80000000` | Validate implementation | `10000000`, `20000000` | Planned validation procedures |
-| `90000000` | Review scope and coverage | `80000000` | Planned review gate |
+| `10000000` | Define test strategy | none | Complete strategy |
+| `20000000` | Implement the declared feature slice | `10000000` | Complete documentation and test implementation |
+| `80000000` | Validate implementation | `10000000`, `20000000` | Passed provider-free validation |
+| `90000000` | Review scope and coverage | `80000000` | Accepted review |
 
 ## Test strategy expectation
 
-The strategy must include at least one required executable provider-free test case per requirement and explicit mappings for every acceptance criterion. Validation must execute focused tests, package gates, and changed-path checks. Review must independently inspect scope, non-goals, and evidence limitations.
+The strategy includes one required executable provider-free test case per requirement and explicit mappings for every acceptance criterion. The implementation maps all four cases to trace-marked tests in `tests/wi-0014-contract.test.ts`. Validation executed the focused audit, full package gates, and changed-path checks; review independently inspected scope, non-goals, and evidence limitations.
 
 ## Evidence boundary
 
-These artifacts define future evidence; they do not report implementation, tests, validation, review, provider calls, deployment, release, or completion. No commit is authorized by this work item.
+Evidence is local and provider-free. It establishes the documented contract, the four-case contract audit, and the package gates for this bounded scope. It does not establish authenticated provider behavior, deployment, publication, downstream integration, or production readiness. Changes remain uncommitted for human operator review.
