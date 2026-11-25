@@ -4,7 +4,7 @@ taskUid: WI-0017-80000000
 orderKey: '80000000'
 parentTaskUid: WI-0017-20000000
 taskType: validation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Validate Implement request-variable substitution
 objective: Replace every $${variableName}$$ placeholder across request assets using
   constructed parameters, JSON-serializing complex values and failing on unresolved
@@ -58,7 +58,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
@@ -140,3 +140,39 @@ task:
     - "Implement only these authoritative contract sections: requests/README.md#placeholder-substitution; requests/README.md#processing-order. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not claim authenticated provider, deployment, release, downstream, or production
       behavior.
+  result:
+    status: passed
+    summary: WI-0017 exact-syntax, value-serialization, complete-asset-pass, and missing-values evidence passed with the full provider-free package gate.
+    executions:
+    - id: WI-0017-80000000_EXEC-ALL
+      procedureRef: '#procedure/WI-0017-80000000_VAL-ALL'
+      status: passed
+      observed:
+        outcome: passed
+        exitCode: 0
+        summary: Focused request-variable tests passed all four strategy cases; the complete package gate passed 129 tests, typecheck, build, whitespace, and conflict-marker checks.
+        assertions:
+        - Four WI-0017 focused tests passed with task-ID-prefixed trace markers.
+        - npm run typecheck exited zero.
+        - npm test passed 129 of 129 tests.
+        - npm run build exited zero.
+        - git diff --check exited zero.
+        - No conflict markers were found outside dependency/build directories.
+      evidenceTier: cli-audit
+      evidence:
+      - kind: test
+        source: tests/request-variables.test.ts
+        claim: All four WI-0017 strategy cases passed.
+        command: node --import tsx --test tests/request-variables.test.ts
+      - kind: command
+        source: repository package gate
+        claim: The complete provider-free package gate passed.
+        command: npm run typecheck && npm test && npm run build && git diff --check
+    findings: []
+    evidenceTier: cli-audit
+    limitations:
+    - The installed SDLC schema registry lacks sdlc-task-test-strategy/v2, so the strategy task cannot be independently schema-validated in this environment.
+    - Validation covers substitution only and does not establish later loader, parameter integration, library, CLI, provider, deployment, or production behavior.
+    nonClaims:
+    - This validation does not claim authenticated provider behavior or production readiness.
+    - This validation does not authorize deployment, publication, or a Git commit.

@@ -4,7 +4,7 @@ taskUid: WI-0017-20000000
 orderKey: '20000000'
 parentTaskUid: WI-0017-10000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement request-variable substitution
 objective: Implement request-variable substitution
 references:
@@ -62,7 +62,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -148,3 +148,76 @@ task:
     - Apply substitutions to every supported request asset before JSON parsing.
     - Add focused tests for repeated values, special characters, complex values, missing
       variables, and unresolved placeholders.
+  result:
+    status: implemented
+    implementation:
+      summary: Implemented exact $${variableName}$$ substitution with nested parameter lookup, safe primitive and JSON serialization, complete asset-map substitution, and bounded missing-variable failures.
+      changes:
+      - id: WI-0017-20000000_CHANGE-001
+        type: production-code
+        summary: Added request-variable substitution functions for exact placeholders, nested paths, safe serialization, and asset-wide replacement.
+        objectiveRefs:
+        - WI-0017-20000000_OBJ-001
+        - WI-0017-20000000_OBJ-002
+        - WI-0017-20000000_OBJ-003
+        - WI-0017-20000000_OBJ-004
+        paths:
+        - src/request-variables.ts
+      - id: WI-0017-20000000_CHANGE-002
+        type: test-code
+        summary: Added four provider-free tests covering exact syntax, serialization, complete asset replacement, and missing values with task-ID-prefixed trace markers.
+        objectiveRefs:
+        - WI-0017-20000000_OBJ-001
+        - WI-0017-20000000_OBJ-002
+        - WI-0017-20000000_OBJ-003
+        - WI-0017-20000000_OBJ-004
+        paths:
+        - tests/request-variables.test.ts
+      testImplementations:
+      - testCaseRef: WI-0017-10000000#test-case/WI-0017-10000000_TC-EXACT-SYNTAX
+        path: tests/request-variables.test.ts
+        selector: WI-0017-10000000_TC-EXACT-SYNTAX
+        traceMarker: WI-0017-10000000_TC-EXACT-SYNTAX
+      - testCaseRef: WI-0017-10000000#test-case/WI-0017-10000000_TC-VALUE-SERIALIZATION
+        path: tests/request-variables.test.ts
+        selector: WI-0017-10000000_TC-VALUE-SERIALIZATION
+        traceMarker: WI-0017-10000000_TC-VALUE-SERIALIZATION
+      - testCaseRef: WI-0017-10000000#test-case/WI-0017-10000000_TC-COMPLETE-ASSET-PASS
+        path: tests/request-variables.test.ts
+        selector: WI-0017-10000000_TC-COMPLETE-ASSET-PASS
+        traceMarker: WI-0017-10000000_TC-COMPLETE-ASSET-PASS
+      - testCaseRef: WI-0017-10000000#test-case/WI-0017-10000000_TC-MISSING-VALUES
+        path: tests/request-variables.test.ts
+        selector: WI-0017-10000000_TC-MISSING-VALUES
+        traceMarker: WI-0017-10000000_TC-MISSING-VALUES
+    verification:
+      status: passed
+      objectiveRefs:
+      - WI-0017-20000000_OBJ-001
+      - WI-0017-20000000_OBJ-002
+      - WI-0017-20000000_OBJ-003
+      - WI-0017-20000000_OBJ-004
+      tests:
+      - id: WI-0017-20000000_EXEC-FOCUSED
+        type: component
+        testCaseRefs:
+        - WI-0017-10000000#test-case/WI-0017-10000000_TC-EXACT-SYNTAX
+        - WI-0017-10000000#test-case/WI-0017-10000000_TC-VALUE-SERIALIZATION
+        - WI-0017-10000000#test-case/WI-0017-10000000_TC-COMPLETE-ASSET-PASS
+        - WI-0017-10000000#test-case/WI-0017-10000000_TC-MISSING-VALUES
+        command: node --import tsx --test tests/request-variables.test.ts
+        status: passed
+        result: All four WI-0017 focused test cases passed.
+      - id: WI-0017-20000000_EXEC-PACKAGE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0017-10000000#test-case/WI-0017-10000000_TC-EXACT-SYNTAX
+        - WI-0017-10000000#test-case/WI-0017-10000000_TC-VALUE-SERIALIZATION
+        - WI-0017-10000000#test-case/WI-0017-10000000_TC-COMPLETE-ASSET-PASS
+        - WI-0017-10000000#test-case/WI-0017-10000000_TC-MISSING-VALUES
+        command: npm run typecheck && npm test && npm run build && git diff --check
+        status: passed
+        result: Typecheck, the full 129-test provider-free suite, build, whitespace, and conflict-marker checks passed.
+    limitations:
+    - This boundary is not yet wired to the request loader, completeRequest, or CLI; those responsibilities belong to later work items.
+    - Provider-free local evidence does not establish authenticated provider behavior, deployment, publication, downstream integration, or production readiness.

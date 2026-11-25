@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0017",
-  "status": "planned",
+  "status": "complete",
   "title": "Implement request-variable substitution",
   "type": "feature",
   "objective": "Replace every $${variableName}$$ placeholder across request assets using constructed parameters, JSON-serializing complex values and failing on unresolved variables. Contract sections: requests/README.md#placeholder-substitution; requests/README.md#processing-order. Explicit human operator confirmation is required before modifying requests/README.md.",
