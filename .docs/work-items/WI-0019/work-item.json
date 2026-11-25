@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0019",
-  "status": "planned",
+  "status": "complete",
   "title": "Add llm req CLI argument parsing",
   "type": "feature",
   "objective": "Recognize llm req <request-name> <request-parameters>, resolve the request schema before dynamic parameter parsing, and preserve current modes and common format/debug flags. Contract sections: requests/README.md#library-and-cli-boundaries; requests/README.md#parameter-contract. Explicit human operator confirmation is required before modifying requests/README.md.",

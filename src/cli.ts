@@ -1,4 +1,4 @@
-import { parseCliArguments } from './cli/arguments.js';
+import { parseCliArgumentsAsync } from './cli/arguments.js';
 import { runConfigCommand } from './cli/config-command.js';
 import { runPromptCommand } from './cli/prompt-command.js';
 import { runChatCommand } from './cli/chat-command.js';
@@ -7,7 +7,7 @@ import { printHelp, packageVersion } from './cli/help.js';
 import { printUsageError } from './cli/output.js';
 
 export async function main(args: readonly string[] = process.argv.slice(2)): Promise<number> {
-  const parsed = parseCliArguments(args);
+  const parsed = await parseCliArgumentsAsync(args);
   if (parsed.command === 'help') return printHelp();
   if (parsed.command === 'version') {
     console.log(await packageVersion());
@@ -18,5 +18,6 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
   if (parsed.command === 'chat') return runChatCommand({ prompt: parsed.prompt!, chatId: parsed.chatId, continuation: false, debug: parsed.debug, format: parsed.format, printChatId: parsed.printChatId });
   if (parsed.command === 'continue') return runChatCommand({ prompt: parsed.prompt!, continuation: true, debug: parsed.debug, format: parsed.format, printChatId: parsed.printChatId });
   if (parsed.command === 'summarize') return runSummarizeCommand({ path: parsed.summarizePath, content: parsed.summarizeContent, providerName: parsed.summarizeProvider, model: parsed.summarizeModel, thinking: parsed.summarizeThinking, debug: parsed.debug, format: parsed.format });
+  if (parsed.command === 'req') return printUsageError();
   return runConfigCommand(parsed.requestPath!, parsed.debug, parsed.format);
 }

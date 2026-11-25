@@ -4,7 +4,7 @@ taskUid: WI-0019-20000000
 orderKey: '20000000'
 parentTaskUid: WI-0019-10000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement llm req CLI argument parsing
 objective: Implement llm req CLI argument parsing
 references:
@@ -66,7 +66,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -155,3 +155,78 @@ task:
     - Forward --parameters and request-specific assignment tokens without schema-specific
       parsing.
     - Update help/usage and add parser regression tests for req and all existing modes.
+  result:
+    status: implemented
+    implementation:
+      summary: Added asynchronous llm req argument parsing that resolves request assets before retaining schema-defined dynamic tokens, preserves common raw/full/debug flags, and keeps existing CLI modes unchanged.
+      changes:
+      - id: WI-0019-20000000_CHANGE-001
+        type: production-code
+        summary: Added req parsing with request-directory/schema-root discovery, dynamic parameter token forwarding, common flag preservation, and help usage.
+        objectiveRefs:
+        - WI-0019-20000000_OBJ-001
+        - WI-0019-20000000_OBJ-002
+        - WI-0019-20000000_OBJ-003
+        - WI-0019-20000000_OBJ-004
+        paths:
+        - src/cli/arguments.ts
+        - src/cli.ts
+        - src/cli/help.ts
+      - id: WI-0019-20000000_CHANGE-002
+        type: test-code
+        summary: Added four provider-free CLI parser tests with task-ID-prefixed trace markers while retaining existing parser coverage.
+        objectiveRefs:
+        - WI-0019-20000000_OBJ-001
+        - WI-0019-20000000_OBJ-002
+        - WI-0019-20000000_OBJ-003
+        - WI-0019-20000000_OBJ-004
+        paths:
+        - tests/cli.test.ts
+      testImplementations:
+      - testCaseRef: WI-0019-10000000#test-case/WI-0019-10000000_TC-REQ-SHAPE
+        path: tests/cli.test.ts
+        selector: WI-0019-10000000_TC-REQ-SHAPE
+        traceMarker: WI-0019-10000000_TC-REQ-SHAPE
+      - testCaseRef: WI-0019-10000000#test-case/WI-0019-10000000_TC-COMMON-OUTPUT-FLAGS
+        path: tests/cli.test.ts
+        selector: WI-0019-10000000_TC-COMMON-OUTPUT-FLAGS
+        traceMarker: WI-0019-10000000_TC-COMMON-OUTPUT-FLAGS
+      - testCaseRef: WI-0019-10000000#test-case/WI-0019-10000000_TC-PARAMETER-FORWARDING
+        path: tests/cli.test.ts
+        selector: WI-0019-10000000_TC-PARAMETER-FORWARDING
+        traceMarker: WI-0019-10000000_TC-PARAMETER-FORWARDING
+      - testCaseRef: WI-0019-10000000#test-case/WI-0019-10000000_TC-EXISTING-MODES
+        path: tests/cli.test.ts
+        selector: WI-0019-10000000_TC-EXISTING-MODES
+        traceMarker: WI-0019-10000000_TC-EXISTING-MODES
+    verification:
+      status: passed
+      objectiveRefs:
+      - WI-0019-20000000_OBJ-001
+      - WI-0019-20000000_OBJ-002
+      - WI-0019-20000000_OBJ-003
+      - WI-0019-20000000_OBJ-004
+      tests:
+      - id: WI-0019-20000000_EXEC-FOCUSED
+        type: component
+        testCaseRefs:
+        - WI-0019-10000000#test-case/WI-0019-10000000_TC-REQ-SHAPE
+        - WI-0019-10000000#test-case/WI-0019-10000000_TC-COMMON-OUTPUT-FLAGS
+        - WI-0019-10000000#test-case/WI-0019-10000000_TC-PARAMETER-FORWARDING
+        - WI-0019-10000000#test-case/WI-0019-10000000_TC-EXISTING-MODES
+        command: node --import tsx --test tests/cli.test.ts
+        status: passed
+        result: All four WI-0019 focused parser cases and existing CLI tests passed.
+      - id: WI-0019-20000000_EXEC-PACKAGE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0019-10000000#test-case/WI-0019-10000000_TC-REQ-SHAPE
+        - WI-0019-10000000#test-case/WI-0019-10000000_TC-COMMON-OUTPUT-FLAGS
+        - WI-0019-10000000#test-case/WI-0019-10000000_TC-PARAMETER-FORWARDING
+        - WI-0019-10000000#test-case/WI-0019-10000000_TC-EXISTING-MODES
+        command: npm run typecheck && npm test && npm run build && git diff --check
+        status: passed
+        result: Typecheck, the full 137-test provider-free suite, build, whitespace, and conflict-marker checks passed.
+    limitations:
+    - This task parses and forwards dynamic request arguments but does not execute completeRequest or provider calls; those responsibilities belong to later work items.
+    - Provider-free local evidence does not establish authenticated provider behavior, deployment, publication, downstream integration, or production readiness.
