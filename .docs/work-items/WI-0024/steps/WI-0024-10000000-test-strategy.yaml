@@ -1,0 +1,291 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0024
+taskUid: WI-0024-10000000
+orderKey: '10000000'
+parentTaskUid: null
+taskType: test-strategy
+processingStatus: processing_completed
+title: Define schema-declared parameter file binding test strategy
+objective: Define deterministic provider-free evidence for schema-declared parameter file bindings shared by completeRequest and llm req.
+references:
+  required:
+  - .docs/work-items/WI-0024/work-item.json
+  - .docs/work-items/WI-0024/README.md
+  - requests/README.md
+  - requests/decisions.md
+  - requests/summarize/
+  - src/request.ts
+  - src/request-parameters.ts
+  - src/cli/request-command.ts
+  - src/cli/arguments.ts
+  - src/normalize.ts
+  - src/prompt.ts
+  - src/openrouter-projection.ts
+  - tests/request-parameters.test.ts
+  - tests/request.test.ts
+  - tests/request-cli.test.ts
+  - tests/summarize.test.ts
+  - tests/provider-projection.test.ts
+  - package.json
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0024/steps/WI-0024-10000000-test-strategy.yaml
+  commitSubject: 'WI-0024: plan: define file-binding test strategy'
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments: [run, typecheck]
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/result
+  intent:
+    summary: Define deterministic evidence for schema-declared parameter file bindings.
+    inputs:
+    - id: WI-0024-10000000_INPUT-REQ-001
+      kind: requirement
+      ref: WI-0024#work-item.json#requirement/WI-0024_REQ_001
+      purpose: Define the metadata contract and fail-closed validation boundary.
+      required: true
+    - id: WI-0024-10000000_INPUT-REQ-002
+      kind: requirement
+      ref: WI-0024#work-item.json#requirement/WI-0024_REQ_002
+      purpose: Define shared file materialization and cleanup evidence.
+      required: true
+    - id: WI-0024-10000000_INPUT-REQ-003
+      kind: requirement
+      ref: WI-0024#work-item.json#requirement/WI-0024_REQ_003
+      purpose: Define the shared CLI/library parameter boundary.
+      required: true
+    - id: WI-0024-10000000_INPUT-REQ-004
+      kind: requirement
+      ref: WI-0024#work-item.json#requirement/WI-0024_REQ_004
+      purpose: Define summarize as a generic schema-driven example.
+      required: true
+    - id: WI-0024-10000000_INPUT-REQ-005
+      kind: requirement
+      ref: WI-0024#work-item.json#requirement/WI-0024_REQ_005
+      purpose: Define compatibility and package-gate evidence.
+      required: true
+    requirements:
+    - id: REQ-001
+      kind: requirement
+      statement: File metadata is validated and unsupported metadata or schema-node shapes fail before provider use.
+      inputRefs: [WI-0024-10000000_INPUT-REQ-001]
+      required: true
+    - id: REQ-002
+      kind: requirement
+      statement: Declared path/content values become ordered ReferenceFile inputs and temporary content resources are cleaned up.
+      inputRefs: [WI-0024-10000000_INPUT-REQ-002]
+      required: true
+    - id: REQ-003
+      kind: requirement
+      statement: CLI and completeRequest share parameter construction and file interpretation without request-name conditionals.
+      inputRefs: [WI-0024-10000000_INPUT-REQ-003]
+      required: true
+    - id: REQ-004
+      kind: requirement
+      statement: Summarize declares exclusive path/content bindings and reaches the existing prompt/provider boundary through llm req.
+      inputRefs: [WI-0024-10000000_INPUT-REQ-004]
+      required: true
+    - id: REQ-005
+      kind: requirement
+      statement: Explicit additional files and existing summarize behavior remain compatible and the full provider-free gate is required.
+      inputRefs: [WI-0024-10000000_INPUT-REQ-005]
+      required: true
+    invariants:
+    - id: WI-0024-10000000_INV-001
+      statement: File behavior is declared by schema metadata and never inferred from request name or parameter name.
+      inputRefs: [WI-0024-10000000_INPUT-REQ-001, WI-0024-10000000_INPUT-REQ-003]
+      required: true
+    - id: WI-0024-10000000_INV-002
+      statement: Invalid metadata, invalid parameter values, unsafe sources, and cleanup failures are bounded before or around provider delegation.
+      inputRefs: [WI-0024-10000000_INPUT-REQ-001, WI-0024-10000000_INPUT-REQ-002]
+      required: true
+    - id: WI-0024-10000000_INV-003
+      statement: Existing normalized files, prompt XML, HTTP projection, explicit files, and llm summarize compatibility remain stable.
+      inputRefs: [WI-0024-10000000_INPUT-REQ-002, WI-0024-10000000_INPUT-REQ-005]
+      required: true
+    objectives:
+    - id: WI-0024-10000000_OBJ-001
+      statement: Verify metadata validation and failure boundaries.
+      inputRefs: [WI-0024-10000000_INPUT-REQ-001]
+      requirementRefs: [WI-0024_REQ_001]
+      invariantRefs: ['#intent/invariants/WI-0024-10000000_INV-001', '#intent/invariants/WI-0024-10000000_INV-002']
+      acceptanceCriterionRefs: [WI-0024_REQ_001_AC_001, WI-0024_REQ_001_AC_002]
+    - id: WI-0024-10000000_OBJ-002
+      statement: Verify shared materialization, ordering, cleanup, and prompt/provider handoff.
+      inputRefs: [WI-0024-10000000_INPUT-REQ-002]
+      requirementRefs: [WI-0024_REQ_002]
+      invariantRefs: ['#intent/invariants/WI-0024-10000000_INV-002', '#intent/invariants/WI-0024-10000000_INV-003']
+      acceptanceCriterionRefs: [WI-0024_REQ_002_AC_001, WI-0024_REQ_002_AC_002]
+    - id: WI-0024-10000000_OBJ-003
+      statement: Verify one shared parameter boundary with no request-name special case.
+      inputRefs: [WI-0024-10000000_INPUT-REQ-003]
+      requirementRefs: [WI-0024_REQ_003]
+      invariantRefs: ['#intent/invariants/WI-0024-10000000_INV-001']
+      acceptanceCriterionRefs: [WI-0024_REQ_003_AC_001, WI-0024_REQ_003_AC_002]
+    - id: WI-0024-10000000_OBJ-004
+      statement: Verify summarize path/content parameter bindings and exclusive source validation.
+      inputRefs: [WI-0024-10000000_INPUT-REQ-004]
+      requirementRefs: [WI-0024_REQ_004]
+      invariantRefs: ['#intent/invariants/WI-0024-10000000_INV-001', '#intent/invariants/WI-0024-10000000_INV-003']
+      acceptanceCriterionRefs: [WI-0024_REQ_004_AC_001, WI-0024_REQ_004_AC_002]
+    - id: WI-0024-10000000_OBJ-005
+      statement: Verify compatibility and complete package evidence.
+      inputRefs: [WI-0024-10000000_INPUT-REQ-005]
+      requirementRefs: [WI-0024_REQ_005]
+      invariantRefs: ['#intent/invariants/WI-0024-10000000_INV-003']
+      acceptanceCriterionRefs: [WI-0024_REQ_005_AC_001, WI-0024_REQ_005_AC_002]
+    nonGoals:
+    - Explicit human operator confirmation is required before modifying requests/README.md; this strategy applies only the WI-0024 contract sections.
+    - Do not claim authenticated provider, network, deployment, release, or production behavior.
+  result:
+    status: defined
+    testCases:
+    - id: WI-0024-10000000_TC-METADATA-VALIDATION
+      title: Validate schema-declared file metadata
+      type: unit
+      requirementLevel: required
+      purpose: Prove supported path/content metadata is accepted and malformed, unsupported, or executable metadata fails before provider use.
+      procedure:
+        executionMode: executable
+        target: File-binding metadata validator and parameter constructor
+        steps:
+        - Arrange valid path/content metadata and malformed metadata fixtures.
+        - Validate schemas and construct parameters.
+        - Assert bounded failures and zero provider calls for invalid cases.
+        command: npm test -- --test-name-pattern=WI-0024-10000000_TC-METADATA-VALIDATION
+      expectedOutcome: Supported metadata validates and invalid metadata fails closed.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: unit
+      fixtureRefs: []
+      limitations: [Provider-free tests do not establish external provider behavior.]
+    - id: WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY
+      title: Materialize declared path and content files
+      type: component
+      requirementLevel: required
+      purpose: Prove files are ordered, normalized, included in prompt XML, merged with explicit files, and cleaned up.
+      procedure:
+        executionMode: executable
+        target: completeRequest and normalized provider request
+        steps:
+        - Arrange a generic request with path and content bindings and explicit files.
+        - Capture the injected provider request and inspect files and llmPrompt.
+        - Assert deterministic order and temporary-resource cleanup on success and failure.
+        command: npm test -- --test-name-pattern=WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY
+      expectedOutcome: Declared and explicit files reach the existing provider request boundary in contract order and temporary files are removed.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations: [The injected provider seam does not establish authenticated HTTP transport.]
+    - id: WI-0024-10000000_TC-SHARED-BOUNDARY
+      title: Verify shared CLI and library parameter boundary
+      type: integration
+      requirementLevel: required
+      purpose: Prove llm req and completeRequest construct one shared parameter object and do not special-case summarize.
+      procedure:
+        executionMode: executable
+        target: request CLI and completeRequest integration
+        steps:
+        - Arrange two differently named request bundles with equivalent file metadata.
+        - Invoke library and CLI paths using --parameters and --p-* assignments.
+        - Assert equivalent files, prompt XML, and bounded errors.
+        command: npm test -- --test-name-pattern=WI-0024-10000000_TC-SHARED-BOUNDARY
+      expectedOutcome: Request names do not alter file-binding semantics and parameters are constructed once.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: integration
+      fixtureRefs: []
+      limitations: [Local integration evidence does not establish production deployment behavior.]
+    - id: WI-0024-10000000_TC-SUMMARIZE-EXAMPLE
+      title: Execute summarize through llm req parameter bindings
+      type: cli
+      requirementLevel: required
+      purpose: Prove summarize path/content fields use --p-path/--p-content and ordinary JSON Schema rejects neither/both sources.
+      procedure:
+        executionMode: executable
+        target: requests/summarize and llm req
+        steps:
+        - Arrange summarize assets with path/content file metadata and oneOf.
+        - Invoke --p-path, --p-content, neither, and both cases with an injected provider.
+        - Assert files, prompt XML, raw/full output, and zero calls for invalid cardinality.
+        command: npm test -- --test-name-pattern=WI-0024-10000000_TC-SUMMARIZE-EXAMPLE
+      expectedOutcome: Summarize works through the generic request pathway with no request-name file branch.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: cli-audit
+      fixtureRefs: []
+      limitations: [No authenticated provider call is in scope.]
+    - id: WI-0024-10000000_TC-COMPATIBILITY-GATE
+      title: Verify compatibility and package gate
+      type: integration
+      requirementLevel: required
+      purpose: Prove existing explicit files, llm summarize behavior, documentation, declarations, and package gates remain consistent.
+      procedure:
+        executionMode: executable
+        target: Full provider-free repository suite and changed-path audit
+        steps:
+        - Run focused request, summarize, parameter, prompt, and projection tests.
+        - Run the full typecheck, test, build, and diff-check gate.
+        - Inspect changed paths against non-goals and contract references.
+        command: npm run typecheck && npm test && npm run build && git diff --check
+      expectedOutcome: All compatibility and package gates pass without provider or production claims.
+      passCriteria: The full gate exits zero and changed paths remain in scope.
+      evidenceTier: cli-audit
+      fixtureRefs: []
+      limitations: [The package gate is local and provider-free.]
+    fixtures: []
+    coverage:
+    - id: COV-001
+      requirementRefs: [WI-0024_REQ_001]
+      invariantRefs: ['#intent/invariants/WI-0024-10000000_INV-001', '#intent/invariants/WI-0024-10000000_INV-002']
+      objectiveRefs: ['#objective/WI-0024-10000000_OBJ-001']
+      testCaseRefs: ['#result/testCases/WI-0024-10000000_TC-METADATA-VALIDATION']
+      rationale: Metadata validation and bounded invalid cases cover the contract.
+      acceptanceCriterionRefs: [WI-0024_REQ_001_AC_001, WI-0024_REQ_001_AC_002]
+    - id: COV-002
+      requirementRefs: [WI-0024_REQ_002]
+      invariantRefs: ['#intent/invariants/WI-0024-10000000_INV-002', '#intent/invariants/WI-0024-10000000_INV-003']
+      objectiveRefs: ['#objective/WI-0024-10000000_OBJ-002']
+      testCaseRefs: ['#result/testCases/WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY']
+      rationale: Materialization, ordering, cleanup, and prompt handoff are exercised together.
+      acceptanceCriterionRefs: [WI-0024_REQ_002_AC_001, WI-0024_REQ_002_AC_002]
+    - id: COV-003
+      requirementRefs: [WI-0024_REQ_003]
+      invariantRefs: ['#intent/invariants/WI-0024-10000000_INV-001']
+      objectiveRefs: ['#objective/WI-0024-10000000_OBJ-003']
+      testCaseRefs: ['#result/testCases/WI-0024-10000000_TC-SHARED-BOUNDARY']
+      rationale: Equivalent generic request names prove the shared boundary.
+      acceptanceCriterionRefs: [WI-0024_REQ_003_AC_001, WI-0024_REQ_003_AC_002]
+    - id: COV-004
+      requirementRefs: [WI-0024_REQ_004]
+      invariantRefs: ['#intent/invariants/WI-0024-10000000_INV-001', '#intent/invariants/WI-0024-10000000_INV-003']
+      objectiveRefs: ['#objective/WI-0024-10000000_OBJ-004']
+      testCaseRefs: ['#result/testCases/WI-0024-10000000_TC-SUMMARIZE-EXAMPLE']
+      rationale: Summarize proves the requested generic example and exclusive source modes.
+      acceptanceCriterionRefs: [WI-0024_REQ_004_AC_001, WI-0024_REQ_004_AC_002]
+    - id: COV-005
+      requirementRefs: [WI-0024_REQ_005]
+      invariantRefs: ['#intent/invariants/WI-0024-10000000_INV-003']
+      objectiveRefs: ['#objective/WI-0024-10000000_OBJ-005']
+      testCaseRefs: ['#result/testCases/WI-0024-10000000_TC-COMPATIBILITY-GATE']
+      rationale: Compatibility and full package validation are explicitly gated.
+      acceptanceCriterionRefs: [WI-0024_REQ_005_AC_001, WI-0024_REQ_005_AC_002]
+    minimumRequiredTestCaseRefs:
+    - '#result/testCases/WI-0024-10000000_TC-METADATA-VALIDATION'
+    - '#result/testCases/WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY'
+    - '#result/testCases/WI-0024-10000000_TC-SHARED-BOUNDARY'
+    - '#result/testCases/WI-0024-10000000_TC-SUMMARIZE-EXAMPLE'
+    - '#result/testCases/WI-0024-10000000_TC-COMPATIBILITY-GATE'
+    recommendedTestCaseRefs: []
+    evidenceLimitations:
+    - Provider-free local evidence does not establish authenticated provider, network, deployment, publication, downstream integration, or production behavior.

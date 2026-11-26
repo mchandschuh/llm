@@ -1,6 +1,6 @@
 # Dynamic request implementation decisions
 
-This record tracks decisions for the WI-0015 through WI-0022 implementation
+This record tracks decisions for the WI-0015 through WI-0024 implementation
 cycle. The authoritative contract remains
 `/home/michael/src/github/llm/requests/README.md`.
 
@@ -17,17 +17,12 @@ use an optional task schema.
 `systemPrompt: null`. Providers omit the system message or may use the explicit
 provider fallback `You are a helpful assistant.` when required.
 
-## D03 — Parameter metadata and custom validation
-
-`x-llm-req-parameter` is the one supported JSON Schema extension metadata key for
-parameter metadata. Its first use case is custom validation that ordinary JSON
-Schema cannot express. The validator function is evaluated and invoked directly with `context` and the
-fully resolved `parameters`. The minimum context includes request-directory file
-contents; the return contract is deferred and is expected to communicate success
-or bounded failure errors. Security implications are accepted limitations for
-this planned feature. WI-0023 records the request; a separately qualified
-implementation work item must own the approved custom-validation implementation
-and tests.
+`x-llm-req-parameter` is the supported JSON Schema extension namespace for
+parameter metadata. WI-0023 records the earlier custom-validation request, but
+custom validation-function execution remains reserved and unsupported. WI-0024
+defines the supported `x-llm-req-parameter.file` binding for declarative path and
+content file materialization. Any future custom-validation implementation must
+be separately qualified and owned by its own work item.
 
 ## D04 — README consistency gate
 
@@ -62,7 +57,7 @@ Markdown section(s) implementing its behavior.
 The README is iterated as an explicit, human-confirmed contract activity. The
 decision log and work-item records preserve why a contract revision was made;
 implementation agents do not revise it opportunistically. The current revision
-is this D01–D13 decision set.
+is this D01–D14 decision set.
 
 ## D09 — Baseline meaning
 
@@ -99,3 +94,18 @@ npm run typecheck && npm test && npm run build && git diff --check
 
 The full suite must pass before the current work item is considered complete or
 the next work item begins. Focused tests supplement but never replace this gate.
+
+## D14 — Schema-declared parameter file bindings
+
+`x-llm-req-parameter.file` is the request-schema declaration for turning a
+resolved string parameter into one or more `LlmRequest.files` reference files.
+The declaration is interpreted by the shared `completeRequest` boundary, not by
+the request name or a summarize-specific CLI branch. `mode: path` uses the
+existing external path/directory traversal and source-safety behavior;
+`mode: content` creates one declared-name temporary file. The materialized files
+are merged with explicit additional files before normalization and prompt
+composition, and temporary resources are cleaned up on all completion paths.
+Malformed or unsupported file metadata, invalid annotated values, and parameter
+schema violations fail before provider invocation. The current contract supports
+scalar string file fields only; custom validation-function execution and array or
+object file-binding values remain outside this work item.

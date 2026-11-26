@@ -17,7 +17,8 @@ action and must be recorded in
 
 The request that introduced the `x-llm-req-parameter` metadata decision is
 recorded at `/home/michael/src/github/llm/.docs/work-items/WI-0023/work-item-request.md`.
-That request is intake evidence, not permission to execute arbitrary code from a
+The schema-declared file-binding extension is specified by WI-0024. These records
+are intake and contract evidence; neither permits arbitrary code execution from a
 request asset.
 
 ## Request bundle layout
@@ -125,11 +126,11 @@ keys, JSON object/array values, and one complete JSON object through
 `--parameters`:
 
 ```text
-llm req report --filters.owner michael --sections[0].title Overview
-llm req deploy --metadata '{"environment":"test","region":"us-east-1"}'
+llm req report --p-filters.owner michael --p-sections[0].title Overview
+llm req deploy --p-metadata '{"environment":"test","region":"us-east-1"}'
 llm req report \
   --parameters '{"audience":"engineering","sections":[{"title":"Status"}]}' \
-  --audience public
+  --p-audience public
 ```
 
 Scalar values are converted according to the target schema. Objects and arrays
@@ -141,46 +142,89 @@ segments, duplicate assignments, and conflicts fail before substitution.
 The complete parameter object is validated against
 `<request-name>.parameters.schema.json` before any placeholder substitution.
 Required properties, types, enums, array bounds, additional properties, nested
-constraints, and custom metadata validation are all part of this gate. A request
-without a parameter schema accepts only an empty parameter object.
+constraints, and supported parameter metadata are all part of this gate. A
+request without a parameter schema accepts only an empty parameter object.
 
 ## x-llm-req-parameter metadata
 
-`x-llm-req-parameter` is the one supported JSON Schema extension metadata key for
-parameter metadata. It is declared inside
-`<request-name>.parameters.schema.json`. Its first use case is custom validation
-that ordinary JSON Schema cannot express.
+`x-llm-req-parameter` is the supported JSON Schema extension namespace for
+request-parameter metadata. It is declared inside
+`<request-name>.parameters.schema.json`. The `file` property is the supported
+runtime binding in this contract. It gives a parameter field file semantics
+without coupling behavior to a request name; a request named `summarize` and a
+request named `review` use the same materialization boundary when their schemas
+declare the same binding.
 
 The metadata shape is:
 
 ```json
 {
   "x-llm-req-parameter": {
-    "validation": {
-      "function": "<approved custom-validation function reference>"
+    "file": {
+      "mode": "path",
+      "type": "text/plain",
+      "purpose": "Source files supplied to the request"
     }
   }
 }
 ```
 
-The `function` value is evaluated and invoked directly by `llm req` with:
+`file` is valid only on a parameter schema node whose effective value is one
+non-empty string. Its fields are:
+
+- `mode` is required and is either `path` or `content`.
+- `type` is required and is a valid MIME type used for every materialized file.
+- `purpose` is required and is copied to each resulting `ReferenceFile`.
+- `name` is required for `content` and is the synthetic file name. It is not
+  used for `path`; path-backed names use the existing stable relative-path
+  naming rules.
+- `encoding` is optional and is either `utf8` or `base64`; when absent, the
+  existing MIME-based encoding default applies.
+
+For example, the generic summarize request declares its two source modes as:
 
 ```js
-function validate(context, parameters) {
-  // context minimally includes request-directory file contents
-  // parameters is the fully resolved parameter object
+{
+  "properties": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "x-llm-req-parameter": {
+        "file": {
+          "mode": "path",
+          "type": "text/plain",
+          "purpose": "Files supplied for summarization"
+        }
+      }
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1,
+      "x-llm-req-parameter": {
+        "file": {
+          "mode": "content",
+          "name": "content",
+          "type": "text/plain",
+          "purpose": "Content supplied for summarization"
+        }
+      }
+    }
+  },
+  "oneOf": [
+    { "required": ["path"] },
+    { "required": ["content"] }
+  ]
 }
 ```
 
-The validator runs after parameter resolution and before substitution. A future
-implementation may instead include substituted assets and the constructed
-request in `context` for richer validation. The minimum `context` shape includes
-request-directory file contents. The validator return contract is deferred; it
-is expected to communicate success/failure and bounded errors when defined.
-Security implications of direct function evaluation are an accepted limitation
-for this planned feature and must remain visible in implementation/review
-limitations. The WI-0023 request identifies the follow-up; a separately
-qualified implementation work item must own the extension details and tests.
+The parameter schema's ordinary JSON Schema constraints, including `oneOf`,
+remain responsible for cardinality and value validation. In the example, an
+empty object and an object containing both `path` and `content` are invalid.
+
+The `validation` member remains reserved for a separately qualified future
+feature. This runtime does not evaluate function references or execute code from
+request assets. Unknown `x-llm-req-parameter` members and malformed `file`
+metadata fail before provider invocation.
 
 ## Processing order
 
@@ -198,26 +242,35 @@ Implementations must use this order and fail closed at each boundary:
    and [Parameter contract](#parameter-contract).
 5. Load and validate `<request-name>.parameters.schema.json` before parameter
    resolution. This asset cannot contain placeholders and is never substituted.
-6. Resolve parameters, then invoke custom validation as defined in
-   [x-llm-req-parameter metadata](#x-llm-req-parameter-metadata).
-7. Apply `$${variableName}$$` substitution to every other recognized asset's raw
+6. Resolve parameters, validate supported `x-llm-req-parameter.file` metadata,
+   and reject unsupported executable validation metadata before file access.
+7. Discover schema-declared `x-llm-req-parameter.file` bindings and materialize
+   their resolved parameter values as reference files in deterministic schema
+   declaration order. A `path` binding accepts a regular file or directory and
+   uses the existing recursive file and symlink rules; a `content` binding
+   creates one temporary UTF-8 file with its declared name. File-binding
+   temporary resources are owned by the completion operation and are cleaned up
+   after provider delegation, including failure paths.
+8. Apply `$${variableName}$$` substitution to every other recognized asset's raw
    content, including Markdown and JSON, before parsing or constructing the
    request.
-8. Resolve additional input files using
+9. Resolve explicit additional input files using
    [Additional input files](#additional-input-files), construct the existing
-   `LlmRequest` with `REQUEST_SCHEMA`, and resolve external files from the
-   application current working directory.
-9. Delegate once to the existing `complete` function. Invalid configuration,
+   `LlmRequest` with `REQUEST_SCHEMA`, and merge them after schema-declared files
+   in deterministic order. Both file sources resolve from the application
+   current working directory and are available to the existing prompt composer.
+10. Delegate once to the existing `complete` function. Invalid configuration,
    parameters, metadata, schemas, or substitutions produce zero provider calls.
-10. Serialize through the existing raw/full response contract.
+11. Serialize through the existing raw/full response contract.
 
 ## Additional input files
 
 Dynamic requests use the same source behavior as `llm summarize`. A request may
-provide either one `--path <path>` source or one `--content <text>` source per
-invocation; the two modes cannot be combined. With neither option, the request
-has no additional files. These source options add files; they do not replace the
-request task or request assets.
+provide either one explicit `--path <path>` source or one explicit
+`--content <text>` source per invocation; the two modes cannot be combined. With
+neither option, explicit additional files are absent. These source options add
+files; they do not replace the request task or request assets. They are separate
+from schema-declared file bindings and may be combined with them.
 
 `--path` accepts a regular file or a directory. A directory is traversed
 recursively in deterministic sorted order. Regular files and final symlink files
@@ -253,32 +306,49 @@ dollar signs, newlines, and Unicode survive safely. Repeated and cross-file
 placeholders resolve consistently. No unresolved placeholder reaches the
 provider.
 
-## Library and CLI boundaries
+## Schema-declared files and library/CLI boundaries
+
+Schema-declared file bindings are materialized by the shared request-completion
+boundary, not by a request-name conditional in the CLI. The CLI's
+`--p-<path> <value>` syntax strips only the `p-` transport prefix; the resulting
+parameter path is validated against the request schema. If the target schema
+node declares `x-llm-req-parameter.file`, `completeRequest` interprets the
+resolved value according to that declaration and appends the resulting files to
+`LlmRequest.files`.
+
+The same behavior applies to every request name and to library callers of
+`completeRequest`. The CLI and library therefore share parameter validation,
+file materialization, path safety, ordering, temporary-resource cleanup, prompt
+XML generation, and provider delegation. The parameter value itself is not
+inserted into `<files>`; the materialized `ReferenceFile` content is.
 
 The shared library API is:
 
 ```ts
 interface CompleteRequestOptions {
   requestName: string;
-  parameters: Record<string, unknown>;
-  files?: readonly ReferenceFile[];
+  parameters?: string | Record<string, unknown>; // complete JSON object
+  assignments?: readonly { path: string; value: string }[];
+  files?: readonly ReferenceFile[]; // explicit additional files
 }
 
 completeRequest(options: CompleteRequestOptions): Promise<ProviderCompletionResponse>
 ```
 
 The function resolves `requestName` beneath the configured requests directory,
-loads assets, applies the processing order, constructs a
-`ProviderCompletionRequest`, invokes `provider.complete`, and returns that
-provider result. `files` are resolved from application current working
- directory and are not repository-contained. The CLI resolves the request
- directory and schema first, parses dynamic parameters, then invokes
-`completeRequest({ requestName, parameters, files, ... })`.
+loads assets, applies the processing order, materializes schema-declared files,
+merges explicit `files`, constructs a `ProviderCompletionRequest`, invokes
+`provider.complete`, and returns that provider result. `files` are explicit
+additional files resolved from application current working directory and are not
+repository-contained. The CLI resolves the request directory and schema first,
+parses dynamic parameters, then invokes
+`completeRequest({ requestName, parameters, files, ... })`; it does not interpret
+any request name specially.
 
 The CLI form is:
 
 ```text
-llm req <request-name> [--parameters <json>] [--<path> <value> ...] [--path <path> | --content <text>] [--format=raw|full] [--debug]
+llm req <request-name> [--parameters <json>] [--p-<path> <value> ...] [--path <path> | --content <text>] [--format=raw|full] [--debug]
 ```
 
 Successful `--format=raw` output is the model output only. `--format=full`
@@ -304,6 +374,20 @@ Dynamic requests preserve the existing `LlmRequest` boundary:
   maxIterations?: defaults.maxIterations,
 }
 ```
+
+The `requests/summarize/summarize.parameters.schema.json` asset declares
+`path` and `content` file bindings with an exclusive `oneOf` source contract.
+The generic form is:
+
+```text
+llm req summarize --p-path <path> [--format=raw|full]
+llm req summarize --p-content <text> [--format=raw|full]
+```
+
+The resulting parameter object contains `path` or `content` without the `p-`
+prefix. The shared materializer turns that value into the request's `<files>`
+collection. No summarize-specific branch is permitted in the generic request
+loader or completion boundary.
 
 The existing `llm summarize` command remains valid without a system-prompt
 asset and must retain its current source and output behavior. This is an
@@ -342,6 +426,7 @@ cite the exact section(s) it implements. The authoritative section mapping is:
 | WI-0020 | [Additional input files](#additional-input-files), [Library and CLI boundaries](#library-and-cli-boundaries), [Request-name and filesystem safety](#request-name-and-filesystem-safety) |
 | WI-0021 | [Prompt, schema, and summarize compatibility](#prompt-schema-and-summarize-compatibility), [Additional input files](#additional-input-files) |
 | WI-0022 | [Work-item validation gates](#work-item-validation-gates), [Evidence boundary](#evidence-boundary) |
+| WI-0024 | [x-llm-req-parameter metadata](#x-llm-req-parameter-metadata), [Schema-declared files and library/CLI boundaries](#schema-declared-files-and-librarycli-boundaries), [Additional input files](#additional-input-files), [Prompt, schema, and summarize compatibility](#prompt-schema-and-summarize-compatibility), [Request-name and filesystem safety](#request-name-and-filesystem-safety) |
 
 Explicit human operator confirmation is required before any work-item or task
 modifies this README. This gate applies even when the modification is intended
