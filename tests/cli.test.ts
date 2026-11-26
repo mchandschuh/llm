@@ -113,14 +113,14 @@ test('WI-0019-10000000_TC-COMMON-OUTPUT-FLAGS preserves raw/full/debug selectors
   });
 });
 
-test('WI-0019-10000000_TC-PARAMETER-FORWARDING preserves full, dotted, indexed, and object-valued tokens', async () => {
+test('WI-0019-10000000_TC-PARAMETER-FORWARDING requires the --p- prefix and preserves full, dotted, indexed, and object-valued tokens', async () => {
   await withRequestCliFixture(async () => {
     assert.deepEqual(await parseCliArgumentsAsync([
       'req', 'report',
       '--parameters', '{"audience":"engineering"}',
-      '--filters.owner', 'michael',
-      '--sections[0].title=Status',
-      '--metadata', '{"region":"us-east-1"}',
+      '--p-filters.owner', 'michael',
+      '--p-sections[0].title=Status',
+      '--p-metadata', '{"region":"us-east-1"}',
     ]), {
       debug: false,
       format: 'raw',
@@ -134,7 +134,17 @@ test('WI-0019-10000000_TC-PARAMETER-FORWARDING preserves full, dotted, indexed, 
         { path: 'metadata', value: '{"region":"us-east-1"}' },
       ],
     });
-    assert.equal((await parseCliArgumentsAsync(['req', 'report', '--format=full', '--filters.owner', 'michael'])).requestAssignments?.[0]?.path, 'filters.owner');
+    assert.equal((await parseCliArgumentsAsync(['req', 'report', '--format=full', '--p-filters.owner', 'michael'])).requestAssignments?.[0]?.path, 'filters.owner');
+    for (const args of [
+      ['req', 'report', '--filters.owner', 'michael'],
+      ['req', 'report', '--audience', 'public'],
+      ['req', 'report', '--metadata', '{"region":"us-east-1"}'],
+      ['req', 'report', '--p-unknown', 'value'],
+      ['req', 'report', '--p-'],
+      ['req', 'report', '--p-filters.owner', '--path', 'notes.md'],
+    ]) {
+      assert.equal((await parseCliArgumentsAsync(args)).exitCode, 2, args.join(' '));
+    }
   });
 });
 

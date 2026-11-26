@@ -131,10 +131,11 @@ function parameterRoots(schema: Record<string, unknown> | undefined): readonly s
   return Object.keys(schema.properties as Record<string, unknown>);
 }
 
-function assignmentToken(value: string, roots: readonly string[]): boolean {
-  if (!value.startsWith('--') || value === '--parameters') return false;
-  const path = value.slice(2).split('=', 1)[0];
-  return roots.some((root) => path === root || path.startsWith(`${root}.`) || path.startsWith(`${root}[`));
+function assignmentPath(value: string, roots: readonly string[]): string | undefined {
+  if (!value.startsWith('--p-')) return undefined;
+  const path = value.slice('--p-'.length).split('=', 1)[0];
+  if (!path) return undefined;
+  return roots.some((root) => path === root || path.startsWith(`${root}.`) || path.startsWith(`${root}[`)) ? path : undefined;
 }
 
 async function parseRequestArguments(args: readonly string[], common: { readonly debug: boolean; readonly format: ResponseFormat; readonly printChatId: boolean }): Promise<ParsedCliArguments> {
@@ -173,11 +174,12 @@ async function parseRequestArguments(args: readonly string[], common: { readonly
       if (!parameters) return { ...common, command: 'req', exitCode: 2 };
       continue;
     }
-    if (!assignmentToken(token, roots)) return { ...common, command: 'req', exitCode: 2 };
+    const pathToken = assignmentPath(token, roots);
+    if (pathToken === undefined) return { ...common, command: 'req', exitCode: 2 };
     const separator = token.indexOf('=');
-    const pathToken = token.slice(2, separator === -1 ? undefined : separator);
-    const value = separator === -1 ? args[++index] : token.slice(separator + 1);
+    const value = separator === -1 ? args[index + 1] : token.slice(separator + 1);
     if (!value) return { ...common, command: 'req', exitCode: 2 };
+    if (separator === -1) index += 1;
     assignments.push({ path: pathToken, value });
   }
   return {
