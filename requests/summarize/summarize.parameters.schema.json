@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.handschuh.dev/llm/llm-summarize/parameters/v1",
+  "title": "LLM Summarize Parameters",
+  "description": "Exactly one path-backed or inline-content source for the generic summarize request.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [],
+  "properties": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A regular file or directory to summarize.",
+      "examples": ["notes.md"],
+      "x-llm-req-parameter": {
+        "file": {
+          "mode": "path",
+          "type": "text/plain",
+          "purpose": "Source files supplied to the request."
+        }
+      }
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Inline UTF-8 content to summarize.",
+      "examples": ["Inline source content."],
+      "x-llm-req-parameter": {
+        "file": {
+          "mode": "content",
+          "name": "content",
+          "type": "text/plain",
+          "purpose": "Content supplied to the request."
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "required": ["path"]
+    },
+    {
+      "required": ["content"]
+    }
+  ],
+  "examples": [
+    {
+      "path": "notes.md"
+    },
+    {
+      "content": "Inline source content."
+    }
+  ]
+}

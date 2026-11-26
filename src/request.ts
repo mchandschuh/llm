@@ -1,6 +1,8 @@
+import { rm } from 'node:fs/promises';
 import { resolveRequestsDirectory } from './requests-config.js';
 import { loadRequestDirectory, type RequestDirectoryAssets } from './request-directory.js';
 import { constructRequestParameters } from './request-parameters.js';
+import { materializeParameterFiles } from './request-parameter-files.js';
 import { substituteRequestVariables } from './request-variables.js';
 import { complete } from './complete.js';
 import { normalizeRequest } from './normalize.js';
@@ -97,35 +99,43 @@ export async function completeRequest(options: CompleteRequestOptions): Promise<
     schemaPath: loaded.assets.parametersSchema?.path,
     defaults: defaults?.parameters && typeof defaults.parameters === 'object' && !Array.isArray(defaults.parameters) ? defaults.parameters as JsonObject : undefined,
     parameters: options.parameters,
+    assignments: options.assignments,
     schemaRoots: [requestsDirectory],
   });
-  const request: LlmRequest = {
-    schema: 'https://schemas.handschuh.dev/llm/request/v1',
-    ...requestSettings(defaults),
-    ...taskAndSchemas(loaded.assets, parameters),
-  };
-  const normalized = await normalizeRequest(request, {
-    configurationRoot: loaded.requestDirectory,
-    files: options.files,
-  });
-  const provider = await providerFor(options);
-  if (provider.validate) {
-    const validation = await provider.validate({ provider: normalized.provider, credentials: normalized.credentials });
-    if (!validation.success) throw requestFailure(validation.errors[0]?.message ?? 'Provider configuration validation failed.');
+  const declaredFiles = await materializeParameterFiles(loaded.assets.parametersSchema?.value, parameters);
+  try {
+    const request: LlmRequest = {
+      schema: 'https://schemas.handschuh.dev/llm/request/v1',
+      ...requestSettings(defaults),
+      ...taskAndSchemas(loaded.assets, parameters),
+    };
+    const normalized = await normalizeRequest(request, {
+      configurationRoot: loaded.requestDirectory,
+      files: [...declaredFiles.files, ...(options.files ?? [])],
+    });
+    const provider = await providerFor(options);
+    if (provider.validate) {
+      const validation = await provider.validate({ provider: normalized.provider, credentials: normalized.credentials });
+      if (!validation.success) throw requestFailure(validation.errors[0]?.message ?? 'Provider configuration validation failed.');
+    }
+    const providerRequest: ProviderCompletionRequest = {
+      provider: normalized.provider,
+      model: normalized.model,
+      thinking: normalized.thinking,
+      ...(normalized.systemPrompt.value === null ? {} : { systemPrompt: normalized.systemPrompt.value }),
+      llmPrompt: composeRequestPrompt(normalized),
+      task: normalized.task,
+      ...(normalized.taskSchema === undefined ? {} : { taskSchema: normalized.taskSchema }),
+      ...(normalized.outputSchema === undefined ? {} : { outputSchema: normalized.outputSchema }),
+      messages: normalized.messages,
+      files: normalized.files,
+      ...(normalized.credentials === undefined ? {} : { credentials: normalized.credentials }),
+      ...(options.signal === undefined ? {} : { signal: options.signal }),
+    };
+    return await provider.complete(providerRequest);
+  } finally {
+    if (declaredFiles.temporaryRoot !== undefined) {
+      await rm(declaredFiles.temporaryRoot, { recursive: true, force: true });
+    }
   }
-  const providerRequest: ProviderCompletionRequest = {
-    provider: normalized.provider,
-    model: normalized.model,
-    thinking: normalized.thinking,
-    ...(normalized.systemPrompt.value === null ? {} : { systemPrompt: normalized.systemPrompt.value }),
-    llmPrompt: composeRequestPrompt(normalized),
-    task: normalized.task,
-    ...(normalized.taskSchema === undefined ? {} : { taskSchema: normalized.taskSchema }),
-    ...(normalized.outputSchema === undefined ? {} : { outputSchema: normalized.outputSchema }),
-    messages: normalized.messages,
-    files: normalized.files,
-    ...(normalized.credentials === undefined ? {} : { credentials: normalized.credentials }),
-    ...(options.signal === undefined ? {} : { signal: options.signal }),
-  };
-  return provider.complete(providerRequest);
 }

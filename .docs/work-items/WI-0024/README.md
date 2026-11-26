@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 workItemId: WI-0024
 recordType: work-item-summary
 ---
@@ -8,10 +8,10 @@ recordType: work-item-summary
 
 ## Status
 
-`planned`. This work item captures the complete contract and implementation plan
-for reusable schema-declared parameter file bindings. It does not claim
-implementation, test execution, provider availability, production readiness,
-release, or deployment.
+`complete` for the bounded schema-declared parameter file-binding implementation,
+provider-free validation, and review evidence recorded in the ordered task files.
+It does not claim authenticated provider availability, network transport,
+production readiness, release, deployment, or publication.
 
 ## Authority
 

@@ -372,7 +372,8 @@ export interface CompletionOptions {
 /** Request-directory completion boundary used by the planned `llm req` API. */
 export interface CompleteRequestOptions extends CompletionOptions {
   readonly requestName: string;
-  readonly parameters: JsonObject;
+  readonly parameters?: string | JsonObject;
+  readonly assignments?: readonly { readonly path: string; readonly value: string }[];
   readonly files?: readonly ReferenceFile[];
 }
 

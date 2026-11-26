@@ -1,5 +1,6 @@
 import { boundedMessage, LlmFailure } from './errors.js';
 import { createJsonSchemaRegistry, type JsonSchemaRegistry } from 'schema-validate';
+import { validateParameterFileSchema } from './request-parameter-files.js';
 import type { InlineJsonSchema, JsonObject } from './types.js';
 
 export interface RequestParameterAssignment {
@@ -31,13 +32,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
-}
-
-function hasUnsupportedMetadata(value: unknown): boolean {
-  if (Array.isArray(value)) return value.some(hasUnsupportedMetadata);
-  if (!isRecord(value)) return false;
-  if (Object.prototype.hasOwnProperty.call(value, 'x-llm-req-parameter')) return true;
-  return Object.values(value).some(hasUnsupportedMetadata);
 }
 
 function segmentName(segment: ParameterPathSegment): string {
@@ -262,7 +256,7 @@ export function constructRequestParameters(options: RequestParameterOptions): Js
     return {};
   }
   const resolvedSchema = resolveSchema(options, registry);
-  if (hasUnsupportedMetadata(resolvedSchema)) throw parameterFailure('x-llm-req-parameter custom validation metadata is not supported by this boundary.');
+  validateParameterFileSchema(resolvedSchema);
   const rootSchema = resolvedSchema;
   const result: Record<string, unknown> = {};
   mergeObjects(result, defaults);

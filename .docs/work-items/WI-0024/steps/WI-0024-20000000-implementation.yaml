@@ -4,7 +4,7 @@ taskUid: WI-0024-20000000
 orderKey: '20000000'
 parentTaskUid: WI-0024-10000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement schema-declared request parameter file bindings
 objective: Implement reusable schema-declared path/content parameter file bindings through the shared completeRequest boundary and summarize example.
 references:
@@ -69,7 +69,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -155,3 +155,94 @@ task:
     - Move parameter construction/materialization ownership to completeRequest while preserving resolved-parameter callers.
     - Wire llm req to pass raw parameter input/assignments through the shared boundary without request-name conditionals.
     - Add provider-free tests for generic bundles, summarize, invalid metadata/cardinality, safety, cleanup, prompt XML, and compatibility.
+  result:
+    status: implemented
+    implementation:
+      summary: Added reusable schema-declared path/content file bindings through completeRequest, preserved resolved-parameter callers, routed llm req raw parameters and --p-* assignments through the shared boundary, and added the summarize parameter schema example.
+      changes:
+      - id: WI-0024-20000000_CHANGE-001
+        type: production-code
+        summary: Added strict x-llm-req-parameter.file validation, deterministic path/content materialization, explicit-file merging, MIME/encoding handling, temporary-resource cleanup, and completeRequest ownership.
+        objectiveRefs:
+        - WI-0024-20000000_OBJ-001
+        - WI-0024-20000000_OBJ-002
+        - WI-0024-20000000_OBJ-003
+        paths:
+        - src/request-parameter-files.ts
+        - src/request.ts
+        - src/request-parameters.ts
+        - src/types.ts
+        - src/cli/request-command.ts
+      - id: WI-0024-20000000_CHANGE-002
+        type: schema
+        summary: Added the summarize path/content parameter schema with exclusive ordinary JSON Schema oneOf validation and declared file metadata.
+        objectiveRefs:
+        - WI-0024-20000000_OBJ-004
+        paths:
+        - requests/summarize/summarize.parameters.schema.json
+      - id: WI-0024-20000000_CHANGE-003
+        type: test-code
+        summary: Added provider-free trace-marked tests for metadata validation, ordering, prompt XML, success/failure cleanup, safety, shared CLI/library forwarding, compatibility, and summarize cardinality.
+        objectiveRefs:
+        - WI-0024-20000000_OBJ-001
+        - WI-0024-20000000_OBJ-002
+        - WI-0024-20000000_OBJ-003
+        - WI-0024-20000000_OBJ-004
+        - WI-0024-20000000_OBJ-005
+        paths:
+        - tests/request-parameter-files.test.ts
+      testImplementations:
+      - testCaseRef: WI-0024-10000000#test-case/WI-0024-10000000_TC-METADATA-VALIDATION
+        path: tests/request-parameter-files.test.ts
+        selector: WI-0024-10000000_TC-METADATA-VALIDATION
+        traceMarker: WI-0024-10000000_TC-METADATA-VALIDATION
+      - testCaseRef: WI-0024-10000000#test-case/WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY
+        path: tests/request-parameter-files.test.ts
+        selector: WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY
+        traceMarker: WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY
+      - testCaseRef: WI-0024-10000000#test-case/WI-0024-10000000_TC-SHARED-BOUNDARY
+        path: tests/request-parameter-files.test.ts
+        selector: WI-0024-10000000_TC-SHARED-BOUNDARY
+        traceMarker: WI-0024-10000000_TC-SHARED-BOUNDARY
+      - testCaseRef: WI-0024-10000000#test-case/WI-0024-10000000_TC-SUMMARIZE-EXAMPLE
+        path: tests/request-parameter-files.test.ts
+        selector: WI-0024-10000000_TC-SUMMARIZE-EXAMPLE
+        traceMarker: WI-0024-10000000_TC-SUMMARIZE-EXAMPLE
+      - testCaseRef: WI-0024-10000000#test-case/WI-0024-10000000_TC-COMPATIBILITY-GATE
+        path: tests/request-parameter-files.test.ts
+        selector: WI-0024-10000000_TC-COMPATIBILITY-GATE
+        traceMarker: WI-0024-10000000_TC-COMPATIBILITY-GATE
+    verification:
+      status: passed
+      objectiveRefs:
+      - WI-0024-20000000_OBJ-001
+      - WI-0024-20000000_OBJ-002
+      - WI-0024-20000000_OBJ-003
+      - WI-0024-20000000_OBJ-004
+      - WI-0024-20000000_OBJ-005
+      tests:
+      - id: WI-0024-20000000_EXEC-FOCUSED
+        type: component
+        testCaseRefs:
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-METADATA-VALIDATION
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-SHARED-BOUNDARY
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-SUMMARIZE-EXAMPLE
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-COMPATIBILITY-GATE
+        command: node --import tsx --test tests/request-parameter-files.test.ts
+        status: passed
+        result: 'All seven provider-free WI-0024 focused tests passed: five strategy-mapped cases plus cleanup-failure and safety-boundary supplemental cases.'
+      - id: WI-0024-20000000_EXEC-PACKAGE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-METADATA-VALIDATION
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-SHARED-BOUNDARY
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-SUMMARIZE-EXAMPLE
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-COMPATIBILITY-GATE
+        command: npm run typecheck && npm test && npm run build && git diff --check
+        status: passed
+        result: Typecheck passed, the full 152-test provider-free suite passed, build passed, and the final diff check passed.
+    limitations:
+    - Provider-free local evidence does not establish authenticated provider behavior, network transport, deployment, publication, downstream integration, or production readiness.
+    - requests/README.md and requests/decisions.md were not modified because their explicit contract-edit gate requires a separate human-confirmed documentation action.
