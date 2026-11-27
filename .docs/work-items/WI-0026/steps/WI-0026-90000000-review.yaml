@@ -4,7 +4,7 @@ taskUid: WI-0026-90000000
 orderKey: '90000000'
 parentTaskUid: WI-0026-80000000
 taskType: review
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Review claude provider scope and evidence
 objective: Review whether the claude provider and its evidence are complete, in scope, safe, and documented.
 references:
@@ -45,7 +45,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
@@ -96,3 +96,174 @@ task:
       ref: .docs/work-items/WI-0026/README.md
       purpose: Apply the declared scope and evidence boundary.
       required: true
+  result:
+    status: complete
+    decision: accepted
+    summary: "Review accepted WI-0026 after rework. An independent read-only AI review found two required schema defects and five advisory issues: six fixed in 65c9f21, and one (the summarize openrouter model change) accepted and documented. The session-found real-CLI invocation is resolved by the test guard. One advisory finding stays open: no live claude run has verified the generated envelopes."
+    actor:
+      id: wi-0026-reviewer
+      role: reviewer
+      authorityRef: WI-0026
+    criteriaEvaluations:
+    - criterionRef: '#criterion/CRIT-001'
+      status: satisfied
+      summary: "All five requirements and ten acceptance criteria map to COV-001 through COV-006, and every case has a trace-named test that passed in the focused and full runs."
+      evidenceRefs:
+      - WI-0026-20000000#result/R-001
+      - WI-0026-80000000#result/R-001
+      findingRefs:
+      - '#finding/WI-0026-90000000_FIND-003'
+    - criterionRef: '#criterion/CRIT-002'
+      status: satisfied
+      summary: "The invocation avoids project hooks, MCP servers, built-in tools, and persisted sessions, parses results defensively with the exit code, bounds time and output, and implements tool calling through the existing tool schemas with compilable envelopes."
+      evidenceRefs:
+      - WI-0026-80000000#result/R-001
+      findingRefs:
+      - '#finding/WI-0026-90000000_FIND-001'
+      - '#finding/WI-0026-90000000_FIND-002'
+      - '#finding/WI-0026-90000000_FIND-006'
+      - '#finding/WI-0026-90000000_FIND-007'
+      - '#finding/WI-0026-90000000_FIND-009'
+    - criterionRef: '#criterion/CRIT-003'
+      status: satisfied
+      summary: "claude is the default and resolvable through every mechanism, OpenRouter behavior is unchanged apart from registry selection and the documented summarize model change, the docs match the implementation, and guarded runs never reach the real CLI."
+      evidenceRefs:
+      - WI-0026-80000000#result/R-001
+      findingRefs:
+      - '#finding/WI-0026-90000000_FIND-004'
+      - '#finding/WI-0026-90000000_FIND-005'
+      - '#finding/WI-0026-90000000_FIND-008'
+    findings:
+    - id: WI-0026-90000000_FIND-001
+      severity: required
+      status: resolved
+      message: "Embedding caller schemas (outputSchema, tool inputSchemas, wrapped non-object roots) under a new root broke their local $refs, so the emitted --json-schema could not compile."
+      requestedChange: "Fixed in 65c9f21: embedded schemas move to #/$defs/<key> with local refs rewritten; $id-scoped schemas are kept as is; strict Ajv 2020 compile tests cover both."
+      criterionRefs:
+      - '#criterion/CRIT-002'
+      affectedRefs:
+      - src/claude-provider.ts
+      evidenceRefs:
+      - WI-0026-80000000#result/R-001
+    - id: WI-0026-90000000_FIND-002
+      severity: required
+      status: resolved
+      message: "The tool envelope root used oneOf (and minLength/minItems), which Claude structured output may reject."
+      requestedChange: "Fixed in 65c9f21: the root is a flat object (decision enum, optional output and toolCalls, anyOf call schemas), with combination rules checked on read. Acceptance by real Claude Code remains unverified (FIND-009)."
+      criterionRefs:
+      - '#criterion/CRIT-002'
+      affectedRefs:
+      - src/claude-provider.ts
+      evidenceRefs:
+      - WI-0026-80000000#result/R-001
+    - id: WI-0026-90000000_FIND-003
+      severity: advisory
+      status: resolved
+      message: "No test validated the generated schemas, so findings 001 and 002 would have passed the suite."
+      requestedChange: "Fixed in 65c9f21: every emitted --json-schema is compiled with strict Ajv 2020 and checked against valid and invalid sample replies."
+      criterionRefs:
+      - '#criterion/CRIT-001'
+      affectedRefs:
+      - tests/claude-provider.test.ts
+      evidenceRefs:
+      - WI-0026-80000000#result/R-001
+    - id: WI-0026-90000000_FIND-004
+      severity: advisory
+      status: waived
+      message: "Removing the summarize openrouter pins changes llm summarize --provider openrouter from openai/gpt-5-nano to openai/gpt-5.6-luna."
+      requestedChange: "Accepted as a consequence of the operator decision to move summarize to claude; documented in requests/README.md and requests/decisions.md with the --model openai/gpt-5-nano workaround."
+      criterionRefs:
+      - '#criterion/CRIT-003'
+      affectedRefs:
+      - requests/summarize/summarize.defaults.json
+      evidenceRefs:
+      - WI-0026-80000000#result/R-001
+    - id: WI-0026-90000000_FIND-005
+      severity: advisory
+      status: resolved
+      message: "Windows executable resolution ignored backslash paths and PATHEXT."
+      requestedChange: "Fixed in 65c9f21 for backslash paths and PATHEXT (claude.exe). .cmd and .bat shims are documented as unsupported, so no process is spawned through a shell."
+      criterionRefs:
+      - '#criterion/CRIT-003'
+      affectedRefs:
+      - src/claude-provider.ts
+      evidenceRefs:
+      - WI-0026-80000000#result/R-001
+    - id: WI-0026-90000000_FIND-006
+      severity: advisory
+      status: resolved
+      message: "A stalled claude process could hang a completion forever, and kills sent only SIGTERM."
+      requestedChange: "Fixed in 65c9f21: a 10-minute default timeout (LLM_CLAUDE_TIMEOUT_MS or timeoutMs) with SIGTERM-then-SIGKILL escalation for timeouts, aborts, and output overflow."
+      criterionRefs:
+      - '#criterion/CRIT-002'
+      affectedRefs:
+      - src/claude-provider.ts
+      evidenceRefs:
+      - WI-0026-80000000#result/R-001
+    - id: WI-0026-90000000_FIND-007
+      severity: advisory
+      status: resolved
+      message: "A stop envelope without output produced undefined content when an outputSchema was set."
+      requestedChange: "Fixed in 65c9f21: a stop reply without output is a bounded PROVIDER_REQUEST_FAILED."
+      criterionRefs:
+      - '#criterion/CRIT-002'
+      affectedRefs:
+      - src/claude-provider.ts
+      evidenceRefs:
+      - WI-0026-80000000#result/R-001
+    - id: WI-0026-90000000_FIND-008
+      severity: required
+      status: resolved
+      message: "Before the test guard existed, one local suite run started the real claude CLI from the OpenRouter transport test, which relied on the default provider."
+      requestedChange: "Fixed in e35e00c: the test selects openrouter explicitly, and tests/support/claude-guard.ts (loaded by the npm test scripts) points the provider at a fake CLI; guarded runs record zero real invocations."
+      criterionRefs:
+      - '#criterion/CRIT-003'
+      affectedRefs:
+      - tests/llm.test.ts
+      evidenceRefs:
+      - WI-0026-80000000#result/R-001
+    - id: WI-0026-90000000_FIND-009
+      severity: advisory
+      status: open
+      message: "Acceptance of the generated --json-schema envelopes and the JSON result parsing by the real Claude Code CLI has not been verified; all evidence uses a fake CLI."
+      requestedChange: "With operator approval, run one live llm summarize and one tool-calling completion through the compiled CLI and record the result."
+      criterionRefs:
+      - '#criterion/CRIT-002'
+      affectedRefs:
+      - src/claude-provider.ts
+      evidenceRefs:
+      - WI-0026-80000000#result/R-001
+    evidence:
+    - id: EVID-001
+      kind: validation
+      ref: WI-0026-80000000#result/R-001
+      claim: The required WI-0026 validation passed locally after the rework.
+      tier: cli-audit
+      source: referenced-result
+    - id: EVID-002
+      kind: test
+      ref: WI-0026-20000000#result/R-001
+      claim: Every required strategy case has an executable task-ID-prefixed trace marker.
+      tier: component
+      source: referenced-result
+    - id: EVID-003
+      kind: diff
+      ref: '#repository-state/HEAD'
+      claim: An independent read-only review subagent inspected git diff master...HEAD and confirmed its $ref finding with a script that used the fake CLI; changed paths remain within WI-0026 owned paths.
+      tier: inspection
+      source: repository
+    limitations:
+    - The independent reviewer was an AI subagent, and the final acceptance was made by the same agent session that implemented the change; this is not an independent human review.
+    - "No live claude run is part of this decision. It does not establish real Claude Code behavior, authentication, structured-output acceptance, model quality, cost, deployment, or production readiness."
+    nonClaims:
+    - This decision does not authorize deployment, publication, or release.
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: WI-0026-90000000_EXEC-REVIEW
+      status: succeeded
+      startedAt: '2026-11-27T00:00:00Z'
+      finishedAt: '2026-11-27T00:00:00Z'
