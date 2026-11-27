@@ -8,6 +8,7 @@ export { chatFactory } from './chat.js';
 export { ChatSessionStoreFactory, DEFAULT_CHAT_SESSION_ROOT, DEFAULT_CHAT_SESSION_STORE_TYPE } from './chat-session-store.js';
 export { resolveChatSessionStoreConfig } from './chat-session-config.js';
 export { LlmFailure } from './errors.js';
+export { ParameterValidationFailure } from './request-parameter-validation.js';
 export { stderrDebugSink } from './debug.js';
 export { REQUEST_SCHEMA, RESPONSE_SCHEMA, TOOL_DEFINITION_SCHEMA, TOOL_CALL_SCHEMA, PARALLEL_TOOL_CALL_BATCH_SCHEMA, TOOL_CALLS_SCHEMA, TOOL_RESULT_SCHEMA } from './types.js';
 export type {
@@ -68,4 +69,10 @@ export type {
 export type { ChatSessionStoreConfigResolutionOptions } from './chat-session-config.js';
 export type { OpenRouterChatRequest, OpenRouterFunctionTool, OpenRouterMessage } from './openrouter-projection.js';
 export type { DebugEvent, DebugSink } from './debug.js';
-export type { ParameterValidationContext, ParameterValidationFileSystem } from './request-parameter-validation.js';
+export type {
+  ParameterValidationContext,
+  ParameterValidationFileSystem,
+  ParameterValidationIssue,
+  ParameterValidationResult,
+  ParameterValidationResultError,
+} from './request-parameter-validation.js';

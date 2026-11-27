@@ -149,3 +149,16 @@ context without Node globals or string code generation, with a 1000 ms
 timeout. That isolation is not a security boundary: request bundles are trusted
 code. Validator modules, asynchronous validators, and filesystem writes remain
 out of scope.
+
+## D18 — Structured validation results
+
+Requested for WI-0025. A validation function may return the closed object
+`{ valid, errors: [{ message, path?, remediation? }] }`. When `valid` is false,
+the object carries 1 to 20 errors, and text is truncated to 500 characters.
+The object is read only through own data properties, so validator getters
+never run outside the vm timeout. Validation metadata gains an optional
+`remediation` for `false` and string returns. Every validator-driven failure
+raises the exported `ParameterValidationFailure` with normalized `issues`.
+`llm req` writes one error entry per issue with `parameterPath` and
+`remediation`. The first failing validator still stops validation, and the
+response schema and error codes are unchanged.

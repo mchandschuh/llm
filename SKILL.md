@@ -166,7 +166,11 @@ the layered `config.json`. Parameters come from `--parameters` and
 schema-parameter options such as `--path` are rejected on `llm req` with a
 `--p-` suggestion. A schema node may declare
 `x-llm-req-parameter.validation.function`, an inline synchronous JavaScript
-function `(value, context) => true | false | 'failure message'`. It runs
+function `(value, context) => true | false | 'failure message' | { valid, errors }`.
+Each entry in `errors` is `{ message, path?, remediation? }`. When `llm req`
+fails validation, read each error entry's `parameterPath` and `remediation`
+to correct the named parameter and retry. Library callers receive a
+`ParameterValidationFailure` with the same `issues`. It runs
 before file materialization and provider use, and its context includes the
 resolved parameters and read-only `fs` helpers. Request bundles that declare
 validators are trusted code. `llm summarize` is a compatibility form for
