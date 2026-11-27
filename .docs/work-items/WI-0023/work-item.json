@@ -1,0 +1,180 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0023",
+  "status": "planned",
+  "title": "Define and implement x-llm-req-parameter.validation.function",
+  "type": "feature",
+  "objective": "Let request parameter schemas declare bespoke validation that JSON Schema cannot express, through x-llm-req-parameter.validation.function inline JavaScript functions that receive the parameter value and a read-only validation context, and run them in the shared completeRequest boundary before file materialization and provider use. Contract sections: requests/README.md#x-llm-req-parameter-metadata; requests/README.md#processing-order; requests/README.md#request-name-and-filesystem-safety; requests/README.md#evidence-boundary.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "WI-0023-request-parameter-validation",
+      "created": false,
+      "rationale": "Each work item is processed on its own branch."
+    }
+  },
+  "baseline": "ec0a580c12a0ef2a4e6f2c345f8473cd8b8210ac",
+  "request": {
+    "source": "conversation",
+    "text": "Define and implement x-llm-req-parameter metadata for request parameter schemas so custom validation that is inexpressible via JSON Schema can be declared safely, documented in requests/README.md, tested provider-free, and integrated into the dynamic request work-item sequence. Operator clarification: we want to support x-llm-req-parameter.validation.function for an inline javascript function that has access to context sufficient to perform bespoke validation.",
+    "sha256": "92df7ffee19841887b85935d3b301ccdf1d5a28dc7e966ee03ed9e31f4d99cc1"
+  },
+  "scope": [
+    {
+      "name": "metadata-contract",
+      "description": "Define x-llm-req-parameter.validation with a required inline JavaScript function expression and an optional failure message, its allowed schema positions, and fail-closed handling of malformed metadata.",
+      "reason": "Bespoke validation must be explicitly declared by each request schema."
+    },
+    {
+      "name": "invocation-context",
+      "description": "Invoke each declared function with the parameter value and a frozen context exposing the parameter path, the complete resolved parameters, the schema node, request identity, working directory, and read-only filesystem helpers.",
+      "reason": "Bespoke validation needs enough context to check cross-field and filesystem conditions."
+    },
+    {
+      "name": "result-semantics",
+      "description": "Define pass/fail return values, thrown-error handling, synchronous execution, a bounded timeout, and an isolated vm context without Node globals.",
+      "reason": "Validation outcomes must be deterministic and bounded."
+    },
+    {
+      "name": "pipeline-integration",
+      "description": "Run validators through completeRequest after JSON Schema validation and before file materialization, substitution, and provider delegation, for CLI and library callers alike.",
+      "reason": "One shared boundary must own parameter validation."
+    },
+    {
+      "name": "documentation-and-compatibility",
+      "description": "Document the feature and its trust boundary in requests/README.md, README.md, and SKILL.md, record the decision, and keep existing file-binding and summarize behavior green.",
+      "reason": "The request README is the authoritative llm req contract."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "security-sandbox",
+      "description": "Do not claim or build a security sandbox; request bundles are trusted configuration and the vm context only limits accidental access to Node globals.",
+      "reason": "node:vm is not a security mechanism.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "module-and-async-validators",
+      "description": "Do not load validator modules or file paths, and do not support asynchronous validators, network access, or filesystem writes.",
+      "reason": "Keep validation inline, synchronous, and bounded.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "request-name-special-casing",
+      "description": "Do not add validation behavior keyed on request names or change the summarize request assets.",
+      "reason": "The feature must be generic and schema-declared.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "provider-and-release",
+      "description": "Do not make authenticated provider calls, publish, deploy, or claim production readiness.",
+      "reason": "Evidence is local and provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0023_REQ_001",
+        "name": "metadata-contract",
+        "description": "Parameter schemas can declare x-llm-req-parameter.validation with a function expression (string or array of lines) and optional message on the schema root, properties, and array items; malformed metadata fails before provider use.",
+        "reason": "Validation must be explicit, schema-owned, and fail closed.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0023_REQ_001_AC_001",
+            "description": "Valid metadata is accepted alone and together with file metadata on the same node."
+          },
+          {
+            "id": "WI-0023_REQ_001_AC_002",
+            "description": "Unknown members, non-string sources, syntax errors, non-function expressions, and unsupported schema positions fail boundedly with zero provider calls."
+          }
+        ]
+      },
+      {
+        "id": "WI-0023_REQ_002",
+        "name": "invocation-context",
+        "description": "Each function receives the value and a frozen context with path, value, parameters, schema, request name and directory, working directory, and read-only filesystem helpers; array-item validators run per element and absent values are skipped.",
+        "reason": "Bespoke validation needs sufficient, immutable context.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0023_REQ_002_AC_001",
+            "description": "Context fields carry the documented values, are immutable, and run in deterministic declaration order with concrete element paths."
+          },
+          {
+            "id": "WI-0023_REQ_002_AC_002",
+            "description": "Filesystem helpers resolve from the working directory, are read-only, and bound text reads."
+          }
+        ]
+      },
+      {
+        "id": "WI-0023_REQ_003",
+        "name": "result-semantics",
+        "description": "true or undefined passes; false fails with the declared or default message; a string fails with that message; a thrown error fails with its message; other results, thenables, and timeouts are bounded configuration errors.",
+        "reason": "Outcomes must be deterministic and bounded.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0023_REQ_003_AC_001",
+            "description": "Every documented return form produces the documented outcome and failures stop before provider use."
+          },
+          {
+            "id": "WI-0023_REQ_003_AC_002",
+            "description": "Infinite loops time out, string code generation is disabled, and require/process are unavailable in the validator context."
+          }
+        ]
+      },
+      {
+        "id": "WI-0023_REQ_004",
+        "name": "pipeline-integration",
+        "description": "completeRequest runs validators after JSON Schema validation and before file materialization, placeholder substitution, and provider delegation, for library callers and llm req alike.",
+        "reason": "One shared boundary owns validation.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0023_REQ_004_AC_001",
+            "description": "Schema-invalid values never reach a validator and failing validators create no materialized files and make no provider calls."
+          },
+          {
+            "id": "WI-0023_REQ_004_AC_002",
+            "description": "llm req --p- assignments reach the same validators as library parameters."
+          }
+        ]
+      },
+      {
+        "id": "WI-0023_REQ_005",
+        "name": "documentation-and-compatibility",
+        "description": "requests/README.md documents the metadata, context, results, ordering, timeout, and trust boundary; README.md and SKILL.md mention the feature; existing behavior and the full provider-free gate stay green.",
+        "reason": "The contract must match behavior and the change must be additive.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0023_REQ_005_AC_001",
+            "description": "Contract text matches the implemented shape and no longer states that validation is reserved or that request assets never execute JavaScript."
+          },
+          {
+            "id": "WI-0023_REQ_005_AC_002",
+            "description": "The full repository gate passes, including existing file-binding and summarize tests."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0023/steps/"
+}

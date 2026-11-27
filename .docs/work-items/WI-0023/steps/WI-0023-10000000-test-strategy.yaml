@@ -1,0 +1,316 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0023
+taskUid: WI-0023-10000000
+orderKey: '10000000'
+parentTaskUid: null
+taskType: test-strategy
+processingStatus: processing_completed
+title: Define x-llm-req-parameter.validation.function test strategy
+objective: Define deterministic provider-free evidence for inline JavaScript parameter validation functions shared by completeRequest and llm req.
+references:
+  required:
+  - .docs/work-items/WI-0023/work-item.json
+  - .docs/work-items/WI-0023/README.md
+  - .docs/work-items/WI-0023/work-item-request.md
+  - requests/README.md
+  - requests/decisions.md
+  - src/request.ts
+  - src/request-parameters.ts
+  - src/request-parameter-files.ts
+  - tests/request-parameters.test.ts
+  - tests/request-parameter-files.test.ts
+  - package.json
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0023/steps/WI-0023-10000000-test-strategy.yaml
+  commitSubject: 'WI-0023: plan: define parameter-validation test strategy'
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments: [run, typecheck]
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/result
+  intent:
+    summary: Define deterministic evidence for x-llm-req-parameter.validation.function.
+    inputs:
+    - id: WI-0023-10000000_INPUT-REQ-001
+      kind: requirement
+      ref: WI-0023#work-item.json#requirement/WI-0023_REQ_001
+      purpose: Define metadata contract evidence.
+      required: true
+    - id: WI-0023-10000000_INPUT-REQ-002
+      kind: requirement
+      ref: WI-0023#work-item.json#requirement/WI-0023_REQ_002
+      purpose: Define invocation context evidence.
+      required: true
+    - id: WI-0023-10000000_INPUT-REQ-003
+      kind: requirement
+      ref: WI-0023#work-item.json#requirement/WI-0023_REQ_003
+      purpose: Define result semantics evidence.
+      required: true
+    - id: WI-0023-10000000_INPUT-REQ-004
+      kind: requirement
+      ref: WI-0023#work-item.json#requirement/WI-0023_REQ_004
+      purpose: Define pipeline integration evidence.
+      required: true
+    - id: WI-0023-10000000_INPUT-REQ-005
+      kind: requirement
+      ref: WI-0023#work-item.json#requirement/WI-0023_REQ_005
+      purpose: Define documentation and compatibility evidence.
+      required: true
+    requirements:
+    - id: REQ-001
+      kind: requirement
+      statement: Validation metadata is validated and malformed metadata or positions fail before provider use.
+      inputRefs: [WI-0023-10000000_INPUT-REQ-001]
+      required: true
+    - id: REQ-002
+      kind: requirement
+      statement: Validators receive the value and a frozen, sufficient context including read-only filesystem helpers.
+      inputRefs: [WI-0023-10000000_INPUT-REQ-002]
+      required: true
+    - id: REQ-003
+      kind: requirement
+      statement: Return values, thrown errors, thenables, and timeouts have deterministic bounded outcomes in an isolated context.
+      inputRefs: [WI-0023-10000000_INPUT-REQ-003]
+      required: true
+    - id: REQ-004
+      kind: requirement
+      statement: completeRequest runs validators after schema validation and before materialization and provider delegation for CLI and library callers.
+      inputRefs: [WI-0023-10000000_INPUT-REQ-004]
+      required: true
+    - id: REQ-005
+      kind: requirement
+      statement: The contract documents the feature and trust boundary and existing behavior stays green.
+      inputRefs: [WI-0023-10000000_INPUT-REQ-005]
+      required: true
+    invariants:
+    - id: WI-0023-10000000_INV-001
+      statement: Validation behavior is declared by schema metadata and never inferred from request or parameter names.
+      inputRefs: [WI-0023-10000000_INPUT-REQ-001, WI-0023-10000000_INPUT-REQ-004]
+      required: true
+    - id: WI-0023-10000000_INV-002
+      statement: Malformed metadata, failing validators, timeouts, and invalid results stop before file materialization and provider delegation.
+      inputRefs: [WI-0023-10000000_INPUT-REQ-001, WI-0023-10000000_INPUT-REQ-003, WI-0023-10000000_INPUT-REQ-004]
+      required: true
+    - id: WI-0023-10000000_INV-003
+      statement: Validators observe immutable copies and cannot change the resolved parameters or reach Node globals through the vm context.
+      inputRefs: [WI-0023-10000000_INPUT-REQ-002, WI-0023-10000000_INPUT-REQ-003]
+      required: true
+    - id: WI-0023-10000000_INV-004
+      statement: Existing file bindings, summarize behavior, prompt XML, and provider projection remain stable.
+      inputRefs: [WI-0023-10000000_INPUT-REQ-005]
+      required: true
+    objectives:
+    - id: WI-0023-10000000_OBJ-001
+      statement: Verify metadata contract.
+      inputRefs: [WI-0023-10000000_INPUT-REQ-001]
+      requirementRefs: [WI-0023_REQ_001]
+      invariantRefs: ['#intent/invariants/WI-0023-10000000_INV-001', '#intent/invariants/WI-0023-10000000_INV-002']
+      acceptanceCriterionRefs: [WI-0023_REQ_001_AC_001, WI-0023_REQ_001_AC_002]
+    - id: WI-0023-10000000_OBJ-002
+      statement: Verify invocation context.
+      inputRefs: [WI-0023-10000000_INPUT-REQ-002]
+      requirementRefs: [WI-0023_REQ_002]
+      invariantRefs: ['#intent/invariants/WI-0023-10000000_INV-003']
+      acceptanceCriterionRefs: [WI-0023_REQ_002_AC_001, WI-0023_REQ_002_AC_002]
+    - id: WI-0023-10000000_OBJ-003
+      statement: Verify result semantics.
+      inputRefs: [WI-0023-10000000_INPUT-REQ-003]
+      requirementRefs: [WI-0023_REQ_003]
+      invariantRefs: ['#intent/invariants/WI-0023-10000000_INV-002', '#intent/invariants/WI-0023-10000000_INV-003']
+      acceptanceCriterionRefs: [WI-0023_REQ_003_AC_001, WI-0023_REQ_003_AC_002]
+    - id: WI-0023-10000000_OBJ-004
+      statement: Verify pipeline integration.
+      inputRefs: [WI-0023-10000000_INPUT-REQ-004]
+      requirementRefs: [WI-0023_REQ_004]
+      invariantRefs: ['#intent/invariants/WI-0023-10000000_INV-001', '#intent/invariants/WI-0023-10000000_INV-002']
+      acceptanceCriterionRefs: [WI-0023_REQ_004_AC_001, WI-0023_REQ_004_AC_002]
+    - id: WI-0023-10000000_OBJ-005
+      statement: Verify documentation and compatibility.
+      inputRefs: [WI-0023-10000000_INPUT-REQ-005]
+      requirementRefs: [WI-0023_REQ_005]
+      invariantRefs: ['#intent/invariants/WI-0023-10000000_INV-004']
+      acceptanceCriterionRefs: [WI-0023_REQ_005_AC_001, WI-0023_REQ_005_AC_002]
+    nonGoals:
+    - Apply only the WI-0023 contract sections of requests/README.md, which the operator confirmed for this work item.
+    - Do not claim a security sandbox or authenticated provider, network, deployment, release, or production behavior.
+  result:
+    status: defined
+    testCases:
+    - id: WI-0023-10000000_TC-METADATA-CONTRACT
+      title: Validate x-llm-req-parameter.validation metadata
+      type: unit
+      requirementLevel: required
+      purpose: Prove valid function metadata is accepted alone and with file metadata, and that unknown members, non-string sources, syntax errors, non-function expressions, and unsupported positions fail before provider use.
+      procedure:
+        executionMode: executable
+        target: Parameter-validation metadata discovery and constructRequestParameters
+        steps:
+        - Arrange valid and malformed validation metadata fixtures.
+        - Construct parameters and run completeRequest with an injected provider.
+        - Assert CONFIGURATION_INVALID failures and zero provider calls for malformed metadata.
+        command: npm test -- --test-name-pattern=WI-0023-10000000_TC-METADATA-CONTRACT
+      expectedOutcome: The metadata-contract behavior matches the contract and fails closed at its boundary.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: unit
+      fixtureRefs: []
+      limitations: [Provider-free tests do not establish authenticated provider behavior or sandbox security.]
+    - id: WI-0023-10000000_TC-INVOCATION-CONTEXT
+      title: Invoke validators with a sufficient frozen context
+      type: unit
+      requirementLevel: required
+      purpose: Prove validators receive the documented value and context fields, run per array element with concrete paths in declaration order, skip absent values, and cannot mutate the resolved parameters.
+      procedure:
+        executionMode: executable
+        target: runParameterValidators
+        steps:
+        - Arrange root, property, nested, and array-item validators that record their context.
+        - Run validation over resolved parameters.
+        - Assert context fields, ordering, immutability, and skipped absent values.
+        command: npm test -- --test-name-pattern=WI-0023-10000000_TC-INVOCATION-CONTEXT
+      expectedOutcome: The invocation-context behavior matches the contract and fails closed at its boundary.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: unit
+      fixtureRefs: []
+      limitations: [Provider-free tests do not establish authenticated provider behavior or sandbox security.]
+    - id: WI-0023-10000000_TC-FILESYSTEM-HELPERS
+      title: Expose read-only filesystem helpers
+      type: unit
+      requirementLevel: required
+      purpose: Prove context.fs resolve, exists, isFile, isDirectory, and readText resolve from the working directory and bound text reads.
+      procedure:
+        executionMode: executable
+        target: Validation context filesystem helpers
+        steps:
+        - Arrange files, directories, and an oversized file.
+        - Call each helper from a validator.
+        - Assert results, relative resolution, and the bounded readText failure.
+        command: npm test -- --test-name-pattern=WI-0023-10000000_TC-FILESYSTEM-HELPERS
+      expectedOutcome: The filesystem-helpers behavior matches the contract and fails closed at its boundary.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: unit
+      fixtureRefs: []
+      limitations: [Provider-free tests do not establish authenticated provider behavior or sandbox security.]
+    - id: WI-0023-10000000_TC-RESULT-SEMANTICS
+      title: Map validator results to outcomes
+      type: unit
+      requirementLevel: required
+      purpose: Prove true/undefined pass; false, strings, and thrown errors fail with the documented messages; other results and thenables are configuration errors; infinite loops time out; code generation and Node globals are unavailable.
+      procedure:
+        executionMode: executable
+        target: runParameterValidators result handling
+        steps:
+        - Arrange validators for each documented return form and isolation probe.
+        - Run validation for each.
+        - Assert outcomes, messages, timeout, and isolation.
+        command: npm test -- --test-name-pattern=WI-0023-10000000_TC-RESULT-SEMANTICS
+      expectedOutcome: The result-semantics behavior matches the contract and fails closed at its boundary.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: unit
+      fixtureRefs: []
+      limitations: [Provider-free tests do not establish authenticated provider behavior or sandbox security.]
+    - id: WI-0023-10000000_TC-PIPELINE-ORDER
+      title: Run validators in the shared request pipeline
+      type: component
+      requirementLevel: required
+      purpose: Prove schema-invalid values never reach validators, failing validators create no materialized files and make no provider calls, and llm req --p- assignments reach the same validators.
+      procedure:
+        executionMode: executable
+        target: completeRequest and runRequestCommand
+        steps:
+        - Arrange a generic request with file bindings and validators.
+        - Run library and CLI-command paths with an injected provider.
+        - Assert ordering, zero provider calls on failure, and no materialized files.
+        command: npm test -- --test-name-pattern=WI-0023-10000000_TC-PIPELINE-ORDER
+      expectedOutcome: The pipeline-order behavior matches the contract and fails closed at its boundary.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations: [Provider-free tests do not establish authenticated provider behavior or sandbox security.]
+    - id: WI-0023-10000000_TC-CONTRACT-DOCUMENTATION
+      title: Keep the validation contract aligned
+      type: unit
+      requirementLevel: required
+      purpose: Prove requests/README.md documents the metadata shape, context fields, result semantics, timeout, and trust boundary, and no longer states that validation is reserved or that assets never execute JavaScript.
+      procedure:
+        executionMode: executable
+        target: requests/README.md and public docs
+        steps:
+        - Read the contract sections and public docs.
+        - Compare documented names with the implementation constants.
+        - Assert required statements and the absence of superseded statements.
+        command: npm test -- --test-name-pattern=WI-0023-10000000_TC-CONTRACT-DOCUMENTATION
+      expectedOutcome: The contract-documentation behavior matches the contract and fails closed at its boundary.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: unit
+      fixtureRefs: []
+      limitations: [Provider-free tests do not establish authenticated provider behavior or sandbox security.]
+    fixtures: []
+    coverage:
+    - id: COV-001
+      requirementRefs: [WI-0023_REQ_001]
+      invariantRefs: ['#intent/invariants/WI-0023-10000000_INV-001', '#intent/invariants/WI-0023-10000000_INV-002']
+      objectiveRefs: ['#objective/WI-0023-10000000_OBJ-001']
+      testCaseRefs: ['#result/testCases/WI-0023-10000000_TC-METADATA-CONTRACT']
+      rationale: The metadata-contract case covers the mapped acceptance criteria.
+      acceptanceCriterionRefs: [WI-0023_REQ_001_AC_001, WI-0023_REQ_001_AC_002]
+    - id: COV-002
+      requirementRefs: [WI-0023_REQ_002]
+      invariantRefs: ['#intent/invariants/WI-0023-10000000_INV-003']
+      objectiveRefs: ['#objective/WI-0023-10000000_OBJ-002']
+      testCaseRefs: ['#result/testCases/WI-0023-10000000_TC-INVOCATION-CONTEXT']
+      rationale: The invocation-context case covers the mapped acceptance criteria.
+      acceptanceCriterionRefs: [WI-0023_REQ_002_AC_001]
+    - id: COV-003
+      requirementRefs: [WI-0023_REQ_002]
+      invariantRefs: ['#intent/invariants/WI-0023-10000000_INV-003']
+      objectiveRefs: ['#objective/WI-0023-10000000_OBJ-002']
+      testCaseRefs: ['#result/testCases/WI-0023-10000000_TC-FILESYSTEM-HELPERS']
+      rationale: The filesystem-helpers case covers the mapped acceptance criteria.
+      acceptanceCriterionRefs: [WI-0023_REQ_002_AC_002]
+    - id: COV-004
+      requirementRefs: [WI-0023_REQ_003]
+      invariantRefs: ['#intent/invariants/WI-0023-10000000_INV-002', '#intent/invariants/WI-0023-10000000_INV-003']
+      objectiveRefs: ['#objective/WI-0023-10000000_OBJ-003']
+      testCaseRefs: ['#result/testCases/WI-0023-10000000_TC-RESULT-SEMANTICS']
+      rationale: The result-semantics case covers the mapped acceptance criteria.
+      acceptanceCriterionRefs: [WI-0023_REQ_003_AC_001, WI-0023_REQ_003_AC_002]
+    - id: COV-005
+      requirementRefs: [WI-0023_REQ_004]
+      invariantRefs: ['#intent/invariants/WI-0023-10000000_INV-001', '#intent/invariants/WI-0023-10000000_INV-002']
+      objectiveRefs: ['#objective/WI-0023-10000000_OBJ-004']
+      testCaseRefs: ['#result/testCases/WI-0023-10000000_TC-PIPELINE-ORDER']
+      rationale: The pipeline-order case covers the mapped acceptance criteria.
+      acceptanceCriterionRefs: [WI-0023_REQ_004_AC_001, WI-0023_REQ_004_AC_002]
+    - id: COV-006
+      requirementRefs: [WI-0023_REQ_005]
+      invariantRefs: ['#intent/invariants/WI-0023-10000000_INV-004']
+      objectiveRefs: ['#objective/WI-0023-10000000_OBJ-005']
+      testCaseRefs: ['#result/testCases/WI-0023-10000000_TC-CONTRACT-DOCUMENTATION']
+      rationale: The contract-documentation case covers the mapped acceptance criteria.
+      acceptanceCriterionRefs: [WI-0023_REQ_005_AC_001, WI-0023_REQ_005_AC_002]
+    minimumRequiredTestCaseRefs:
+    - '#result/testCases/WI-0023-10000000_TC-METADATA-CONTRACT'
+    - '#result/testCases/WI-0023-10000000_TC-INVOCATION-CONTEXT'
+    - '#result/testCases/WI-0023-10000000_TC-FILESYSTEM-HELPERS'
+    - '#result/testCases/WI-0023-10000000_TC-RESULT-SEMANTICS'
+    - '#result/testCases/WI-0023-10000000_TC-PIPELINE-ORDER'
+    - '#result/testCases/WI-0023-10000000_TC-CONTRACT-DOCUMENTATION'
+    recommendedTestCaseRefs: []
+    evidenceLimitations:
+    - This strategy defines evidence but does not claim execution or pass status.
+    - REQ-005 AC-002 (full gate) is evidenced by the validation task's package-gate execution in addition to the contract-documentation case.
+    - No authenticated provider, sandbox-security, deployment, release, downstream, or production evidence is in scope.
