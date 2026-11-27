@@ -1,14 +1,45 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { parseCliArguments } from '../src/cli/arguments.js';
+import { parseCliArguments, parseCliArgumentsAsync } from '../src/cli/arguments.js';
+import { printUsageError } from '../src/cli/output.js';
 import { runPromptCommand } from '../src/cli/prompt-command.js';
 import { runConfigCommand } from '../src/cli/config-command.js';
 import { runChatCommand } from '../src/cli/chat-command.js';
 import { ChatSessionStoreFactory } from '../src/chat-session-store.js';
 import type { LlmProvider, ProviderCompletionRequest } from '../src/types.js';
+
+async function withRequestCliFixture<T>(operation: () => Promise<T>): Promise<T> {
+  const root = await mkdtemp(join(tmpdir(), 'llm-cli-req-'));
+  const requests = join(root, 'requests');
+  const request = join(requests, 'report');
+  const previous = process.env.LLM_CONFIG;
+  await mkdir(join(root, '.config'), { recursive: true });
+  await mkdir(request, { recursive: true });
+  await writeFile(join(root, '.config', 'config.json'), JSON.stringify({ requestsDirectory: requests }));
+  await writeFile(join(root, 'config.json'), JSON.stringify({ requestsDirectory: requests }));
+  await writeFile(join(request, 'report.prompt.md'), 'prompt');
+  await writeFile(join(request, 'report.parameters.schema.json'), JSON.stringify({
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      audience: { type: 'string' },
+      filters: { type: 'object', properties: { owner: { type: 'string' } }, additionalProperties: false },
+      sections: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' } }, additionalProperties: false } },
+      metadata: { type: 'object', additionalProperties: true },
+    },
+  }));
+  process.env.LLM_CONFIG = root;
+  try {
+    return await operation();
+  } finally {
+    if (previous === undefined) delete process.env.LLM_CONFIG;
+    else process.env.LLM_CONFIG = previous;
+    await rm(root, { recursive: true, force: true });
+  }
+}
 
 interface CapturedOutput<T> {
   readonly result: T;
@@ -64,6 +95,86 @@ test('CLI parser rejects missing, invalid, duplicate, and legacy output selector
   assert.deepEqual(parseCliArguments(['--help', '--format=raw']), { debug: false, format: 'raw', printChatId: false, command: 'help', exitCode: 0 });
   assert.deepEqual(parseCliArguments(['--version']), { debug: false, format: 'raw', printChatId: false, command: 'version', exitCode: 0 });
   assert.equal(parseCliArguments(['request.json', 'extra']).exitCode, 2);
+});
+
+test('WI-0019-10000000_TC-REQ-SHAPE recognizes valid req names and rejects malformed forms', async () => {
+  await withRequestCliFixture(async () => {
+    assert.deepEqual(await parseCliArgumentsAsync(['req', 'report']), { debug: false, format: 'raw', printChatId: false, command: 'req', requestName: 'report' });
+    assert.equal((await parseCliArgumentsAsync(['req'])).exitCode, 2);
+    assert.equal((await parseCliArgumentsAsync(['req', 'report', '--unknown', 'value'])).exitCode, 2);
+  });
+});
+
+test('WI-0019-10000000_TC-COMMON-OUTPUT-FLAGS preserves raw/full/debug selectors in req positions', async () => {
+  await withRequestCliFixture(async () => {
+    assert.deepEqual(await parseCliArgumentsAsync(['--debug', 'req', 'report', '--format=full']), { debug: true, format: 'full', printChatId: false, command: 'req', requestName: 'report' });
+    assert.deepEqual(await parseCliArgumentsAsync(['req', 'report', '--format', 'raw', '--debug']), { debug: true, format: 'raw', printChatId: false, command: 'req', requestName: 'report' });
+    assert.equal((await parseCliArgumentsAsync(['req', 'report', '--format=raw', '--format=full'])).exitCode, 2);
+    assert.equal((await parseCliArgumentsAsync(['req', 'report', '--json'])).exitCode, 2);
+  });
+});
+
+test('WI-0019-10000000_TC-PARAMETER-FORWARDING requires the --p- prefix and preserves full, dotted, indexed, and object-valued tokens', async () => {
+  await withRequestCliFixture(async () => {
+    assert.deepEqual(await parseCliArgumentsAsync([
+      'req', 'report',
+      '--parameters', '{"audience":"engineering"}',
+      '--p-filters.owner', 'michael',
+      '--p-sections[0].title=Status',
+      '--p-metadata', '{"region":"us-east-1"}',
+    ]), {
+      debug: false,
+      format: 'raw',
+      printChatId: false,
+      command: 'req',
+      requestName: 'report',
+      requestParameters: '{"audience":"engineering"}',
+      requestAssignments: [
+        { path: 'filters.owner', value: 'michael' },
+        { path: 'sections[0].title', value: 'Status' },
+        { path: 'metadata', value: '{"region":"us-east-1"}' },
+      ],
+    });
+    assert.equal((await parseCliArgumentsAsync(['req', 'report', '--format=full', '--p-filters.owner', 'michael'])).requestAssignments?.[0]?.path, 'filters.owner');
+    for (const args of [
+      ['req', 'report', '--p-unknown', 'value'],
+      ['req', 'report', '--p-'],
+    ]) {
+      assert.equal((await parseCliArgumentsAsync(args)).exitCode, 2, args.join(' '));
+    }
+  });
+});
+
+test('WI-0019-10000000_TC-PARAMETER-PREFIX-GUIDANCE derives --p- corrections for unprefixed schema parameters', async () => {
+  await withRequestCliFixture(async () => {
+    for (const [option, value, expected] of [
+      ['--audience', 'public', "Option '--audience' is a request parameter. Request parameters must use the '--p-' prefix; use '--p-audience <value>'."],
+      ['--filters.owner', 'michael', "Option '--filters.owner' is a request parameter. Request parameters must use the '--p-' prefix; use '--p-filters.owner <value>'."],
+    ] as const) {
+      const parsed = await parseCliArgumentsAsync(['req', 'report', option, value]);
+      assert.equal(parsed.exitCode, 2);
+      assert.equal(parsed.usageError, expected);
+    }
+
+    const stderr: string[] = [];
+    assert.equal(printUsageError("Option '--audience' is a request parameter. Request parameters must use the '--p-' prefix; use '--p-audience <value>'.", (text) => stderr.push(text)), 2);
+    assert.deepEqual(JSON.parse(stderr.join('')), {
+      status: 'input_invalid',
+      errors: [{
+        code: 'REQUEST_INVALID',
+        phase: 'request',
+        message: "Option '--audience' is a request parameter. Request parameters must use the '--p-' prefix; use '--p-audience <value>'.",
+      }],
+    });
+  });
+});
+
+test('WI-0019-10000000_TC-EXISTING-MODES preserves existing parser mode shapes', async () => {
+  await withRequestCliFixture(async () => {
+    assert.deepEqual(await parseCliArgumentsAsync(['-p', 'prompt']), { debug: false, format: 'raw', printChatId: false, command: 'prompt', prompt: 'prompt' });
+    assert.deepEqual(await parseCliArgumentsAsync(['summarize', '--content', 'text']), { debug: false, format: 'raw', printChatId: false, command: 'summarize', summarizeContent: 'text' });
+    assert.deepEqual(await parseCliArgumentsAsync(['request.json']), { debug: false, format: 'raw', printChatId: false, command: 'config', requestPath: 'request.json' });
+  });
 });
 
 test('prompt command performs one completion, defaults to exact raw model output, and supports the full response envelope', async () => {

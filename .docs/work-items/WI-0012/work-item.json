@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0012",
-  "status": "planned",
+  "status": "complete",
   "title": "Add the llm summarize command and configured request assets",
   "type": "feature",
   "objective": "Add one bounded llm summarize command that accepts exactly one source mode (--path or --content), resolves the configured requestsDirectory through nodejs-common, uses the summarize prompt and output-schema assets, sends the constructed request with its files to the existing LLM completion boundary, and prints the summary using the common raw/full output formats.",

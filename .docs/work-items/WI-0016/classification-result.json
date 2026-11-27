@@ -1,0 +1,49 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/classification-result/v1",
+  "status": "classified",
+  "workItemRef": "sdlc://repo/local%2Fllm/WI-0016#work-item.json%23work-item/WI-0016",
+  "workItemSha256": "sha256:426fdd5c78654058f8bd91bfc39a17e8351c69fbf6930e4a9ee17e32a80ffa40",
+  "classification": {
+    "workKind": "feature",
+    "scopeClass": "composite",
+    "architectureImpact": "present",
+    "integrationImpact": "none",
+    "migrationImpact": "none",
+    "deploymentImpact": "none",
+    "risk": "unknown",
+    "uncertainty": "high",
+    "acceptanceCriteriaTestable": true,
+    "reasons": [
+      {
+        "statement": "The work item has multiple bounded responsibilities with testable acceptance criteria.",
+        "sourceRefs": [
+          "#/scope",
+          "#/requirements/items"
+        ]
+      },
+      {
+        "statement": "The work item has explicit provider-free and evidence boundaries.",
+        "sourceRefs": [
+          "#/nonGoals",
+          "#/objective"
+        ]
+      }
+    ]
+  },
+  "workflow": {
+    "profile": "unselected",
+    "topology": "unselected"
+  },
+  "research": {
+    "disposition": "recommended",
+    "reasons": [
+      {
+        "statement": "The work depends on existing request, CLI, completion, and configuration boundaries that must remain compatible.",
+        "sourceRefs": [
+          "#/scope",
+          "#/requirements/items"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0018",
+  "status": "complete",
+  "title": "Add the shared completeRequest library boundary",
+  "type": "feature",
+  "objective": "Expose completeRequest(options: CompleteRequestOptions) with requestName, parameters, optional files, and completion controls; resolve the named request bundle, construct a ProviderCompletionRequest, invoke provider.complete, and return ProviderCompletionResponse. Contract sections: requests/README.md#library-and-cli-boundaries; requests/README.md#additional-input-files. Explicit human operator confirmation is required before modifying requests/README.md.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "llm-request-lookup",
+      "created": false,
+      "rationale": "The record captures bounded planning without creating or switching a branch."
+    }
+  },
+  "baseline": "51984b6064503b576c52ca460d7cf21cc356f52b",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare small, testable work items for dynamic request lookup: document requests/README.md; support request asset discovery; schema-aware CLI parameters including dot/index paths and --parameters JSON; $${variableName}$$ substitution; completeRequest({ requestName, parameters, files, ... }); llm req CLI integration; raw/full output; summarize compatibility; provider-free validation.",
+    "sha256": "6947fefadc20888caa47bb1e4f148f89f8188681ed40da54ec0ac59e4f7fd085"
+  },
+  "scope": [
+    {
+      "name": "exported-api",
+      "description": "completeRequest is exported with CompleteRequestOptions containing requestName, parameters, optional files, and completion controls.",
+      "reason": "Consumers need a stable programmatic boundary."
+    },
+    {
+      "name": "constructed-request",
+      "description": "The function creates a ProviderCompletionRequest from request assets, resolved parameters, and optional external files.",
+      "reason": "The dynamic layer must not invent a parallel contract."
+    },
+    {
+      "name": "single-delegation",
+      "description": "Valid input delegates once and invalid input produces zero provider calls.",
+      "reason": "CLI and library behavior must align."
+    },
+    {
+      "name": "relative-root",
+      "description": "CompletionOptions.files and CompleteRequestOptions.files resolve relative paths from application CWD; additional files may be anywhere on disk.",
+      "reason": "Bundles need safe local references and runtime controls."
+    },
+    {
+      "name": "authoritative-contract",
+      "description": "Implement only the authoritative contract sections [Library and CLI boundaries](#library-and-cli-boundaries), [Prompt, schema, and summarize compatibility](#prompt-schema-and-summarize-compatibility), [Additional input files](#additional-input-files). Do not modify requests/README.md without explicit human operator confirmation.",
+      "reason": "The request README is the source of truth for this implementation batch."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "implementation",
+      "description": "Do not implement behavior outside this work item.",
+      "reason": "Keep the slice independently reviewable.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "provider-and-release",
+      "description": "Do not make authenticated calls, publish, deploy, or claim production readiness.",
+      "reason": "Evidence is local and provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "unrelated-refactor",
+      "description": "Do not redesign unrelated commands, providers, schemas, or persistence.",
+      "reason": "Scope is limited to dynamic request lookup.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0018_REQ_001",
+        "name": "exported-api",
+        "description": "completeRequest is exported with CompleteRequestOptions and returns ProviderCompletionResponse.",
+        "reason": "Consumers need a stable programmatic boundary.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0018_REQ_001_AC_001",
+            "description": "Declarations expose it and a fake-provider import test works."
+          }
+        ]
+      },
+      {
+        "id": "WI-0018_REQ_002",
+        "name": "constructed-request",
+        "description": "The function creates a valid ProviderCompletionRequest from assets, parameters, and files.",
+        "reason": "The dynamic layer must not invent a parallel contract.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0018_REQ_002_AC_001",
+            "description": "Provider capture covers provider/model/task/systemPrompt/taskSchema/outputSchema/files/defaults."
+          },
+          {
+            "id": "WI-0018_REQ_002_AC_002",
+            "description": "Prompt mapping follows WI-0014."
+          }
+        ]
+      },
+      {
+        "id": "WI-0018_REQ_003",
+        "name": "single-delegation",
+        "description": "Valid input delegates once and invalid input produces zero provider calls.",
+        "reason": "CLI and library behavior must align.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0018_REQ_003_AC_001",
+            "description": "Success, malformed asset, invalid parameter, and missing-variable cases are covered."
+          }
+        ]
+      },
+      {
+        "id": "WI-0018_REQ_004",
+        "name": "relative-root",
+        "description": "Additional files are resolved from application CWD and may be external to the repository.",
+        "reason": "Bundles need safe local references and runtime controls.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0018_REQ_004_AC_001",
+            "description": "Relative files resolve under the request directory."
+          },
+          {
+            "id": "WI-0018_REQ_004_AC_002",
+            "description": "Provider, debug, signal, and output controls remain available."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0018/steps/"
+}

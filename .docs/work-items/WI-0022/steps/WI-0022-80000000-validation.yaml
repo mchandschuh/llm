@@ -1,0 +1,142 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0022
+taskUid: WI-0022-80000000
+orderKey: '80000000'
+parentTaskUid: WI-0022-20000000
+taskType: validation
+processingStatus: unprocessed
+title: Validate Validate dynamic request lookup and evidence coverage
+objective: Run the complete provider-free matrix, package gates, documentation checks,
+  scope audit, and non-goal review for dynamic request lookup.
+references:
+  required:
+  - .docs/work-items/WI-0022/work-item.json
+  - .docs/work-items/WI-0022/README.md
+  - requests/README.md
+  - requests/decisions.md
+  - .docs/work-items/
+  - .docs/work-items/WI-0022/steps/WI-0022-20000000-implementation.yaml
+  - requests/
+  - src/
+  - tests/
+  - README.md
+  - SKILL.md
+  - package.json
+  - package-lock.json
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0022-10000000
+- WI-0022-20000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0022/steps/WI-0022-80000000-validation.yaml
+  commitSubject: 'WI-0022: plan: define validation evidence'
+  commitBody:
+    requiredSections:
+    - Why
+    - What
+    - How
+    - Decisions
+    - Validation
+    - Evidence
+    - Refs
+    - Next
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments:
+    - run
+    - typecheck
+    expectedExitCode: 0
+  - id: full-suite
+    executable: npm
+    arguments:
+    - test
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Validate Validate dynamic request lookup and evidence coverage against
+      every required strategy case and scope boundary.
+    inputs:
+    - id: WI-0022-80000000_INPUT-STRATEGY
+      kind: testStrategy
+      ref: WI-0022-10000000#result/R-001
+      purpose: Provide strategy coverage.
+      required: true
+    - id: WI-0022-80000000_INPUT-IMPLEMENTATION
+      kind: implementation
+      ref: WI-0022-20000000#result/R-001
+      purpose: Identify the implementation task and its owned change boundary.
+      required: true
+    targets:
+    - id: WI-0022-80000000_TARGET-REPOSITORY
+      kind: repositoryState
+      ref: '#repository-state/HEAD'
+      purpose: Inspect implementation, tests, declarations, docs, and paths.
+      required: true
+    - id: WI-0022-80000000_TARGET-IMPLEMENTATION
+      kind: taskResult
+      taskType: implementation
+      ref: WI-0022-20000000#result/R-001
+      purpose: Validate the implementation task against its declared owned paths and
+        objectives.
+      required: true
+    objectiveRefs:
+    - WI-0022-10000000#objective/WI-0022-10000000_OBJ-001
+    - WI-0022-10000000#objective/WI-0022-10000000_OBJ-002
+    - WI-0022-10000000#objective/WI-0022-10000000_OBJ-003
+    - WI-0022-10000000#objective/WI-0022-10000000_OBJ-004
+    testCaseRefs:
+    - WI-0022-10000000#test-case/WI-0022-10000000_TC-MATRIX-COVERAGE
+    - WI-0022-10000000#test-case/WI-0022-10000000_TC-PACKAGE-GATES
+    - WI-0022-10000000#test-case/WI-0022-10000000_TC-SCOPE-REVIEW
+    - WI-0022-10000000#test-case/WI-0022-10000000_TC-DOCUMENTATION-CONSISTENCY
+    procedures:
+    - id: WI-0022-80000000_VAL-ALL
+      sequence: 1
+      name: validate-all-request-evidence
+      description: Run focused tests, package gates, declaration checks, and changed-path
+        review.
+      reason: Every requirement needs bounded local evidence.
+      targetRefs:
+      - '#target/WI-0022-80000000_TARGET-REPOSITORY'
+      - '#target/WI-0022-80000000_TARGET-IMPLEMENTATION'
+      objectiveRefs:
+      - WI-0022-10000000#objective/WI-0022-10000000_OBJ-001
+      - WI-0022-10000000#objective/WI-0022-10000000_OBJ-002
+      - WI-0022-10000000#objective/WI-0022-10000000_OBJ-003
+      - WI-0022-10000000#objective/WI-0022-10000000_OBJ-004
+      testCaseRefs:
+      - WI-0022-10000000#test-case/WI-0022-10000000_TC-MATRIX-COVERAGE
+      - WI-0022-10000000#test-case/WI-0022-10000000_TC-PACKAGE-GATES
+      - WI-0022-10000000#test-case/WI-0022-10000000_TC-SCOPE-REVIEW
+      - WI-0022-10000000#test-case/WI-0022-10000000_TC-DOCUMENTATION-CONSISTENCY
+      method:
+        executionMode: executable
+        target: Provider-free request feature test matrix
+        steps:
+        - Run focused tests and the entire repository test suite.
+        - The entire repository test suite must pass before this work item is complete or the next work item begins.
+        - Run typecheck and build.
+        - Inspect declarations, docs, and changed paths.
+        command: npm run typecheck && npm test && npm run build && git diff --check
+      expected:
+        outcome: passed
+        exitCode: 0
+        assertions:
+        - All required cases are exercised or accounted for.
+        - No provider or production claim is made.
+      evidenceTier: cli-audit
+      required: true
+    nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#work-item-validation-gates; requests/README.md#evidence-boundary. Explicit human operator confirmation is required before modifying requests/README.md."
+    - Do not claim authenticated provider, deployment, release, downstream, or production
+      behavior.

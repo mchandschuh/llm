@@ -1,0 +1,54 @@
+import { completeRequest } from '../request.js';
+import type { RequestParameterAssignment } from '../request-parameters.js';
+import { boundedMessage } from '../errors.js';
+import { RESPONSE_SCHEMA, type LlmResponse, type LlmProvider } from '../types.js';
+import type { RequestSettingsOverrides } from '../types.js';
+import { debugSink, printResponse, type OutputWriter } from './output.js';
+import type { ResponseFormat } from './arguments.js';
+
+export interface RequestCommandOptions {
+  readonly requestName: string;
+  readonly requestsDirectory?: string;
+  readonly parameters?: string;
+  readonly assignments?: readonly RequestParameterAssignment[];
+  readonly debug: boolean;
+  readonly format?: ResponseFormat;
+  readonly provider?: LlmProvider;
+  readonly settings?: RequestSettingsOverrides;
+  readonly write?: OutputWriter;
+  readonly writeError?: OutputWriter;
+}
+
+function responseFromProvider(content: string | null): LlmResponse {
+  return {
+    schema: RESPONSE_SCHEMA,
+    status: 'success',
+    output: { $type: 'string', schema: null, value: content ?? '' },
+    failedAttempts: 0,
+    iterations: 1,
+    toolRounds: 0,
+    toolCalls: 0,
+    toolResults: [],
+    errors: [],
+  };
+}
+
+export async function runRequestCommand(options: RequestCommandOptions): Promise<number> {
+  const writeError = options.writeError ?? ((text: string) => process.stderr.write(`${text}\n`));
+  try {
+    const result = await completeRequest({
+      requestName: options.requestName,
+      requestsDirectory: options.requestsDirectory,
+      parameters: options.parameters,
+      assignments: options.assignments,
+      settings: options.settings,
+      debug: debugSink(options.debug),
+      provider: options.provider,
+    });
+    return printResponse(responseFromProvider(result.content), options.format ?? 'raw', result.content ?? '', options.write, writeError);
+  } catch (error) {
+    const message = boundedMessage(error instanceof Error ? error.message : 'The llm req command could not be completed.');
+    writeError(`${JSON.stringify({ status: 'configuration_error', errors: [{ code: 'CONFIGURATION_INVALID', phase: 'configuration', message }] })}\n`);
+    return 1;
+  }
+}

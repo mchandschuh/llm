@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0013",
-  "status": "planned",
+  "status": "complete",
   "title": "Add configurable summarize settings",
   "type": "feature",
   "objective": "Add one canonical summarize settings/defaults JSON asset, resolve default provider/model/thinking values through the configured summarize request directory, and accept summarize-specific command-line overrides while preserving existing source modes, completion behavior, and output formats.",

@@ -1,4 +1,5 @@
 export { complete } from './complete.js';
+export { completeRequest } from './request.js';
 export { composePrompt, composeCorrectionPrompt, composeRequestPrompt } from './prompt.js';
 export { normalizeRequest } from './normalize.js';
 export { OpenRouterProvider } from './provider.js';
@@ -11,6 +12,7 @@ export { stderrDebugSink } from './debug.js';
 export { REQUEST_SCHEMA, RESPONSE_SCHEMA, TOOL_DEFINITION_SCHEMA, TOOL_CALL_SCHEMA, PARALLEL_TOOL_CALL_BATCH_SCHEMA, TOOL_CALLS_SCHEMA, TOOL_RESULT_SCHEMA } from './types.js';
 export type {
   CompletionOptions,
+  CompleteRequestOptions,
   AnyCompletionOptions,
   AnyLlmRequest,
   AnyLlmResponse,
@@ -24,6 +26,7 @@ export type {
   ParallelToolCallBatch,
   ProviderCompletionRequest,
   ProviderCompletionResponse,
+  RequestSettingsOverrides,
   ProviderValidationError,
   ProviderValidationResult,
   ProviderCompletionDecision,

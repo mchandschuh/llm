@@ -1,0 +1,178 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0015
+taskUid: WI-0015-80000000
+orderKey: '80000000'
+parentTaskUid: WI-0015-20000000
+taskType: validation
+processingStatus: processing_completed
+title: Validate Implement request-directory discovery and asset loading
+objective: Resolve a safe request name beneath configured requestsDirectory, discover
+  recognized assets, parse contents, and report bounded configuration failures before
+  completion.
+references:
+  required:
+  - .docs/work-items/WI-0015/work-item.json
+  - .docs/work-items/WI-0015/README.md
+  - requests/README.md
+  - requests/decisions.md
+  - src/requests-config.ts
+  - .docs/work-items/WI-0015/steps/WI-0015-20000000-implementation.yaml
+  - src/errors.ts
+  - src/source.ts
+  - tests/summarize.test.ts
+  - tests/cli.test.ts
+  - package.json
+  - tests/
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0015-10000000
+- WI-0015-20000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0015/steps/WI-0015-80000000-validation.yaml
+  commitSubject: 'WI-0015: plan: define validation evidence'
+  commitBody:
+    requiredSections:
+    - Why
+    - What
+    - How
+    - Decisions
+    - Validation
+    - Evidence
+    - Refs
+    - Next
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments:
+    - run
+    - typecheck
+    expectedExitCode: 0
+  - id: full-suite
+    executable: npm
+    arguments:
+    - test
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Validate Implement request-directory discovery and asset loading against
+      every required strategy case and scope boundary.
+    inputs:
+    - id: WI-0015-80000000_INPUT-STRATEGY
+      kind: testStrategy
+      ref: WI-0015-10000000#result/R-001
+      purpose: Provide strategy coverage.
+      required: true
+    - id: WI-0015-80000000_INPUT-IMPLEMENTATION
+      kind: implementation
+      ref: WI-0015-20000000#result/R-001
+      purpose: Identify the implementation task and its owned change boundary.
+      required: true
+    targets:
+    - id: WI-0015-80000000_TARGET-REPOSITORY
+      kind: repositoryState
+      ref: '#repository-state/HEAD'
+      purpose: Inspect implementation, tests, declarations, docs, and paths.
+      required: true
+    - id: WI-0015-80000000_TARGET-IMPLEMENTATION
+      kind: taskResult
+      taskType: implementation
+      ref: WI-0015-20000000#result/R-001
+      purpose: Validate the implementation task against its declared owned paths and
+        objectives.
+      required: true
+    objectiveRefs:
+    - WI-0015-10000000#objective/WI-0015-10000000_OBJ-001
+    - WI-0015-10000000#objective/WI-0015-10000000_OBJ-002
+    - WI-0015-10000000#objective/WI-0015-10000000_OBJ-003
+    - WI-0015-10000000#objective/WI-0015-10000000_OBJ-004
+    testCaseRefs:
+    - WI-0015-10000000#test-case/WI-0015-10000000_TC-SAFE-RESOLUTION
+    - WI-0015-10000000#test-case/WI-0015-10000000_TC-ASSET-SET
+    - WI-0015-10000000#test-case/WI-0015-10000000_TC-PARSING-ERRORS
+    - WI-0015-10000000#test-case/WI-0015-10000000_TC-CONFIGURATION-REUSE
+    procedures:
+    - id: WI-0015-80000000_VAL-ALL
+      sequence: 1
+      name: validate-all-request-evidence
+      description: Run focused tests, package gates, declaration checks, and changed-path
+        review.
+      reason: Every requirement needs bounded local evidence.
+      targetRefs:
+      - '#target/WI-0015-80000000_TARGET-REPOSITORY'
+      - '#target/WI-0015-80000000_TARGET-IMPLEMENTATION'
+      objectiveRefs:
+      - WI-0015-10000000#objective/WI-0015-10000000_OBJ-001
+      - WI-0015-10000000#objective/WI-0015-10000000_OBJ-002
+      - WI-0015-10000000#objective/WI-0015-10000000_OBJ-003
+      - WI-0015-10000000#objective/WI-0015-10000000_OBJ-004
+      testCaseRefs:
+      - WI-0015-10000000#test-case/WI-0015-10000000_TC-SAFE-RESOLUTION
+      - WI-0015-10000000#test-case/WI-0015-10000000_TC-ASSET-SET
+      - WI-0015-10000000#test-case/WI-0015-10000000_TC-PARSING-ERRORS
+      - WI-0015-10000000#test-case/WI-0015-10000000_TC-CONFIGURATION-REUSE
+      method:
+        executionMode: executable
+        target: Provider-free request feature test matrix
+        steps:
+        - Run focused tests and the entire repository test suite.
+        - The entire repository test suite must pass before this work item is complete or the next work item begins.
+        - Run typecheck and build.
+        - Inspect declarations, docs, and changed paths.
+        command: npm run typecheck && npm test && npm run build && git diff --check
+      expected:
+        outcome: passed
+        exitCode: 0
+        assertions:
+        - All required cases are exercised or accounted for.
+        - No provider or production claim is made.
+      evidenceTier: cli-audit
+      required: true
+    nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#request-bundle-layout; requests/README.md#asset-mapping-and-optionality; requests/README.md#processing-order; requests/README.md#request-name-and-filesystem-safety. Explicit human operator confirmation is required before modifying requests/README.md."
+    - Do not claim authenticated provider, deployment, release, downstream, or production
+      behavior.
+  result:
+    status: passed
+    summary: WI-0015 safe-resolution, asset-set, parsing-errors, and configuration-reuse evidence passed with the full provider-free package gate.
+    executions:
+    - id: WI-0015-80000000_EXEC-ALL
+      procedureRef: '#procedure/WI-0015-80000000_VAL-ALL'
+      status: passed
+      observed:
+        outcome: passed
+        exitCode: 0
+        summary: Focused request-directory tests passed all four strategy cases; the complete package gate passed 125 tests, typecheck, build, whitespace, and conflict-marker checks.
+        assertions:
+        - Four WI-0015 focused tests passed.
+        - npm run typecheck exited zero.
+        - npm test passed 125 of 125 tests.
+        - npm run build exited zero.
+        - git diff --check exited zero.
+        - No conflict markers were found outside dependency/build directories.
+      evidenceTier: cli-audit
+      evidence:
+      - kind: test
+        source: tests/request-directory.test.ts
+        claim: All four WI-0015 strategy cases passed.
+        command: node --import tsx --test tests/request-directory.test.ts
+      - kind: command
+        source: repository package gate
+        claim: The complete provider-free package gate passed.
+        command: npm run typecheck && npm test && npm run build && git diff --check
+    findings: []
+    evidenceTier: cli-audit
+    limitations:
+    - The installed SDLC schema registry lacks sdlc-task-test-strategy/v2, so the strategy task cannot be independently schema-validated in this environment.
+    - Validation covers the loader boundary only and does not establish later library, CLI, provider, deployment, or production behavior.
+    nonClaims:
+    - This validation does not claim authenticated provider behavior or production readiness.
+    - This validation does not authorize deployment, publication, or a Git commit.

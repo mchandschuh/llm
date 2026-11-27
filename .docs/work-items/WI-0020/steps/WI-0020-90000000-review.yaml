@@ -1,0 +1,179 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0020
+taskUid: WI-0020-90000000
+orderKey: '90000000'
+parentTaskUid: WI-0020-80000000
+taskType: review
+processingStatus: processing_completed
+title: Review Integrate llm req execution and output scope and evidence
+objective: Resolve configured request directories, construct parameters, call completeRequest,
+  and print dynamic responses using existing output and exit semantics.
+references:
+  required:
+  - .docs/work-items/WI-0020/work-item.json
+  - .docs/work-items/WI-0020/README.md
+  - requests/README.md
+  - requests/decisions.md
+  - src/cli.ts
+  - .docs/work-items/WI-0020/steps/WI-0020-80000000-validation.yaml
+  - .docs/work-items/WI-0020/steps/WI-0020-20000000-implementation.yaml
+  - src/cli/arguments.ts
+  - src/cli/output.ts
+  - src/requests-config.ts
+  - tests/cli.test.ts
+  - tests/summarize.test.ts
+  - package.json
+  - tests/
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0020-80000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0020/steps/WI-0020-90000000-review.yaml
+  commitSubject: 'WI-0020: plan: define review evidence'
+  commitBody:
+    requiredSections:
+    - Why
+    - What
+    - How
+    - Decisions
+    - Validation
+    - Evidence
+    - Refs
+    - Next
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments:
+    - run
+    - typecheck
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review whether evidence for Integrate llm req execution and output is
+      sufficient, traceable, and in scope.
+    reviewKind: planning
+    target:
+      taskType: test-strategy
+      taskRef: WI-0020-10000000
+      result:
+        ref: WI-0020-10000000#result/testCases/WI-0020-10000000_TC-CONFIGURED-LOOKUP
+        sha256: null
+    gateId: test-strategy
+    policyRef:
+      ref: repository-local-review-policy
+      sha256: null
+    criteria:
+    - id: CRIT-001
+      statement: Every requirement and acceptance criterion has explicit strategy
+        and validation coverage.
+      purpose: Prevent unproven obligations.
+      required: true
+      evidenceRefs:
+      - WI-0020-10000000#result/testCases/WI-0020-10000000_TC-CONFIGURED-LOOKUP
+    - id: CRIT-002
+      statement: The strategy preserves non-goals and evidence limitations without
+        provider or production overclaiming.
+      purpose: Prevent scope expansion.
+      required: true
+      evidenceRefs:
+      - WI-0020#work-item.json#requirement/WI-0020_REQ_001
+    - id: CRIT-003
+      statement: The validation task can execute the strategy and inspect package,
+        documentation, and changed-path gates.
+      purpose: Ensure later completion evidence is sufficient.
+      required: true
+      evidenceRefs:
+      - WI-0020-80000000
+      - WI-0020-20000000
+    evidenceRequirements:
+    - id: EVID-001
+      kind: test
+      ref: WI-0020-10000000#result/testCases/WI-0020-10000000_TC-CONFIGURED-LOOKUP
+      purpose: Provide the declared strategy cases.
+      required: true
+      minimumTier: inspection
+    nonGoals:
+    - id: NON-002
+      statement: "Explicit human operator confirmation is required before modifying requests/README.md; this task must apply contract sections requests/README.md#additional-input-files; requests/README.md#library-and-cli-boundaries; requests/README.md#request-name-and-filesystem-safety. Explicit human operator confirmation is required before modifying requests/README.md."
+    - id: NON-001
+      statement: This review does not claim implementation, provider, completion,
+        release, deployment, or production readiness.
+    context:
+    - id: CTX-001
+      kind: contract
+      ref: .docs/work-items/WI-0020/README.md
+      purpose: Apply declared scope and evidence boundary.
+      required: true
+  result:
+    status: complete
+    decision: accepted
+    summary: Review accepted the llm req execution and output integration. The implementation resolves the configured request directory, constructs schema-aware parameters, delegates once through completeRequest, supports additional path/content files, preserves raw/full output and JSON failures, and retains existing CLI behavior without modifying the authoritative request contract.
+    actor:
+      id: wi-0020-reviewer
+      role: reviewer
+      authorityRef: WI-0020
+    criteriaEvaluations:
+    - criterionRef: '#criterion/CRIT-001'
+      status: satisfied
+      summary: All four requirements and acceptance criteria are represented by the strategy and four executable trace-marked request CLI tests.
+      evidenceRefs:
+      - WI-0020-80000000#result/R-001
+      - WI-0020-20000000#result/R-001
+      findingRefs: []
+    - criterionRef: '#criterion/CRIT-002'
+      status: satisfied
+      summary: The implementation is provider-free in tests, remains within the declared CLI/request boundaries, and does not modify requests/README.md.
+      evidenceRefs:
+      - WI-0020-80000000#result/R-001
+      findingRefs: []
+    - criterionRef: '#criterion/CRIT-003'
+      status: satisfied
+      summary: The validation record executes all four request cases and the complete package gate with changed-path and evidence-boundary review.
+      evidenceRefs:
+      - WI-0020-80000000#result/R-001
+      - WI-0020-20000000#result/R-001
+      findingRefs: []
+    findings: []
+    evidence:
+    - id: EVID-001
+      kind: validation
+      ref: WI-0020-80000000#result/R-001
+      claim: Required llm req execution and output validation passed locally.
+      tier: cli-audit
+      source: referenced-result
+    - id: EVID-002
+      kind: test
+      ref: WI-0020-20000000#result/R-001
+      claim: All four strategy cases have executable task-ID-prefixed trace markers.
+      tier: component
+      source: referenced-result
+    - id: EVID-003
+      kind: diff
+      ref: '#repository-state/HEAD'
+      claim: Changed paths remain within WI-0020 request CLI implementation, parser/help integration, tests, and governed evidence; the authoritative contract was not modified.
+      tier: inspection
+      source: repository
+    limitations:
+    - The installed SDLC registry lacks sdlc-task-test-strategy/v2, so whole-work-item validation cannot independently validate the strategy artifact in this environment.
+    - This decision does not establish authenticated provider behavior, deployment, publication, downstream integration, or production readiness.
+    nonClaims:
+    - This decision does not authorize deployment, publication, or a Git commit.
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: WI-0020-90000000_EXEC-REVIEW
+      status: succeeded
+      startedAt: '2026-11-25T16:40:00Z'
+      finishedAt: '2026-11-25T16:40:00Z'

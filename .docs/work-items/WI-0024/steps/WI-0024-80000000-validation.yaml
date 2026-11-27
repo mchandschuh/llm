@@ -1,0 +1,162 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0024
+taskUid: WI-0024-80000000
+orderKey: '80000000'
+parentTaskUid: WI-0024-20000000
+taskType: validation
+processingStatus: processing_completed
+title: Validate schema-declared request parameter file bindings
+objective: Validate reusable schema-declared file bindings, summarize behavior, compatibility, documentation, and package gates.
+references:
+  required:
+  - .docs/work-items/WI-0024/work-item.json
+  - .docs/work-items/WI-0024/README.md
+  - requests/README.md
+  - requests/decisions.md
+  - requests/summarize/
+  - .docs/work-items/WI-0024/steps/WI-0024-10000000-test-strategy.yaml
+  - .docs/work-items/WI-0024/steps/WI-0024-20000000-implementation.yaml
+  - src/request-parameter-files.ts
+  - src/request.ts
+  - src/cli/request-command.ts
+  - src/cli/arguments.ts
+  - tests/request-parameter-files.test.ts
+  - tests/request.test.ts
+  - tests/request-cli.test.ts
+  - tests/summarize.test.ts
+  - tests/provider-projection.test.ts
+  - package.json
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0024-10000000
+- WI-0024-20000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0024/steps/WI-0024-80000000-validation.yaml
+  commitSubject: 'WI-0024: plan: define file-binding validation evidence'
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments: [run, typecheck]
+    expectedExitCode: 0
+  - id: full-suite
+    executable: npm
+    arguments: [test]
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Validate schema-declared parameter file bindings against every required strategy case and scope boundary.
+    inputs:
+    - id: WI-0024-80000000_INPUT-STRATEGY
+      kind: testStrategy
+      ref: WI-0024-10000000#result/R-001
+      purpose: Provide required cases and coverage.
+      required: true
+    - id: WI-0024-80000000_INPUT-IMPLEMENTATION
+      kind: implementation
+      ref: WI-0024-20000000#result/R-001
+      purpose: Identify implementation outputs and owned paths.
+      required: true
+    targets:
+    - id: WI-0024-80000000_TARGET-REPOSITORY
+      kind: repositoryState
+      ref: '#repository-state/HEAD'
+      purpose: Inspect implementation, tests, docs, assets, and changed paths.
+      required: true
+    - id: WI-0024-80000000_TARGET-IMPLEMENTATION
+      kind: taskResult
+      taskType: implementation
+      ref: WI-0024-20000000#result/R-001
+      purpose: Validate implementation evidence.
+      required: true
+    objectiveRefs:
+    - WI-0024-10000000#objective/WI-0024-10000000_OBJ-001
+    - WI-0024-10000000#objective/WI-0024-10000000_OBJ-002
+    - WI-0024-10000000#objective/WI-0024-10000000_OBJ-003
+    - WI-0024-10000000#objective/WI-0024-10000000_OBJ-004
+    - WI-0024-10000000#objective/WI-0024-10000000_OBJ-005
+    testCaseRefs:
+    - WI-0024-10000000#test-case/WI-0024-10000000_TC-METADATA-VALIDATION
+    - WI-0024-10000000#test-case/WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY
+    - WI-0024-10000000#test-case/WI-0024-10000000_TC-SHARED-BOUNDARY
+    - WI-0024-10000000#test-case/WI-0024-10000000_TC-SUMMARIZE-EXAMPLE
+    - WI-0024-10000000#test-case/WI-0024-10000000_TC-COMPATIBILITY-GATE
+    procedures:
+    - id: WI-0024-80000000_VAL-ALL
+      sequence: 1
+      name: validate-all-file-binding-evidence
+      description: Run focused tests, full package gates, documentation checks, and changed-path review.
+      reason: Every requirement needs bounded local evidence.
+      targetRefs: ['#target/WI-0024-80000000_TARGET-REPOSITORY', '#target/WI-0024-80000000_TARGET-IMPLEMENTATION']
+      objectiveRefs: ['#objective/WI-0024-10000000_OBJ-001', '#objective/WI-0024-10000000_OBJ-002', '#objective/WI-0024-10000000_OBJ-003', '#objective/WI-0024-10000000_OBJ-004', '#objective/WI-0024-10000000_OBJ-005']
+      testCaseRefs: ['WI-0024-10000000#test-case/WI-0024-10000000_TC-METADATA-VALIDATION', 'WI-0024-10000000#test-case/WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY', 'WI-0024-10000000#test-case/WI-0024-10000000_TC-SHARED-BOUNDARY', 'WI-0024-10000000#test-case/WI-0024-10000000_TC-SUMMARIZE-EXAMPLE', 'WI-0024-10000000#test-case/WI-0024-10000000_TC-COMPATIBILITY-GATE']
+      method:
+        executionMode: executable
+        target: Provider-free schema-declared file-binding matrix
+        steps:
+        - Run focused file-binding, request, CLI, summarize, parameter, prompt, and projection tests.
+        - Run npm run typecheck, npm test, npm run build, and git diff --check.
+        - Inspect README examples, generated declarations, work-item paths, and non-goals.
+        command: npm run typecheck && npm test && npm run build && git diff --check
+      expected:
+        outcome: passed
+        exitCode: 0
+        assertions:
+        - All required strategy cases pass or are explicitly accounted for.
+        - No provider or production claim is made.
+      evidenceTier: cli-audit
+      required: true
+    nonGoals:
+    - Explicit human operator confirmation is required before modifying requests/README.md; apply only WI-0024 contract sections.
+    - Do not claim authenticated provider, network, deployment, release, downstream, or production behavior.
+  result:
+    status: passed
+    summary: The schema-declared file-binding matrix, summarize example, compatibility behavior, schema authoring check, and complete provider-free package gate passed locally.
+    executions:
+    - id: WI-0024-80000000_EXEC-ALL
+      procedureRef: '#procedure/WI-0024-80000000_VAL-ALL'
+      status: passed
+      observed:
+        outcome: passed
+        exitCode: 0
+        summary: Focused WI-0024 tests passed seven cases; the complete package gate passed 152 tests, typecheck, build, and whitespace checks.
+        assertions:
+        - Metadata, materialization, shared-boundary, summarize, compatibility, cleanup, and safety cases passed; the five strategy cases have stable trace markers and cleanup/safety are supplemental coverage.
+        - The summarize parameter schema passed schema-validate with no findings.
+        - No request-name summarize conditional was found in src or tests.
+        - npm run typecheck exited zero.
+        - npm test passed 152 of 152 tests.
+        - npm run build exited zero.
+        - git diff --check exited zero.
+        - No provider or production claim was made.
+      evidenceTier: cli-audit
+      evidence:
+      - kind: test
+        source: tests/request-parameter-files.test.ts
+        claim: All seven focused WI-0024 tests passed.
+        command: node --import tsx --test tests/request-parameter-files.test.ts
+      - kind: command
+        source: requests/summarize/summarize.parameters.schema.json
+        claim: The summarize parameter schema passed the local JSON Schema authoring validator.
+        command: schema-validate requests/summarize/summarize.parameters.schema.json --json
+      - kind: command
+        source: repository package gate
+        claim: The complete provider-free package gate passed.
+        command: npm run typecheck && npm test && npm run build && git diff --check
+    findings: []
+    evidenceTier: cli-audit
+    limitations:
+    - The installed SDLC registry does not expose the strategy schema version needed for an independent whole-work-item schema audit in this environment.
+    - Provider-free local validation does not establish authenticated provider behavior, network transport, deployment, publication, downstream integration, or production readiness.
+    nonClaims:
+    - This validation does not authorize deployment, publication, or a Git commit.

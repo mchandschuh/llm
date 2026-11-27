@@ -27,12 +27,14 @@
     "prepare": "npm run build",
     "start": "node ./bin/cli.js",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "tsx --test tests/*.test.ts",
+    "test:pattern": "tsx --test tests/*.test.ts --test-name-pattern"
   },
   "dependencies": {
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
-    "nodejs-common": "file:../nodejs-common"
+    "nodejs-common": "file:../nodejs-common",
+    "schema-validate": "file:../json-schema-authoring"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

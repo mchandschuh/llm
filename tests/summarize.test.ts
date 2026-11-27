@@ -1,14 +1,16 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { test } from 'node:test';
-import { parseCliArguments } from '../src/cli/arguments.js';
-import { buildSummarizeRequest, runSummarizeCommand } from '../src/cli/summarize-command.js';
+import { parseCliArguments, parseCliArgumentsAsync } from '../src/cli/arguments.js';
+import { runRequestCommand } from '../src/cli/request-command.js';
+import { runSummarizeCommand } from '../src/cli/summarize-command.js';
 import { resolveRequestsDirectory } from '../src/requests-config.js';
 import type { LlmProvider, ProviderCompletionRequest } from '../src/types.js';
 
-const requestDirectory = resolve(process.cwd(), 'requests');
+const requestsDirectory = resolve(process.cwd(), 'requests');
+const summarizeDirectory = join(requestsDirectory, 'summarize');
 
 interface CapturedOutput {
   readonly result: number;
@@ -35,12 +37,255 @@ function provider(response: string, calls: ProviderCompletionRequest[]): LlmProv
   };
 }
 
-async function writeConfig(root: string, value: unknown): Promise<void> {
-  await mkdir(join(root, '.config'), { recursive: true });
-  await writeFile(join(root, '.config', 'config.json'), JSON.stringify(value));
-}
+test('WI-0021-10000000_TC-GENERIC-EXAMPLE executes summarize assets through the generic req boundary', async () => {
+  const calls: ProviderCompletionRequest[] = [];
+  const prompt = await readFile(join(summarizeDirectory, 'summarize.prompt.md'), 'utf8');
+  const outputSchema = JSON.parse(await readFile(join(summarizeDirectory, 'summarize.outputSchema.json'), 'utf8')) as Record<string, unknown>;
+  const output = await capture((write, writeError) => runRequestCommand({
+    requestName: 'summarize',
+    requestsDirectory,
+    parameters: JSON.stringify({ content: 'Inline source content.' }),
+    debug: false,
+    provider: provider('{"summary":"Inline source summary."}', calls),
+    write,
+    writeError,
+  }));
 
-test('summarize parser accepts exactly one path or content source and common output formats', () => {
+  assert.equal(output.result, 0);
+  assert.equal(output.stdout, '{"summary":"Inline source summary."}');
+  assert.equal(output.stderr, '');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]?.task, prompt);
+  assert.equal(calls[0]?.systemPrompt, undefined);
+  assert.equal(calls[0]?.provider, 'openrouter');
+  assert.equal(calls[0]?.model, 'openai/gpt-5-nano');
+  assert.equal(calls[0]?.thinking, 'low');
+  assert.deepEqual(calls[0]?.outputSchema, outputSchema);
+  assert.deepEqual(calls[0]?.files.map((file) => ({ name: file.name, content: file.content, purpose: file.purpose })), [{
+    name: 'content',
+    content: 'Inline source content.',
+    purpose: 'Content supplied to the request.',
+  }]);
+
+  const invalidCalls: ProviderCompletionRequest[] = [];
+  for (const parameters of [{}, { path: 'notes.md', content: 'both sources' }]) {
+    const invalid = await capture((write, writeError) => runRequestCommand({
+      requestName: 'summarize',
+      requestsDirectory,
+      parameters: JSON.stringify(parameters),
+      debug: false,
+      provider: provider('must not run', invalidCalls),
+      write,
+      writeError,
+    }));
+    assert.equal(invalid.result, 1);
+    assert.equal(invalid.stdout, '');
+    assert.match(invalid.stderr, /resolved parameters do not satisfy/u);
+  }
+  assert.equal(invalidCalls.length, 0);
+});
+
+test('WI-0021-10000000_TC-PARAMETER-PREFIX-GUIDANCE requires schema-derived summarize parameters to use --p-', async () => {
+  const configurationRoot = await mkdtemp(join(tmpdir(), 'llm-summarize-cli-repro-'));
+  const previousConfiguration = process.env.LLM_CONFIG;
+  const calls: ProviderCompletionRequest[] = [];
+
+  try {
+    await mkdir(join(configurationRoot, '.config'), { recursive: true });
+    const configuration = JSON.stringify({ requestsDirectory });
+    await Promise.all([
+      writeFile(join(configurationRoot, 'config.json'), configuration),
+      writeFile(join(configurationRoot, '.config', 'config.json'), configuration),
+    ]);
+    process.env.LLM_CONFIG = configurationRoot;
+
+    for (const [option, expected] of [
+      ['--content', "Option '--content' is a request parameter. Request parameters must use the '--p-' prefix; use '--p-content <value>'."],
+      ['--path', "Option '--path' is a request parameter. Request parameters must use the '--p-' prefix; use '--p-path <value>'."],
+    ] as const) {
+      const parsed = await parseCliArgumentsAsync(['req', 'summarize', option, option === '--content' ? 'some-content' : 'notes.md']);
+      assert.equal(parsed.exitCode, 2);
+      assert.equal(parsed.usageError, expected);
+    }
+
+    const contentParsed = await parseCliArgumentsAsync(['req', 'summarize', '--p-content', 'some-content']);
+    assert.deepEqual(contentParsed, {
+      debug: false,
+      format: 'raw',
+      printChatId: false,
+      command: 'req',
+      requestName: 'summarize',
+      requestAssignments: [{ path: 'content', value: 'some-content' }],
+    });
+
+    const pathParsed = await parseCliArgumentsAsync(['req', 'summarize', '--p-path=notes.md']);
+    assert.deepEqual(pathParsed, {
+      debug: false,
+      format: 'raw',
+      printChatId: false,
+      command: 'req',
+      requestName: 'summarize',
+      requestAssignments: [{ path: 'path', value: 'notes.md' }],
+    });
+
+    const sourcePath = join(configurationRoot, 'notes.md');
+    await writeFile(sourcePath, 'Path-backed summarize content.');
+    const contentOutput = await capture((write, writeError) => runRequestCommand({
+      requestName: contentParsed.requestName!,
+      requestsDirectory,
+      assignments: contentParsed.requestAssignments,
+      debug: contentParsed.debug,
+      format: contentParsed.format,
+      provider: provider('{"summary":"content success"}', calls),
+      write,
+      writeError,
+    }));
+    assert.equal(contentOutput.result, 0);
+    assert.equal(calls[0]?.files[0]?.content, 'some-content');
+
+    const pathOutput = await capture((write, writeError) => runRequestCommand({
+      requestName: pathParsed.requestName!,
+      requestsDirectory,
+      assignments: [{ path: 'path', value: sourcePath }],
+      debug: pathParsed.debug,
+      format: pathParsed.format,
+      provider: provider('{"summary":"path success"}', calls),
+      write,
+      writeError,
+    }));
+    assert.equal(pathOutput.result, 0);
+    assert.equal(calls[1]?.files[0]?.content, 'Path-backed summarize content.');
+  } finally {
+    if (previousConfiguration === undefined) delete process.env.LLM_CONFIG;
+    else process.env.LLM_CONFIG = previousConfiguration;
+    await rm(configurationRoot, { recursive: true, force: true });
+  }
+});
+
+test('WI-0021-10000000_TC-COMPATIBILITY keeps legacy summarize as a generic-request adapter', async () => {
+  const genericCalls: ProviderCompletionRequest[] = [];
+  const legacyCalls: ProviderCompletionRequest[] = [];
+  const response = '{"summary":"Compatibility summary."}';
+  const generic = await capture((write, writeError) => runRequestCommand({
+    requestName: 'summarize',
+    requestsDirectory,
+    parameters: JSON.stringify({ content: 'Compatibility input.' }),
+    debug: false,
+    provider: provider(response, genericCalls),
+    write,
+    writeError,
+  }));
+  const legacy = await capture((write, writeError) => runSummarizeCommand({
+    requestDirectory: requestsDirectory,
+    content: 'Compatibility input.',
+    providerName: 'anthropic',
+    model: 'anthropic/test-model',
+    thinking: 'medium',
+    debug: false,
+    provider: provider(response, legacyCalls),
+    write,
+    writeError,
+  }));
+
+  assert.equal(generic.result, 0);
+  assert.equal(legacy.result, 0);
+  assert.equal(generic.stdout, response);
+  assert.equal(legacy.stdout, response);
+  assert.equal(generic.stderr, '');
+  assert.equal(legacy.stderr, '');
+  assert.equal(genericCalls.length, 1);
+  assert.equal(legacyCalls.length, 1);
+  assert.equal(legacyCalls[0]?.task, genericCalls[0]?.task);
+  assert.deepEqual(legacyCalls[0]?.outputSchema, genericCalls[0]?.outputSchema);
+  assert.deepEqual(legacyCalls[0]?.files.map((file) => ({ name: file.name, content: file.content, type: file.type, purpose: file.purpose })), genericCalls[0]?.files.map((file) => ({ name: file.name, content: file.content, type: file.type, purpose: file.purpose })));
+  assert.equal(legacyCalls[0]?.provider, 'anthropic');
+  assert.equal(legacyCalls[0]?.model, 'anthropic/test-model');
+  assert.equal(legacyCalls[0]?.thinking, 'medium');
+});
+
+test('WI-0021-10000000_TC-SOURCE-REGRESSIONS preserves generic path, directory, symlink, content, raw, and full cases', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'llm-summarize-generic-sources-'));
+  const nested = join(root, 'nested');
+  const deep = join(nested, 'deep');
+  const outside = await mkdtemp(join(tmpdir(), 'llm-summarize-generic-target-'));
+  const calls: ProviderCompletionRequest[] = [];
+  await mkdir(deep, { recursive: true });
+  await Promise.all([
+    writeFile(join(root, 'root.md'), 'root content'),
+    writeFile(join(nested, 'child.md'), 'child content'),
+    writeFile(join(deep, 'deep.md'), 'deep content'),
+    writeFile(join(outside, 'linked.md'), 'linked content'),
+  ]);
+  await symlink(join(outside, 'linked.md'), join(root, 'linked.md'));
+  await symlink(nested, join(root, 'nested-link'));
+
+  try {
+    const pathOutput = await capture((write, writeError) => runRequestCommand({
+      requestName: 'summarize',
+      requestsDirectory,
+      parameters: JSON.stringify({ path: root }),
+      debug: false,
+      provider: provider('path summary', calls),
+      write,
+      writeError,
+    }));
+    assert.equal(pathOutput.result, 0);
+    assert.equal(pathOutput.stdout, 'path summary');
+    assert.deepEqual(calls[0]?.files.map((file) => ({ path: file.path, content: file.content })), [
+      { path: join(root, 'linked.md'), content: 'linked content' },
+      { path: join(root, 'nested/child.md'), content: 'child content' },
+      { path: join(root, 'nested/deep/deep.md'), content: 'deep content' },
+      { path: join(root, 'root.md'), content: 'root content' },
+    ]);
+
+    const contentOutput = await capture((write, writeError) => runRequestCommand({
+      requestName: 'summarize',
+      requestsDirectory,
+      parameters: JSON.stringify({ content: 'content source' }),
+      format: 'full',
+      debug: false,
+      provider: provider('full summary', calls),
+      write,
+      writeError,
+    }));
+    assert.equal(contentOutput.result, 0);
+    assert.equal(JSON.parse(contentOutput.stdout).output.value, 'full summary');
+    assert.equal(calls[1]?.files[0]?.content, 'content source');
+
+    const symlinkDirectory = join(root, 'directory-link');
+    await symlink(deep, symlinkDirectory);
+    const invalid = await capture((write, writeError) => runRequestCommand({
+      requestName: 'summarize',
+      requestsDirectory,
+      parameters: JSON.stringify({ path: symlinkDirectory }),
+      debug: false,
+      provider: provider('must not run', calls),
+      write,
+      writeError,
+    }));
+    assert.equal(invalid.result, 1);
+    assert.match(invalid.stderr, /regular files or directories/u);
+    assert.equal(calls.length, 2);
+  } finally {
+    await Promise.all([rm(root, { recursive: true, force: true }), rm(outside, { recursive: true, force: true })]);
+  }
+});
+
+test('WI-0021-10000000_TC-EXAMPLE-QUALITY keeps the summarize bundle generic and provider-free', async () => {
+  const names = (await readdir(summarizeDirectory)).sort();
+  assert.deepEqual(names, [
+    'summarize.defaults.json',
+    'summarize.outputSchema.json',
+    'summarize.parameters.schema.json',
+    'summarize.prompt.md',
+  ]);
+  await assert.rejects(() => readFile(join(summarizeDirectory, 'summarize.prompt.system.md')), { code: 'ENOENT' });
+  assert.match(await readFile(join(summarizeDirectory, 'summarize.prompt.md'), 'utf8'), /<files>/u);
+  assert.match(await readFile(join(summarizeDirectory, 'summarize.parameters.schema.json'), 'utf8'), /x-llm-req-parameter/u);
+  assert.doesNotMatch(await readFile(join(summarizeDirectory, 'summarize.prompt.md'), 'utf8'), /provider|credential|api key/u);
+});
+
+test('legacy summarize argument parsing remains a compatibility surface while req owns generic parameters', () => {
   assert.deepEqual(parseCliArguments(['summarize', '--path', 'notes.md', '--provider', 'anthropic', '--model=openai/test', '--thinking=low', '--format=full']), {
     debug: false,
     format: 'full',
@@ -75,91 +320,7 @@ test('summarize parser accepts exactly one path or content source and common out
   }
 });
 
-test('summarize settings defaults are loaded and command-line values override them', async () => {
-  const calls: ProviderCompletionRequest[] = [];
-  const prepared = await buildSummarizeRequest({ requestDirectory, content: 'settings input' });
-  try {
-    assert.equal(prepared.request.provider, 'openrouter');
-    assert.equal(prepared.request.model, 'openai/gpt-5-nano');
-    assert.equal(prepared.request.thinking, 'low');
-  } finally {
-    if (prepared.temporaryRoot) await rm(prepared.temporaryRoot, { recursive: true, force: true });
-  }
-  const output = await capture((write, writeError) => runSummarizeCommand({
-    requestDirectory,
-    content: 'settings input',
-    providerName: 'anthropic',
-    model: 'anthropic/test-model',
-    thinking: 'low',
-    debug: false,
-    provider: provider('{"summary":"Settings summary."}', calls),
-    write,
-    writeError,
-  }));
-  assert.equal(output.result, 0);
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0]?.provider, 'anthropic');
-  assert.equal(calls[0]?.model, 'anthropic/test-model');
-  assert.equal(calls[0]?.thinking, 'low');
-});
-
-test('summarize settings fall back to runtime defaults when fields are omitted', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'llm-summarize-settings-'));
-  const summarizeRoot = join(root, 'summarize');
-  try {
-    await mkdir(summarizeRoot, { recursive: true });
-    await Promise.all([
-      readFile(join(requestDirectory, 'summarize', 'summarize.prompt.md'), 'utf8').then((value) => writeFile(join(summarizeRoot, 'summarize.prompt.md'), value)),
-      readFile(join(requestDirectory, 'summarize', 'summarize.outputSchema.json'), 'utf8').then((value) => writeFile(join(summarizeRoot, 'summarize.outputSchema.json'), value)),
-    ]);
-    await writeFile(join(summarizeRoot, 'summarize.defaults.json'), '{}');
-    const prepared = await buildSummarizeRequest({ requestDirectory: root, content: 'fallback input' });
-    try {
-      assert.equal(prepared.request.provider, 'openrouter');
-      assert.equal(prepared.request.model, 'openai/gpt-5.6-luna');
-      assert.equal(prepared.request.thinking, 'high');
-    } finally {
-      if (prepared.temporaryRoot) await rm(prepared.temporaryRoot, { recursive: true, force: true });
-    }
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
-
-test('summarize settings reject malformed and unsupported defaults', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'llm-summarize-invalid-settings-'));
-  const summarizeRoot = join(root, 'summarize');
-  try {
-    await mkdir(summarizeRoot, { recursive: true });
-    await Promise.all([
-      readFile(join(requestDirectory, 'summarize', 'summarize.prompt.md'), 'utf8').then((value) => writeFile(join(summarizeRoot, 'summarize.prompt.md'), value)),
-      readFile(join(requestDirectory, 'summarize', 'summarize.outputSchema.json'), 'utf8').then((value) => writeFile(join(summarizeRoot, 'summarize.outputSchema.json'), value)),
-    ]);
-    await writeFile(join(summarizeRoot, 'summarize.defaults.json'), '{"unsupported":true}');
-    await assert.rejects(() => buildSummarizeRequest({ requestDirectory: root, content: 'invalid settings' }), /Unsupported settings/u);
-    await writeFile(join(summarizeRoot, 'summarize.defaults.json'), '{');
-    await assert.rejects(() => buildSummarizeRequest({ requestDirectory: root, content: 'invalid JSON' }), /must contain valid JSON/u);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
-
-test('summarize settings are required from the configured request directory', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'llm-summarize-missing-settings-'));
-  const summarizeRoot = join(root, 'summarize');
-  try {
-    await mkdir(summarizeRoot, { recursive: true });
-    await Promise.all([
-      readFile(join(requestDirectory, 'summarize', 'summarize.prompt.md'), 'utf8').then((value) => writeFile(join(summarizeRoot, 'summarize.prompt.md'), value)),
-      readFile(join(requestDirectory, 'summarize', 'summarize.outputSchema.json'), 'utf8').then((value) => writeFile(join(summarizeRoot, 'summarize.outputSchema.json'), value)),
-    ]);
-    await assert.rejects(() => buildSummarizeRequest({ requestDirectory: root, content: 'missing settings' }), /summarize\.defaults\.json/u);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
-
-test('requestsDirectory uses nodejs-common application, home, and environment precedence', async () => {
+test('requestsDirectory uses shared configuration precedence and missing configuration remains bounded', async () => {
   const root = await mkdtemp(join(tmpdir(), 'llm-summarize-config-root-'));
   const home = await mkdtemp(join(tmpdir(), 'llm-summarize-config-home-'));
   const environmentRoot = await mkdtemp(join(tmpdir(), 'llm-summarize-config-environment-'));
@@ -167,7 +328,8 @@ test('requestsDirectory uses nodejs-common application, home, and environment pr
   const homeRequests = await mkdtemp(join(tmpdir(), 'llm-summarize-requests-home-'));
   const environmentRequests = await mkdtemp(join(tmpdir(), 'llm-summarize-requests-environment-'));
   try {
-    await writeConfig(root, { requestsDirectory: applicationRequests });
+    await mkdir(join(root, '.config'), { recursive: true });
+    await writeFile(join(root, '.config', 'config.json'), JSON.stringify({ requestsDirectory: applicationRequests }));
     await mkdir(join(home, '.llm'), { recursive: true });
     await writeFile(join(home, '.llm', 'config.json'), JSON.stringify({ requestsDirectory: homeRequests }));
     await writeFile(join(environmentRoot, 'config.json'), JSON.stringify({ requestsDirectory: environmentRequests }));
@@ -176,182 +338,18 @@ test('requestsDirectory uses nodejs-common application, home, and environment pr
   } finally {
     await Promise.all([root, home, environmentRoot, applicationRequests, homeRequests, environmentRequests].map((path) => rm(path, { recursive: true, force: true })));
   }
-});
 
-test('missing requestsDirectory configuration provides actionable guidance', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'llm-summarize-no-config-root-'));
-  const home = await mkdtemp(join(tmpdir(), 'llm-summarize-no-config-home-'));
-  try {
-    await assert.rejects(
-      () => resolveRequestsDirectory({ applicationSourceDirectory: root, homeDirectory: home, environment: {} }),
-      /Configure ~\/\.llm\/config\.json:requestsDirectory to point to the llm repository request directory\./u,
-    );
-  } finally {
-    await Promise.all([rm(root, { recursive: true, force: true }), rm(home, { recursive: true, force: true })]);
-  }
-});
-
-test('buildSummarizeRequest loads the prompt/schema assets and constructs inline content as a synthetic file', async () => {
-  const prepared = await buildSummarizeRequest({ requestDirectory, content: 'inline\nsummary input' });
-  try {
-    assert.match(prepared.request.systemPrompt, /summarize the content of every file supplied in `<files>`/iu);
-    assert.equal(prepared.request.outputSchema?.['$id'], 'https://schemas.handschuh.dev/llm/llm-summarize/output/v1');
-    assert.deepEqual(prepared.request.files, [{
-      name: 'content',
-      path: 'content',
-      type: 'text/plain',
-      purpose: 'Content supplied by the --content command-line option; this is not a filesystem file.',
-    }]);
-    assert.equal(prepared.temporaryRoot !== undefined, true);
-    assert.equal(await readFile(join(prepared.temporaryRoot!, 'content'), 'utf8'), 'inline\nsummary input');
-  } finally {
-    if (prepared.temporaryRoot) await rm(prepared.temporaryRoot, { recursive: true, force: true });
-  }
-});
-
-test('summarize path mode sends path-backed file content and raw output returns the summary field', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'llm-summarize-path-'));
-  const path = join(root, 'notes.md');
-  const calls: ProviderCompletionRequest[] = [];
-  await writeFile(path, '# Notes\nImportant content.');
-  try {
-    const output = await capture((write, writeError) => runSummarizeCommand({
-      requestDirectory,
-      path,
-      debug: false,
-      provider: provider('{"summary":"Important content."}', calls),
-      write,
-      writeError,
-    }));
-    assert.equal(output.result, 0);
-    assert.equal(output.stdout, 'Important content.');
-    assert.equal(output.stderr, '');
-    assert.equal(calls.length, 1);
-    assert.equal(calls[0]?.files[0]?.content, '# Notes\nImportant content.');
-    assert.equal(calls[0]?.files[0]?.name, 'notes.md');
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
-
-test('summarize directory mode recursively includes regular files and symlink files without traversing symlink directories', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'llm-summarize-directory-'));
-  const nested = join(root, 'nested');
-  const deep = join(nested, 'deep');
-  const outside = await mkdtemp(join(tmpdir(), 'llm-summarize-directory-target-'));
-  const calls: ProviderCompletionRequest[] = [];
-  await mkdir(deep, { recursive: true });
-  await writeFile(join(root, 'root.md'), 'root content');
-  await writeFile(join(nested, 'child.md'), 'child content');
-  await writeFile(join(deep, 'deep.md'), 'deep content');
-  await writeFile(join(outside, 'linked.md'), 'linked content');
-  await symlink(join(outside, 'linked.md'), join(root, 'linked.md'));
-  await symlink(nested, join(root, 'nested-link'));
-  try {
-    const output = await capture((write, writeError) => runSummarizeCommand({
-      requestDirectory,
-      path: root,
-      debug: false,
-      provider: provider('{"summary":"Directory summary."}', calls),
-      write,
-      writeError,
-    }));
-    assert.equal(output.result, 0);
-    assert.equal(output.stdout, 'Directory summary.');
-    assert.equal(output.stderr, '');
-    assert.equal(calls.length, 1);
-    assert.deepEqual(calls[0]?.files.map((file) => ({ path: file.path, content: file.content })), [
-      { path: 'linked.md', content: 'linked content' },
-      { path: 'nested/child.md', content: 'child content' },
-      { path: 'nested/deep/deep.md', content: 'deep content' },
-      { path: 'root.md', content: 'root content' },
-    ]);
-  } finally {
-    await Promise.all([rm(root, { recursive: true, force: true }), rm(outside, { recursive: true, force: true })]);
-  }
-});
-
-test('summarize directory mode reads an in-root symlink through its link path', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'llm-summarize-directory-link-'));
-  const nested = join(root, 'nested');
-  const calls: ProviderCompletionRequest[] = [];
-  await mkdir(nested, { recursive: true });
-  await writeFile(join(root, 'root.md'), 'root content');
-  await writeFile(join(nested, 'child.md'), 'child content');
-  await symlink(join(root, 'root.md'), join(nested, 'linked.md'));
-  try {
-    const output = await capture((write, writeError) => runSummarizeCommand({
-      requestDirectory,
-      path: root,
-      debug: false,
-      provider: provider('{"summary":"Directory summary."}', calls),
-      write,
-      writeError,
-    }));
-    assert.equal(output.result, 0);
-    assert.equal(output.stdout, 'Directory summary.');
-    assert.equal(output.stderr, '');
-    assert.equal(calls.length, 1);
-    assert.deepEqual(calls[0]?.files.map((file) => ({ name: file.name, path: file.path, content: file.content })), [
-      { name: 'nested__child.md', path: 'nested/child.md', content: 'child content' },
-      { name: 'nested__linked.md', path: 'nested/linked.md', content: 'root content' },
-      { name: 'root.md', path: 'root.md', content: 'root content' },
-    ]);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
-
-test('summarize rejects a directly supplied symlink directory', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'llm-summarize-symlink-directory-'));
-  const target = join(root, 'target');
-  const link = join(root, 'link');
-  await mkdir(target);
-  await symlink(target, link);
-  try {
-    await assert.rejects(
-      () => buildSummarizeRequest({ requestDirectory, path: link }),
-      /Configured sources must be regular files/u,
-    );
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
-
-test('summarize content mode supports the full response envelope and issues one LLM call', async () => {
-  const calls: ProviderCompletionRequest[] = [];
-  const output = await capture((write, writeError) => runSummarizeCommand({
-    requestDirectory,
-    content: 'Command-line supplied content.',
-    format: 'full',
-    debug: false,
-    provider: provider('{"summary":"A complete summary."}', calls),
-    write,
-    writeError,
-  }));
-  assert.equal(output.result, 0);
-  const response = JSON.parse(output.stdout) as { readonly status: string; readonly output: { readonly value: { readonly summary: string } } };
-  assert.equal(response.status, 'success');
-  assert.equal(response.output.value.summary, 'A complete summary.');
-  assert.equal(output.stderr, '');
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0]?.files[0]?.name, 'content');
-  assert.equal(calls[0]?.files[0]?.content, 'Command-line supplied content.');
-  assert.match(calls[0]?.llmPrompt ?? '', /not a filesystem file/u);
-});
-
-test('summarize command stops before the LLM call when request configuration is missing', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'llm-summarize-command-no-config-'));
-  const home = await mkdtemp(join(tmpdir(), 'llm-summarize-command-no-home-'));
+  const missingRoot = await mkdtemp(join(tmpdir(), 'llm-summarize-no-config-root-'));
+  const missingHome = await mkdtemp(join(tmpdir(), 'llm-summarize-no-config-home-'));
   const calls: ProviderCompletionRequest[] = [];
   try {
     const output = await capture((write, writeError) => runSummarizeCommand({
-      applicationSourceDirectory: root,
-      homeDirectory: home,
+      applicationSourceDirectory: missingRoot,
+      homeDirectory: missingHome,
       environment: {},
       content: 'input',
       debug: false,
-      provider: provider('{"summary":"unexpected"}', calls),
+      provider: provider('unexpected', calls),
       write,
       writeError,
     }));
@@ -360,6 +358,6 @@ test('summarize command stops before the LLM call when request configuration is 
     assert.match(output.stderr, /~\/\.llm\/config\.json:requestsDirectory/u);
     assert.equal(output.stdout, '');
   } finally {
-    await Promise.all([rm(root, { recursive: true, force: true }), rm(home, { recursive: true, force: true })]);
+    await Promise.all([rm(missingRoot, { recursive: true, force: true }), rm(missingHome, { recursive: true, force: true })]);
   }
 });

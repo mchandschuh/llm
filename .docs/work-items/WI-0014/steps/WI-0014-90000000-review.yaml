@@ -1,0 +1,177 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0014
+taskUid: WI-0014-90000000
+orderKey: '90000000'
+parentTaskUid: WI-0014-80000000
+taskType: review
+processingStatus: processing_completed
+title: Review Document and finalize the dynamic request-directory contract scope and
+  evidence
+objective: Define the request-directory layout, asset mapping, parameter syntax, placeholder
+  syntax, processing order, compatibility decisions, and evidence boundary before
+  implementation.
+references:
+  required:
+  - .docs/work-items/WI-0014/work-item.json
+  - .docs/work-items/WI-0014/README.md
+  - requests/
+  - .docs/work-items/WI-0014/steps/WI-0014-80000000-validation.yaml
+  - .docs/work-items/WI-0014/steps/WI-0014-20000000-implementation.yaml
+  - src/types.ts
+  - src/cli/summarize-command.ts
+  - README.md
+  - SKILL.md
+  - package.json
+  - tests/
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0014-80000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0014/steps/WI-0014-90000000-review.yaml
+  commitSubject: 'WI-0014: plan: define review evidence'
+  commitBody:
+    requiredSections:
+    - Why
+    - What
+    - How
+    - Decisions
+    - Validation
+    - Evidence
+    - Refs
+    - Next
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments:
+    - run
+    - typecheck
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review whether evidence for Document and finalize the dynamic request-directory
+      contract is sufficient, traceable, and in scope.
+    reviewKind: planning
+    target:
+      taskType: test-strategy
+      taskRef: WI-0014-10000000
+      result:
+        ref: WI-0014-10000000#result/testCases/WI-0014-10000000_TC-DOCUMENTATION
+        sha256: null
+    gateId: test-strategy
+    policyRef:
+      ref: repository-local-review-policy
+      sha256: null
+    criteria:
+    - id: CRIT-001
+      statement: Every requirement and acceptance criterion has explicit strategy
+        and validation coverage.
+      purpose: Prevent unproven obligations.
+      required: true
+      evidenceRefs:
+      - WI-0014-10000000#result/testCases/WI-0014-10000000_TC-DOCUMENTATION
+    - id: CRIT-002
+      statement: The strategy preserves non-goals and evidence limitations without
+        provider or production overclaiming.
+      purpose: Prevent scope expansion.
+      required: true
+      evidenceRefs:
+      - WI-0014#work-item.json#requirement/WI-0014_REQ_001
+    - id: CRIT-003
+      statement: The validation task can execute the strategy and inspect package,
+        documentation, and changed-path gates.
+      purpose: Ensure later completion evidence is sufficient.
+      required: true
+      evidenceRefs:
+      - WI-0014-80000000
+      - WI-0014-20000000
+    evidenceRequirements:
+    - id: EVID-001
+      kind: test
+      ref: WI-0014-10000000#result/testCases/WI-0014-10000000_TC-DOCUMENTATION
+      purpose: Provide the declared strategy cases.
+      required: true
+      minimumTier: inspection
+    nonGoals:
+    - id: NON-001
+      statement: This review does not claim implementation, provider, completion,
+        release, deployment, or production readiness.
+    context:
+    - id: CTX-001
+      kind: contract
+      ref: .docs/work-items/WI-0014/README.md
+      purpose: Apply declared scope and evidence boundary.
+      required: true
+  result:
+    status: complete
+    decision: accepted
+    summary: Review accepted the documentation-only WI-0014 implementation. The contract audit covers every declared strategy case and acceptance criterion, the package gates pass, scope remains limited to the contract and its provider-free tests, and no production or provider claim is made.
+    actor:
+      id: wi-0014-reviewer
+      role: reviewer
+      authorityRef: WI-0014
+    criteriaEvaluations:
+    - criterionRef: '#criterion/CRIT-001'
+      status: satisfied
+      summary: The WI-0014 strategy and contract-audit tests cover all four requirements and seven acceptance criteria.
+      evidenceRefs:
+      - WI-0014-80000000#result/R-001
+      - WI-0014-20000000#result/R-001
+      findingRefs: []
+    - criterionRef: '#criterion/CRIT-002'
+      status: satisfied
+      summary: The implementation remains documentation-only, preserves the provider-free boundary, and records later runtime work as explicit handoffs.
+      evidenceRefs:
+      - WI-0014-80000000#result/R-001
+      findingRefs: []
+    - criterionRef: '#criterion/CRIT-003'
+      status: satisfied
+      summary: The validation task records the focused four-case audit and the complete 125-test package gate, including typecheck, build, whitespace, and conflict-marker checks.
+      evidenceRefs:
+      - WI-0014-80000000#result/R-001
+      - WI-0014-20000000#result/R-001
+      findingRefs: []
+    findings: []
+    evidence:
+    - id: EVID-001
+      kind: validation
+      ref: WI-0014-80000000#result/R-001
+      claim: Required provider-free validation procedures passed locally.
+      tier: cli-audit
+      source: referenced-result
+    - id: EVID-002
+      kind: test
+      ref: WI-0014-20000000#result/R-001
+      claim: All four WI-0014 strategy cases have executable trace-marked test implementations.
+      tier: component
+      source: referenced-result
+    - id: EVID-003
+      kind: diff
+      ref: '#repository-state/HEAD'
+      claim: The final review scope is limited to the WI-0014 contract, its test, and governed task records.
+      tier: inspection
+      source: repository
+    limitations:
+    - The review does not establish authenticated provider behavior, deployment, publication, downstream integration, or production readiness.
+    - The installed SDLC schema registry lacks sdlc-task-test-strategy/v2, so the strategy task could not be independently schema-validated in this environment.
+    nonClaims:
+    - This decision does not authorize deployment, publication, or a Git commit.
+    - This decision does not claim runtime implementation of WI-0015 through WI-0022.
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: WI-0014-90000000_EXEC-REVIEW
+      status: succeeded
+      startedAt: '2026-11-25T15:06:49Z'
+      finishedAt: '2026-11-25T15:06:49Z'

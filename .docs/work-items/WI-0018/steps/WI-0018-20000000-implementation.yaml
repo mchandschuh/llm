@@ -1,0 +1,230 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0018
+taskUid: WI-0018-20000000
+orderKey: '20000000'
+parentTaskUid: WI-0018-10000000
+taskType: implementation
+processingStatus: processing_completed
+title: Implement the shared completeRequest library boundary
+objective: Implement the shared completeRequest library boundary
+references:
+  required:
+  - .docs/work-items/WI-0018/work-item.json
+  - .docs/work-items/WI-0018/README.md
+  - requests/README.md
+  - requests/decisions.md
+  - .docs/work-items/WI-0018/steps/WI-0018-10000000-test-strategy.yaml
+  - src/complete.ts
+  - src/index.ts
+  - src/types.ts
+  - src/normalize.ts
+  - src/source.ts
+  - tests/llm.test.ts
+  - package.json
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0018-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0018/steps/WI-0018-20000000-implementation.yaml
+  - src/request.ts
+  - src/index.ts
+  - src/types.ts
+  - tests/request.test.ts
+  commitSubject: 'WI-0018: feat(llm): implement request feature slice'
+  commitBody:
+    requiredSections:
+    - Why
+    - What
+    - How
+    - Decisions
+    - Validation
+    - Evidence
+    - Refs
+    - Next
+  validationProcedures:
+  - id: typecheck
+    executable: npm
+    arguments:
+    - run
+    - typecheck
+    expectedExitCode: 0
+  - id: build
+    executable: npm
+    arguments:
+    - run
+    - build
+    expectedExitCode: 0
+  - id: focused-tests
+    executable: npm
+    arguments:
+    - test
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement the shared completeRequest library boundary. Implement only
+      the declared request-feature behavior and its focused tests.
+    changeTypes:
+    - production-code
+    - test-code
+    changeIntent: feature
+    inputs:
+    - id: WI-0018-20000000_INPUT-STRATEGY
+      kind: testStrategy
+      ref: WI-0018-10000000#result/R-001
+      purpose: Provide the authoritative strategy test-case set and coverage boundary.
+      required: true
+    - id: WI-0018-20000000_INPUT-REQ-001
+      kind: requirement
+      ref: WI-0018#work-item.json#requirement/WI-0018_REQ_001
+      purpose: Provide the authoritative WI-0018_REQ_001 requirement.
+      required: true
+    - id: WI-0018-20000000_INPUT-REQ-002
+      kind: requirement
+      ref: WI-0018#work-item.json#requirement/WI-0018_REQ_002
+      purpose: Provide the authoritative WI-0018_REQ_002 requirement.
+      required: true
+    - id: WI-0018-20000000_INPUT-REQ-003
+      kind: requirement
+      ref: WI-0018#work-item.json#requirement/WI-0018_REQ_003
+      purpose: Provide the authoritative WI-0018_REQ_003 requirement.
+      required: true
+    - id: WI-0018-20000000_INPUT-REQ-004
+      kind: requirement
+      ref: WI-0018#work-item.json#requirement/WI-0018_REQ_004
+      purpose: Provide the authoritative WI-0018_REQ_004 requirement.
+      required: true
+    objectives:
+    - id: WI-0018-20000000_OBJ-001
+      statement: Implement the behavior required by WI-0018_REQ_001 within the declared
+        scope.
+      inputRefs:
+      - WI-0018-20000000_INPUT-STRATEGY
+      - WI-0018-20000000_INPUT-REQ-001
+      testCaseRefs:
+      - WI-0018-10000000#test-case/WI-0018-10000000_TC-EXPORTED-API
+    - id: WI-0018-20000000_OBJ-002
+      statement: Implement the behavior required by WI-0018_REQ_002 within the declared
+        scope.
+      inputRefs:
+      - WI-0018-20000000_INPUT-STRATEGY
+      - WI-0018-20000000_INPUT-REQ-002
+      testCaseRefs:
+      - WI-0018-10000000#test-case/WI-0018-10000000_TC-CONSTRUCTED-REQUEST
+    - id: WI-0018-20000000_OBJ-003
+      statement: Implement the behavior required by WI-0018_REQ_003 within the declared
+        scope.
+      inputRefs:
+      - WI-0018-20000000_INPUT-STRATEGY
+      - WI-0018-20000000_INPUT-REQ-003
+      testCaseRefs:
+      - WI-0018-10000000#test-case/WI-0018-10000000_TC-SINGLE-DELEGATION
+    - id: WI-0018-20000000_OBJ-004
+      statement: Implement the behavior required by WI-0018_REQ_004 within the declared
+        scope.
+      inputRefs:
+      - WI-0018-20000000_INPUT-STRATEGY
+      - WI-0018-20000000_INPUT-REQ-004
+      testCaseRefs:
+      - WI-0018-10000000#test-case/WI-0018-10000000_TC-RELATIVE-ROOT
+    ownedPaths:
+    - src/request.ts
+    - src/index.ts
+    - src/types.ts
+    - tests/request.test.ts
+    nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#library-and-cli-boundaries; requests/README.md#prompt-schema-and-summarize-compatibility; requests/README.md#additional-input-files. Explicit human operator confirmation is required before modifying requests/README.md."
+    - Do not make authenticated provider calls, publish, deploy, or claim production
+      readiness.
+    - Do not modify unrelated commands, providers, schemas, or persistence outside
+      the declared owned paths.
+    steps:
+    - Define CompleteRequestOptions with requestName, parameters, files, and completion controls.
+    - Load assets, construct parameters, substitute values, and build the existing
+      LlmRequest shape.
+    - Resolve requestName, construct ProviderCompletionRequest, and delegate exactly once to provider.complete while passing files and completion controls.
+    - Add provider-free library tests for valid requests, invalid requests, relative
+      sources, and public exports.
+  result:
+    status: implemented
+    implementation:
+      summary: Added the exported completeRequest library boundary that resolves the shared request configuration, loads request assets, constructs the existing LlmRequest/provider request contract, forwards controls and external files, and delegates once to provider.complete.
+      changes:
+      - id: WI-0018-20000000_CHANGE-001
+        type: production-code
+        summary: Added completeRequest and exported it with the existing CompleteRequestOptions and ProviderCompletionResponse types.
+        objectiveRefs:
+        - WI-0018-20000000_OBJ-001
+        - WI-0018-20000000_OBJ-002
+        - WI-0018-20000000_OBJ-003
+        - WI-0018-20000000_OBJ-004
+        paths:
+        - src/request.ts
+        - src/index.ts
+        - src/types.ts
+      - id: WI-0018-20000000_CHANGE-002
+        type: test-code
+        summary: Added four provider-free library boundary tests with task-ID-prefixed trace markers.
+        objectiveRefs:
+        - WI-0018-20000000_OBJ-001
+        - WI-0018-20000000_OBJ-002
+        - WI-0018-20000000_OBJ-003
+        - WI-0018-20000000_OBJ-004
+        paths:
+        - tests/request.test.ts
+      testImplementations:
+      - testCaseRef: WI-0018-10000000#test-case/WI-0018-10000000_TC-EXPORTED-API
+        path: tests/request.test.ts
+        selector: WI-0018-10000000_TC-EXPORTED-API
+        traceMarker: WI-0018-10000000_TC-EXPORTED-API
+      - testCaseRef: WI-0018-10000000#test-case/WI-0018-10000000_TC-CONSTRUCTED-REQUEST
+        path: tests/request.test.ts
+        selector: WI-0018-10000000_TC-CONSTRUCTED-REQUEST
+        traceMarker: WI-0018-10000000_TC-CONSTRUCTED-REQUEST
+      - testCaseRef: WI-0018-10000000#test-case/WI-0018-10000000_TC-SINGLE-DELEGATION
+        path: tests/request.test.ts
+        selector: WI-0018-10000000_TC-SINGLE-DELEGATION
+        traceMarker: WI-0018-10000000_TC-SINGLE-DELEGATION
+      - testCaseRef: WI-0018-10000000#test-case/WI-0018-10000000_TC-RELATIVE-ROOT
+        path: tests/request.test.ts
+        selector: WI-0018-10000000_TC-RELATIVE-ROOT
+        traceMarker: WI-0018-10000000_TC-RELATIVE-ROOT
+    verification:
+      status: passed
+      objectiveRefs:
+      - WI-0018-20000000_OBJ-001
+      - WI-0018-20000000_OBJ-002
+      - WI-0018-20000000_OBJ-003
+      - WI-0018-20000000_OBJ-004
+      tests:
+      - id: WI-0018-20000000_EXEC-FOCUSED
+        type: component
+        testCaseRefs:
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-EXPORTED-API
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-CONSTRUCTED-REQUEST
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-SINGLE-DELEGATION
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-RELATIVE-ROOT
+        command: node --import tsx --test tests/request.test.ts
+        status: passed
+        result: All four WI-0018 focused test cases passed.
+      - id: WI-0018-20000000_EXEC-PACKAGE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-EXPORTED-API
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-CONSTRUCTED-REQUEST
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-SINGLE-DELEGATION
+        - WI-0018-10000000#test-case/WI-0018-10000000_TC-RELATIVE-ROOT
+        command: npm run typecheck && npm test && npm run build && git diff --check
+        status: passed
+        result: Typecheck, the full 137-test provider-free suite, build, whitespace, and conflict-marker checks passed.
+    limitations:
+    - This boundary is not yet wired to the dynamic CLI; that responsibility belongs to later work items.
+    - Provider-free local evidence does not establish authenticated provider behavior, deployment, publication, downstream integration, or production readiness.

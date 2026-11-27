@@ -1,6 +1,9 @@
 import { existsSync } from 'node:fs';
-import { extname } from 'node:path';
+import { extname, resolve } from 'node:path';
 import type { Thinking } from '../types.js';
+import { resolveRequestsDirectory } from '../requests-config.js';
+import { loadRequestDirectory } from '../request-directory.js';
+import type { RequestParameterAssignment } from '../request-parameters.js';
 
 export type ResponseFormat = 'full' | 'raw';
 
@@ -8,7 +11,7 @@ export interface ParsedCliArguments {
   readonly debug: boolean;
   readonly format: ResponseFormat;
   readonly printChatId: boolean;
-  readonly command: 'help' | 'version' | 'config' | 'prompt' | 'chat' | 'continue' | 'summarize';
+  readonly command: 'help' | 'version' | 'config' | 'prompt' | 'chat' | 'continue' | 'summarize' | 'req';
   readonly prompt?: string;
   readonly chatId?: string;
   readonly requestPath?: string;
@@ -17,6 +20,10 @@ export interface ParsedCliArguments {
   readonly summarizeProvider?: string;
   readonly summarizeModel?: string;
   readonly summarizeThinking?: Thinking;
+  readonly requestName?: string;
+  readonly requestParameters?: string;
+  readonly requestAssignments?: readonly RequestParameterAssignment[];
+  readonly usageError?: string;
   readonly exitCode?: number;
 }
 
@@ -118,6 +125,81 @@ function parseSummarizeArguments(args: readonly string[], common: { readonly deb
   };
 }
 
+function parameterRoots(schema: Record<string, unknown> | undefined): readonly string[] {
+  if (!schema || !schema.properties || typeof schema.properties !== 'object' || Array.isArray(schema.properties)) return [];
+  return Object.keys(schema.properties as Record<string, unknown>);
+}
+
+function assignmentPath(value: string, roots: readonly string[]): string | undefined {
+  if (!value.startsWith('--p-')) return undefined;
+  const path = value.slice('--p-'.length).split('=', 1)[0];
+  if (!path) return undefined;
+  return roots.some((root) => path === root || path.startsWith(`${root}.`) || path.startsWith(`${root}[`)) ? path : undefined;
+}
+
+function parameterPath(value: string, roots: readonly string[]): string | undefined {
+  const path = value.startsWith('--') ? value.slice(2).split('=', 1)[0] : value;
+  if (!path || path.startsWith('p-')) return undefined;
+  return roots.some((root) => path === root || path.startsWith(`${root}.`) || path.startsWith(`${root}[`)) ? path : undefined;
+}
+
+function missingParameterPrefixError(token: string, path: string): string {
+  const separator = token.indexOf('=');
+  const suggestion = separator === -1 ? `--p-${path} <value>` : `--p-${path}=${token.slice(separator + 1)}`;
+  return `Option '${token}' is a request parameter. Request parameters must use the '--p-' prefix; use '${suggestion}'.`;
+}
+
+async function parseRequestArguments(args: readonly string[], common: { readonly debug: boolean; readonly format: ResponseFormat; readonly printChatId: boolean }): Promise<ParsedCliArguments> {
+  if (common.printChatId || args.length < 2) return { ...common, command: 'req', exitCode: 2 };
+  const requestName = args[1]!;
+  let requestsDirectory: string;
+  let loaded;
+  try {
+    requestsDirectory = await resolveRequestsDirectory();
+    loaded = await loadRequestDirectory(requestsDirectory, requestName);
+  } catch {
+    return { ...common, command: 'req', exitCode: 2 };
+  }
+  const roots = parameterRoots(loaded.assets.parametersSchema?.value);
+  let parameters: string | undefined;
+  const assignments: RequestParameterAssignment[] = [];
+  for (let index = 2; index < args.length; index += 1) {
+    const token = args[index]!;
+    if (token === '--parameters' || token.startsWith('--parameters=')) {
+      if (parameters !== undefined) return { ...common, command: 'req', exitCode: 2 };
+      parameters = token === '--parameters' ? args[++index] : token.slice('--parameters='.length);
+      if (!parameters) return { ...common, command: 'req', exitCode: 2 };
+      continue;
+    }
+    const pathToken = assignmentPath(token, roots);
+    if (pathToken === undefined) {
+      const unprefixedPath = parameterPath(token, roots);
+      return unprefixedPath === undefined
+        ? { ...common, command: 'req', exitCode: 2 }
+        : { ...common, command: 'req', usageError: missingParameterPrefixError(token, unprefixedPath), exitCode: 2 };
+    }
+    const separator = token.indexOf('=');
+    const value = separator === -1 ? args[index + 1] : token.slice(separator + 1);
+    if (!value) return { ...common, command: 'req', exitCode: 2 };
+    if (separator === -1) index += 1;
+    assignments.push({ path: pathToken, value });
+  }
+  return {
+    ...common,
+    command: 'req',
+    requestName,
+    ...(parameters === undefined ? {} : { requestParameters: parameters }),
+    ...(assignments.length === 0 ? {} : { requestAssignments: assignments }),
+  };
+}
+
+export async function parseCliArgumentsAsync(args: readonly string[]): Promise<ParsedCliArguments> {
+  const parsed = parseFlags(args);
+  const common = { debug: parsed.debug, format: parsed.format, printChatId: parsed.printChatId };
+  if (!parsed.invalid && parsed.args[0] === 'req') return parseRequestArguments(parsed.args, common);
+  return parseCliArguments(args);
+}
+
 export function parseCliArguments(args: readonly string[]): ParsedCliArguments {
   const parsed = parseFlags(args);
   const cleanArgs = parsed.args;
@@ -143,6 +225,8 @@ export function parseCliArguments(args: readonly string[]): ParsedCliArguments {
   }
 
   if (cleanArgs[0] === 'summarize') return parseSummarizeArguments(cleanArgs, common);
+
+  if (cleanArgs[0] === 'req') return { ...common, command: 'req', exitCode: 2 };
 
   const configMode = cleanArgs[0] === '--config';
   const requestPath = configMode ? cleanArgs[1] : cleanArgs[0];

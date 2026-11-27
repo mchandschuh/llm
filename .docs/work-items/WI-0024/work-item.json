@@ -1,0 +1,185 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0024",
+  "status": "complete",
+  "title": "Add schema-declared request parameter file bindings",
+  "type": "feature",
+  "objective": "Define and implement reusable x-llm-req-parameter.file bindings so any dynamic request can turn declared path or content parameter fields into LlmRequest.files through the shared completeRequest boundary, with summarize as the first generic example. Contract sections: requests/README.md#x-llm-req-parameter-metadata; requests/README.md#processing-order; requests/README.md#additional-input-files; requests/README.md#schema-declared-files-and-librarycli-boundaries; requests/README.md#prompt-schema-and-summarize-compatibility; requests/README.md#request-name-and-filesystem-safety.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "llm-request-lookup",
+      "created": false,
+      "rationale": "The work item captures the next bounded request-lookup feature on the existing context branch."
+    }
+  },
+  "baseline": "a1519eb493cbc357a336711e9cb7c689e6075d0a",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare a new .docs/work-items/* to define and implement reusable schema-declared file bindings for dynamic request parameters. Update requests/README.md to document x-llm-req-parameter.file with path/content modes, materialization, ordering, cleanup, safety, and shared completeRequest/llm req behavior. Make summarize use path/content parameter fields without a request-name special case. Create a complete governed work item with strategy, implementation, validation, and review tasks. Commit the new work item.",
+    "sha256": "eb27d0753729962503067eb8b7949961289401f65794b03b09ea047b833283cd"
+  },
+  "scope": [
+    {
+      "name": "schema-contract",
+      "description": "Define x-llm-req-parameter.file metadata for scalar string path and content bindings, with bounded validation and no executable metadata.",
+      "reason": "File semantics must be explicitly declared by each request schema."
+    },
+    {
+      "name": "shared-materialization",
+      "description": "Materialize declared parameter files through one reusable boundary used by completeRequest and llm req.",
+      "reason": "Request-name special cases and duplicated CLI/library behavior are unacceptable."
+    },
+    {
+      "name": "parameter-api",
+      "description": "Allow the CLI to pass raw parameter JSON and assignments through the shared boundary so parameters are constructed once.",
+      "reason": "The shared request layer must own parameter resolution and file interpretation."
+    },
+    {
+      "name": "summarize-example",
+      "description": "Make requests/summarize declare path/content bindings and work through --p-path/--p-content without a summarize conditional.",
+      "reason": "Summarize is the concrete generic request example."
+    },
+    {
+      "name": "compatibility-and-evidence",
+      "description": "Preserve explicit additional files and existing prompt/provider boundaries while adding provider-free tests and package validation.",
+      "reason": "The feature must be additive and independently verifiable."
+    },
+    {
+      "name": "authoritative-contract",
+      "description": "Apply only the listed requests/README.md sections; explicit human operator confirmation is required before contract edits.",
+      "reason": "The request README is authoritative for this implementation batch."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "executable-assets",
+      "description": "Do not execute JavaScript, custom validation functions, shell text, templates, or module paths from request assets.",
+      "reason": "Request metadata remains declarative and bounded.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "request-name-special-casing",
+      "description": "Do not infer file behavior from request names or hard-code summarize-specific branches.",
+      "reason": "The feature must work for arbitrary request bundles through schema metadata.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "provider-and-release",
+      "description": "Do not make authenticated provider calls, publish, deploy, or claim production readiness.",
+      "reason": "Evidence is local and provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "unrelated-refactor",
+      "description": "Do not redesign the prompt XML schema, provider projection, output envelope, credentials, or unrelated commands.",
+      "reason": "Keep the change bounded to declared parameter file bindings.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0024_REQ_001",
+        "name": "file-binding-contract",
+        "description": "Parameter schemas can declare x-llm-req-parameter.file bindings for scalar string path and content values with validated mode, MIME, purpose, name, encoding, and unsupported-metadata behavior.",
+        "reason": "File semantics must be explicit and schema-owned.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0024_REQ_001_AC_001",
+            "description": "Path and content metadata shapes are documented and validated before provider use."
+          },
+          {
+            "id": "WI-0024_REQ_001_AC_002",
+            "description": "Malformed metadata, unsupported schema-node shapes, and executable validation metadata fail boundedly."
+          }
+        ]
+      },
+      {
+        "id": "WI-0024_REQ_002",
+        "name": "shared-materialization",
+        "description": "completeRequest materializes schema-declared path/content parameters into ReferenceFile descriptors using shared source safety, ordering, MIME, and cleanup behavior.",
+        "reason": "The library boundary must own the reusable behavior.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0024_REQ_002_AC_001",
+            "description": "Path files/directories and content temporary files reach LlmRequest.files and the generated <files> prompt XML."
+          },
+          {
+            "id": "WI-0024_REQ_002_AC_002",
+            "description": "Materialized files are deterministic, explicit files are merged after them, and temporary resources are removed on success and failure."
+          }
+        ]
+      },
+      {
+        "id": "WI-0024_REQ_003",
+        "name": "shared-parameter-boundary",
+        "description": "The CLI passes raw parameter input and assignments through the shared completion boundary so parameter construction and file binding interpretation occur once.",
+        "reason": "The CLI must not duplicate or special-case request semantics.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0024_REQ_003_AC_001",
+            "description": "Existing resolved-parameter library callers remain supported while CLI --parameters and --p-* values use the shared resolver."
+          },
+          {
+            "id": "WI-0024_REQ_003_AC_002",
+            "description": "No implementation branch compares the request name to summarize for file behavior."
+          }
+        ]
+      },
+      {
+        "id": "WI-0024_REQ_004",
+        "name": "summarize-example",
+        "description": "The summarize request declares exclusive path/content file parameters and executes through llm req using --p-path or --p-content.",
+        "reason": "A real request bundle proves the generic system feature.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0024_REQ_004_AC_001",
+            "description": "summarize.parameters.schema.json defines path/content file metadata and ordinary JSON Schema rejects neither/both source modes."
+          },
+          {
+            "id": "WI-0024_REQ_004_AC_002",
+            "description": "Provider-free tests capture path-backed and synthetic content files through the normal prompt/provider boundary."
+          }
+        ]
+      },
+      {
+        "id": "WI-0024_REQ_005",
+        "name": "compatibility-and-evidence",
+        "description": "Explicit additional path/content files, existing llm summarize behavior, raw/full output, safety rules, and provider-free package gates remain covered.",
+        "reason": "The new declarative channel must be additive and reviewable.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0024_REQ_005_AC_001",
+            "description": "Existing request and summarize tests remain green and explicit files merge in documented order."
+          },
+          {
+            "id": "WI-0024_REQ_005_AC_002",
+            "description": "Validation records the full package gate, changed-path audit, evidence limits, and absence of authenticated provider claims."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0024/steps/"
+}

@@ -45,7 +45,7 @@ export interface LlmRequest {
   readonly maxIterations?: number;
   readonly credentials?: Credentials;
   readonly task: TaskValue;
-  readonly systemPrompt: string;
+  readonly systemPrompt?: string | null;
   readonly taskSchema?: InlineJsonSchema;
   readonly files?: readonly ReferenceFile[];
   readonly outputSchema?: InlineJsonSchema;
@@ -148,7 +148,7 @@ export interface NormalizedRequest {
   readonly maxIterations: number;
   readonly credentials?: Credentials;
   readonly task: TaskValue;
-  readonly systemPrompt: ResolvedSource;
+  readonly systemPrompt: ResolvedSource | { readonly value: null };
   readonly taskSchema?: InlineJsonSchema;
   readonly files: readonly (ReferenceFile & { readonly encoding: FileEncoding; readonly content: string; readonly resolvedPath: string })[];
   readonly outputSchema?: InlineJsonSchema;
@@ -168,10 +168,11 @@ export interface ProviderCompletionRequestBase {
   readonly provider: string;
   readonly model: string;
   readonly thinking: Thinking;
-  readonly systemPrompt: string;
+  readonly systemPrompt?: string;
   readonly llmPrompt: string;
   readonly task: TaskValue;
   readonly taskSchema?: InlineJsonSchema;
+  readonly outputSchema?: InlineJsonSchema;
   readonly messages: readonly LlmChatMessage[];
   readonly files: readonly (ReferenceFile & { readonly encoding: FileEncoding; readonly content: string; readonly resolvedPath: string })[];
   readonly credentials?: Credentials;
@@ -366,6 +367,18 @@ export interface CompletionOptions {
   readonly signal?: AbortSignal;
   readonly messageSink?: (message: LlmChatMessage) => void;
   readonly conversationHistory?: readonly LlmChatMessage[];
+}
+
+export type RequestSettingsOverrides = Partial<Pick<LlmRequest, 'provider' | 'model' | 'thinking' | 'maxFailedAttempts' | 'maxIterations'>>;
+
+/** Request-directory completion boundary used by the planned `llm req` API. */
+export interface CompleteRequestOptions extends CompletionOptions {
+  readonly requestName: string;
+  readonly requestsDirectory?: string;
+  readonly parameters?: string | JsonObject;
+  readonly assignments?: readonly { readonly path: string; readonly value: string }[];
+  readonly files?: readonly ReferenceFile[];
+  readonly settings?: RequestSettingsOverrides;
 }
 
 /** @see schemas/request/v1/request.schema.json */

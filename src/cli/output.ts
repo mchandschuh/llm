@@ -33,7 +33,7 @@ export function printInputError(writeError: OutputWriter = stderrWriter): number
   return 1;
 }
 
-export function printUsageError(writeError: OutputWriter = stderrWriter): number {
-  writeError(`${JSON.stringify({ status: 'input_invalid', errors: [{ code: 'REQUEST_INVALID', phase: 'request', message: 'Usage: llm <request.json> | llm -p <prompt> | llm -c <prompt> | llm summarize --path <path> [--provider <provider>] [--model <model>] [--thinking <thinking>] | llm summarize --content <text> [--provider <provider>] [--model <model>] [--thinking <thinking>] | llm <prompt>' }] })}\n`);
+export function printUsageError(message = 'Usage: llm <request.json> | llm -p <prompt> | llm -c <prompt> | llm summarize --path <path> [--provider <provider>] [--model <model>] [--thinking <thinking>] | llm summarize --content <text> [--provider <provider>] [--model <model>] [--thinking <thinking>] | llm <prompt>', writeError: OutputWriter = stderrWriter): number {
+  writeError(`${JSON.stringify({ status: 'input_invalid', errors: [{ code: 'REQUEST_INVALID', phase: 'request', message }] })}\n`);
   return 2;
 }

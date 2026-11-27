@@ -1,0 +1,230 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0020
+taskUid: WI-0020-20000000
+orderKey: '20000000'
+parentTaskUid: WI-0020-10000000
+taskType: implementation
+processingStatus: processing_completed
+title: Implement llm req execution and output integration
+objective: Implement llm req execution and output integration
+references:
+  required:
+  - .docs/work-items/WI-0020/work-item.json
+  - .docs/work-items/WI-0020/README.md
+  - requests/README.md
+  - requests/decisions.md
+  - .docs/work-items/WI-0020/steps/WI-0020-10000000-test-strategy.yaml
+  - src/cli.ts
+  - src/cli/arguments.ts
+  - src/cli/output.ts
+  - src/requests-config.ts
+  - tests/cli.test.ts
+  - tests/summarize.test.ts
+  - package.json
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0020-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0020/steps/WI-0020-20000000-implementation.yaml
+  - src/cli/request-command.ts
+  - src/cli.ts
+  - src/cli/output.ts
+  - tests/request-cli.test.ts
+  commitSubject: 'WI-0020: feat(llm): implement request feature slice'
+  commitBody:
+    requiredSections:
+    - Why
+    - What
+    - How
+    - Decisions
+    - Validation
+    - Evidence
+    - Refs
+    - Next
+  validationProcedures:
+  - id: typecheck
+    executable: npm
+    arguments:
+    - run
+    - typecheck
+    expectedExitCode: 0
+  - id: build
+    executable: npm
+    arguments:
+    - run
+    - build
+    expectedExitCode: 0
+  - id: focused-tests
+    executable: npm
+    arguments:
+    - test
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement llm req execution and output integration. Implement only the
+      declared request-feature behavior and its focused tests.
+    changeTypes:
+    - production-code
+    - test-code
+    changeIntent: feature
+    inputs:
+    - id: WI-0020-20000000_INPUT-STRATEGY
+      kind: testStrategy
+      ref: WI-0020-10000000#result/R-001
+      purpose: Provide the authoritative strategy test-case set and coverage boundary.
+      required: true
+    - id: WI-0020-20000000_INPUT-REQ-001
+      kind: requirement
+      ref: WI-0020#work-item.json#requirement/WI-0020_REQ_001
+      purpose: Provide the authoritative WI-0020_REQ_001 requirement.
+      required: true
+    - id: WI-0020-20000000_INPUT-REQ-002
+      kind: requirement
+      ref: WI-0020#work-item.json#requirement/WI-0020_REQ_002
+      purpose: Provide the authoritative WI-0020_REQ_002 requirement.
+      required: true
+    - id: WI-0020-20000000_INPUT-REQ-003
+      kind: requirement
+      ref: WI-0020#work-item.json#requirement/WI-0020_REQ_003
+      purpose: Provide the authoritative WI-0020_REQ_003 requirement.
+      required: true
+    - id: WI-0020-20000000_INPUT-REQ-004
+      kind: requirement
+      ref: WI-0020#work-item.json#requirement/WI-0020_REQ_004
+      purpose: Provide the authoritative WI-0020_REQ_004 requirement.
+      required: true
+    objectives:
+    - id: WI-0020-20000000_OBJ-001
+      statement: Implement the behavior required by WI-0020_REQ_001 within the declared
+        scope.
+      inputRefs:
+      - WI-0020-20000000_INPUT-STRATEGY
+      - WI-0020-20000000_INPUT-REQ-001
+      testCaseRefs:
+      - WI-0020-10000000#test-case/WI-0020-10000000_TC-CONFIGURED-LOOKUP
+    - id: WI-0020-20000000_OBJ-002
+      statement: Implement the behavior required by WI-0020_REQ_002 within the declared
+        scope.
+      inputRefs:
+      - WI-0020-20000000_INPUT-STRATEGY
+      - WI-0020-20000000_INPUT-REQ-002
+      testCaseRefs:
+      - WI-0020-10000000#test-case/WI-0020-10000000_TC-SHARED-COMPLETION
+    - id: WI-0020-20000000_OBJ-003
+      statement: Implement the behavior required by WI-0020_REQ_003 within the declared
+        scope.
+      inputRefs:
+      - WI-0020-20000000_INPUT-STRATEGY
+      - WI-0020-20000000_INPUT-REQ-003
+      testCaseRefs:
+      - WI-0020-10000000#test-case/WI-0020-10000000_TC-OUTPUT-CONTRACT
+    - id: WI-0020-20000000_OBJ-004
+      statement: Implement the behavior required by WI-0020_REQ_004 within the declared
+        scope.
+      inputRefs:
+      - WI-0020-20000000_INPUT-STRATEGY
+      - WI-0020-20000000_INPUT-REQ-004
+      testCaseRefs:
+      - WI-0020-10000000#test-case/WI-0020-10000000_TC-CLI-REGRESSION
+    ownedPaths:
+    - src/cli/request-command.ts
+    - src/cli.ts
+    - src/cli/output.ts
+    - tests/request-cli.test.ts
+    nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#additional-input-files; requests/README.md#library-and-cli-boundaries; requests/README.md#request-name-and-filesystem-safety. Explicit human operator confirmation is required before modifying requests/README.md."
+    - Do not make authenticated provider calls, publish, deploy, or claim production
+      readiness.
+    - Do not modify unrelated commands, providers, schemas, or persistence outside
+      the declared owned paths.
+    steps:
+    - Resolve configured requestsDirectory and the request name through the shared
+      loader.
+    - Connect dynamic CLI parameters to parameter construction and call completeRequest
+      exactly once.
+    - Preserve raw/full output, JSON errors, stderr routing, and exit codes.
+    - Add provider-free CLI integration tests for success, invalid input, missing
+      configuration, and output formats.
+  result:
+    status: implemented
+    implementation:
+      summary: Added the llm req execution adapter over completeRequest, including configured request loading, schema-aware parameter construction, summarize-compatible additional path/content files, existing response output, bounded JSON errors, and debug forwarding.
+      changes:
+      - id: WI-0020-20000000_CHANGE-001
+        type: production-code
+        summary: Added request-command execution and wired the req branch through the CLI while preserving output and help contracts.
+        objectiveRefs:
+        - WI-0020-20000000_OBJ-001
+        - WI-0020-20000000_OBJ-002
+        - WI-0020-20000000_OBJ-003
+        paths:
+        - src/cli/request-command.ts
+        - src/cli.ts
+        - src/cli/arguments.ts
+        - src/cli/help.ts
+      - id: WI-0020-20000000_CHANGE-002
+        type: test-code
+        summary: Added four provider-free request CLI integration tests with stable WI-0020 trace markers.
+        objectiveRefs:
+        - WI-0020-20000000_OBJ-001
+        - WI-0020-20000000_OBJ-002
+        - WI-0020-20000000_OBJ-003
+        - WI-0020-20000000_OBJ-004
+        paths:
+        - tests/request-cli.test.ts
+      testImplementations:
+      - testCaseRef: WI-0020-10000000#test-case/WI-0020-10000000_TC-CONFIGURED-LOOKUP
+        path: tests/request-cli.test.ts
+        selector: WI-0020-10000000_TC-CONFIGURED-LOOKUP
+        traceMarker: WI-0020-10000000_TC-CONFIGURED-LOOKUP
+      - testCaseRef: WI-0020-10000000#test-case/WI-0020-10000000_TC-SHARED-COMPLETION
+        path: tests/request-cli.test.ts
+        selector: WI-0020-10000000_TC-SHARED-COMPLETION
+        traceMarker: WI-0020-10000000_TC-SHARED-COMPLETION
+      - testCaseRef: WI-0020-10000000#test-case/WI-0020-10000000_TC-OUTPUT-CONTRACT
+        path: tests/request-cli.test.ts
+        selector: WI-0020-10000000_TC-OUTPUT-CONTRACT
+        traceMarker: WI-0020-10000000_TC-OUTPUT-CONTRACT
+      - testCaseRef: WI-0020-10000000#test-case/WI-0020-10000000_TC-CLI-REGRESSION
+        path: tests/request-cli.test.ts
+        selector: WI-0020-10000000_TC-CLI-REGRESSION
+        traceMarker: WI-0020-10000000_TC-CLI-REGRESSION
+    verification:
+      status: passed
+      objectiveRefs:
+      - WI-0020-20000000_OBJ-001
+      - WI-0020-20000000_OBJ-002
+      - WI-0020-20000000_OBJ-003
+      - WI-0020-20000000_OBJ-004
+      tests:
+      - id: WI-0020-20000000_EXEC-FOCUSED
+        type: component
+        testCaseRefs:
+        - WI-0020-10000000#test-case/WI-0020-10000000_TC-CONFIGURED-LOOKUP
+        - WI-0020-10000000#test-case/WI-0020-10000000_TC-SHARED-COMPLETION
+        - WI-0020-10000000#test-case/WI-0020-10000000_TC-OUTPUT-CONTRACT
+        - WI-0020-10000000#test-case/WI-0020-10000000_TC-CLI-REGRESSION
+        command: node --import tsx --test tests/request-cli.test.ts
+        status: passed
+        result: All four WI-0020 request CLI cases passed.
+      - id: WI-0020-20000000_EXEC-PACKAGE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0020-10000000#test-case/WI-0020-10000000_TC-CONFIGURED-LOOKUP
+        - WI-0020-10000000#test-case/WI-0020-10000000_TC-SHARED-COMPLETION
+        - WI-0020-10000000#test-case/WI-0020-10000000_TC-OUTPUT-CONTRACT
+        - WI-0020-10000000#test-case/WI-0020-10000000_TC-CLI-REGRESSION
+        command: npm run typecheck && npm test && npm run build && git diff --check
+        status: passed
+        result: Typecheck, the full 145-test provider-free suite, build, and whitespace checks passed.
+    limitations:
+    - Provider-free local evidence does not establish authenticated provider behavior, deployment, publication, downstream integration, or production readiness.

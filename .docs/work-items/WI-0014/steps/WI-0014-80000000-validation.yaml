@@ -1,0 +1,170 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0014
+taskUid: WI-0014-80000000
+orderKey: '80000000'
+parentTaskUid: WI-0014-20000000
+taskType: validation
+processingStatus: processing_completed
+title: Validate Document and finalize the dynamic request-directory contract
+objective: Define the request-directory layout, asset mapping, parameter syntax, placeholder
+  syntax, processing order, compatibility decisions, and evidence boundary before
+  implementation.
+references:
+  required:
+  - .docs/work-items/WI-0014/work-item.json
+  - .docs/work-items/WI-0014/README.md
+  - requests/
+  - .docs/work-items/WI-0014/steps/WI-0014-20000000-implementation.yaml
+  - src/types.ts
+  - src/cli/summarize-command.ts
+  - README.md
+  - SKILL.md
+  - package.json
+  - tests/
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0014-10000000
+- WI-0014-20000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0014/steps/WI-0014-80000000-validation.yaml
+  commitSubject: 'WI-0014: plan: define validation evidence'
+  commitBody:
+    requiredSections:
+    - Why
+    - What
+    - How
+    - Decisions
+    - Validation
+    - Evidence
+    - Refs
+    - Next
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments:
+    - run
+    - typecheck
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Validate Document and finalize the dynamic request-directory contract
+      against every required strategy case and scope boundary.
+    inputs:
+    - id: WI-0014-80000000_INPUT-STRATEGY
+      kind: testStrategy
+      ref: WI-0014-10000000#result/R-001
+      purpose: Provide strategy coverage.
+      required: true
+    - id: WI-0014-80000000_INPUT-IMPLEMENTATION
+      kind: implementation
+      ref: WI-0014-20000000#result/R-001
+      purpose: Identify the implementation task and its owned change boundary.
+      required: true
+    targets:
+    - id: WI-0014-80000000_TARGET-REPOSITORY
+      kind: repositoryState
+      ref: '#repository-state/HEAD'
+      purpose: Inspect implementation, tests, declarations, docs, and paths.
+      required: true
+    - id: WI-0014-80000000_TARGET-IMPLEMENTATION
+      kind: taskResult
+      taskType: implementation
+      ref: WI-0014-20000000#result/R-001
+      purpose: Validate the implementation task against its declared owned paths and
+        objectives.
+      required: true
+    objectiveRefs:
+    - WI-0014-10000000#objective/WI-0014-10000000_OBJ-001
+    - WI-0014-10000000#objective/WI-0014-10000000_OBJ-002
+    - WI-0014-10000000#objective/WI-0014-10000000_OBJ-003
+    - WI-0014-10000000#objective/WI-0014-10000000_OBJ-004
+    testCaseRefs:
+    - WI-0014-10000000#test-case/WI-0014-10000000_TC-DOCUMENTATION
+    - WI-0014-10000000#test-case/WI-0014-10000000_TC-PROMPT-MAPPING
+    - WI-0014-10000000#test-case/WI-0014-10000000_TC-PARAMETER-CONTRACT
+    - WI-0014-10000000#test-case/WI-0014-10000000_TC-EVIDENCE-BOUNDARY
+    procedures:
+    - id: WI-0014-80000000_VAL-ALL
+      sequence: 1
+      name: validate-all-request-evidence
+      description: Run focused tests, package gates, declaration checks, and changed-path
+        review.
+      reason: Every requirement needs bounded local evidence.
+      targetRefs:
+      - '#target/WI-0014-80000000_TARGET-REPOSITORY'
+      - '#target/WI-0014-80000000_TARGET-IMPLEMENTATION'
+      objectiveRefs:
+      - WI-0014-10000000#objective/WI-0014-10000000_OBJ-001
+      - WI-0014-10000000#objective/WI-0014-10000000_OBJ-002
+      - WI-0014-10000000#objective/WI-0014-10000000_OBJ-003
+      - WI-0014-10000000#objective/WI-0014-10000000_OBJ-004
+      testCaseRefs:
+      - WI-0014-10000000#test-case/WI-0014-10000000_TC-DOCUMENTATION
+      - WI-0014-10000000#test-case/WI-0014-10000000_TC-PROMPT-MAPPING
+      - WI-0014-10000000#test-case/WI-0014-10000000_TC-PARAMETER-CONTRACT
+      - WI-0014-10000000#test-case/WI-0014-10000000_TC-EVIDENCE-BOUNDARY
+      method:
+        executionMode: executable
+        target: Provider-free request feature test matrix
+        steps:
+        - Run focused and full tests.
+        - Run typecheck and build.
+        - Inspect declarations, docs, and changed paths.
+        command: npm run typecheck && npm test && npm run build && git diff --check
+      expected:
+        outcome: passed
+        exitCode: 0
+        assertions:
+        - All required cases are exercised or accounted for.
+        - No provider or production claim is made.
+      evidenceTier: cli-audit
+      required: true
+    nonGoals:
+    - Do not claim authenticated provider, deployment, release, downstream, or production
+      behavior.
+    - Do not commit or mutate Git history during validation.
+  result:
+    status: passed
+    summary: The WI-0014 contract audit, full provider-free package suite, typecheck, build, whitespace, and conflict-marker checks passed locally.
+    executions:
+    - id: WI-0014-80000000_EXEC-ALL
+      procedureRef: '#procedure/WI-0014-80000000_VAL-ALL'
+      status: passed
+      observed:
+        outcome: passed
+        exitCode: 0
+        summary: The focused WI-0014 contract audit passed all four strategy cases, and the complete repository gate passed all 125 tests, typecheck, build, whitespace, and conflict-marker checks.
+        assertions:
+        - WI-0014 contract audit passed 4 of 4 trace-marked cases.
+        - npm run typecheck exited zero.
+        - npm test passed 125 of 125 tests.
+        - npm run build exited zero.
+        - git diff --check exited zero.
+        - No conflict markers were found in repository files.
+      evidenceTier: cli-audit
+      evidence:
+      - kind: command
+        source: repository package gate
+        claim: The provider-free package and WI-0014 contract evidence passed.
+        command: npm run typecheck && npm test && npm run build && git diff --check
+      - kind: test
+        source: tests/wi-0014-contract.test.ts
+        claim: All four WI-0014 strategy cases passed with trace-marked executable tests.
+        command: node --import tsx --test tests/wi-0014-contract.test.ts
+    findings: []
+    evidenceTier: cli-audit
+    limitations:
+    - The installed SDLC validator cannot validate the WI-0014 test-strategy task because its package-owned schema registry lacks sdlc-task-test-strategy/v2.
+    - Provider-free local evidence does not establish authenticated provider behavior, deployment, publication, downstream integration, or production readiness.
+    nonClaims:
+    - This validation does not claim authenticated provider behavior or production readiness.
+    - This validation does not authorize deployment, publication, or a Git commit.

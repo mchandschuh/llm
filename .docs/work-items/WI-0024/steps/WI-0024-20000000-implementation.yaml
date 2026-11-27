@@ -1,0 +1,248 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0024
+taskUid: WI-0024-20000000
+orderKey: '20000000'
+parentTaskUid: WI-0024-10000000
+taskType: implementation
+processingStatus: processing_completed
+title: Implement schema-declared request parameter file bindings
+objective: Implement reusable schema-declared path/content parameter file bindings through the shared completeRequest boundary and summarize example.
+references:
+  required:
+  - .docs/work-items/WI-0024/work-item.json
+  - .docs/work-items/WI-0024/README.md
+  - .docs/work-items/WI-0024/steps/WI-0024-10000000-test-strategy.yaml
+  - requests/README.md
+  - requests/decisions.md
+  - requests/summarize/
+  - src/request.ts
+  - src/request-parameters.ts
+  - src/cli/request-command.ts
+  - src/cli/arguments.ts
+  - src/source.ts
+  - src/normalize.ts
+  - src/prompt.ts
+  - src/openrouter-projection.ts
+  - tests/request-parameters.test.ts
+  - tests/request.test.ts
+  - tests/request-cli.test.ts
+  - tests/summarize.test.ts
+  - tests/provider-projection.test.ts
+  - package.json
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0024-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0024/steps/WI-0024-20000000-implementation.yaml
+  - src/request-parameter-files.ts
+  - src/request.ts
+  - src/request-parameters.ts
+  - src/cli/request-command.ts
+  - src/cli/arguments.ts
+  - requests/summarize/
+  - tests/request-parameter-files.test.ts
+  - tests/request.test.ts
+  - tests/request-cli.test.ts
+  - tests/request-parameters.test.ts
+  - tests/summarize.test.ts
+  - requests/README.md
+  - requests/decisions.md
+  commitSubject: 'WI-0024: feat(llm): add schema-declared file bindings'
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+  - id: typecheck
+    executable: npm
+    arguments: [run, typecheck]
+    expectedExitCode: 0
+  - id: build
+    executable: npm
+    arguments: [run, build]
+    expectedExitCode: 0
+  - id: focused-tests
+    executable: npm
+    arguments: [test]
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement schema-declared request parameter file bindings. Implement only the declared contract and focused tests.
+    changeTypes: [production-code, test-code, schema, documentation]
+    changeIntent: feature
+    inputs:
+    - id: WI-0024-20000000_INPUT-STRATEGY
+      kind: testStrategy
+      ref: WI-0024-10000000#result/R-001
+      purpose: Provide the required test matrix and evidence boundary.
+      required: true
+    - id: WI-0024-20000000_INPUT-REQ-001
+      kind: requirement
+      ref: WI-0024#work-item.json#requirement/WI-0024_REQ_001
+      purpose: Define metadata validation.
+      required: true
+    - id: WI-0024-20000000_INPUT-REQ-002
+      kind: requirement
+      ref: WI-0024#work-item.json#requirement/WI-0024_REQ_002
+      purpose: Define shared materialization.
+      required: true
+    - id: WI-0024-20000000_INPUT-REQ-003
+      kind: requirement
+      ref: WI-0024#work-item.json#requirement/WI-0024_REQ_003
+      purpose: Define the shared parameter boundary.
+      required: true
+    - id: WI-0024-20000000_INPUT-REQ-004
+      kind: requirement
+      ref: WI-0024#work-item.json#requirement/WI-0024_REQ_004
+      purpose: Define summarize behavior.
+      required: true
+    - id: WI-0024-20000000_INPUT-REQ-005
+      kind: requirement
+      ref: WI-0024#work-item.json#requirement/WI-0024_REQ_005
+      purpose: Define compatibility and evidence.
+      required: true
+    objectives:
+    - id: WI-0024-20000000_OBJ-001
+      statement: Implement metadata validation and bounded failure behavior.
+      inputRefs: [WI-0024-20000000_INPUT-STRATEGY, WI-0024-20000000_INPUT-REQ-001]
+      testCaseRefs: ['WI-0024-10000000#test-case/WI-0024-10000000_TC-METADATA-VALIDATION']
+    - id: WI-0024-20000000_OBJ-002
+      statement: Implement reusable file materialization and cleanup at the shared request boundary.
+      inputRefs: [WI-0024-20000000_INPUT-STRATEGY, WI-0024-20000000_INPUT-REQ-002]
+      testCaseRefs: ['WI-0024-10000000#test-case/WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY']
+    - id: WI-0024-20000000_OBJ-003
+      statement: Route CLI and library parameter input through one shared construction/materialization path.
+      inputRefs: [WI-0024-20000000_INPUT-STRATEGY, WI-0024-20000000_INPUT-REQ-003]
+      testCaseRefs: ['WI-0024-10000000#test-case/WI-0024-10000000_TC-SHARED-BOUNDARY']
+    - id: WI-0024-20000000_OBJ-004
+      statement: Make summarize use schema-declared path/content bindings through llm req.
+      inputRefs: [WI-0024-20000000_INPUT-STRATEGY, WI-0024-20000000_INPUT-REQ-004]
+      testCaseRefs: ['WI-0024-10000000#test-case/WI-0024-10000000_TC-SUMMARIZE-EXAMPLE']
+    - id: WI-0024-20000000_OBJ-005
+      statement: Preserve compatibility and complete the provider-free package gate.
+      inputRefs: [WI-0024-20000000_INPUT-STRATEGY, WI-0024-20000000_INPUT-REQ-005]
+      testCaseRefs: ['WI-0024-10000000#test-case/WI-0024-10000000_TC-COMPATIBILITY-GATE']
+    ownedPaths:
+    - src/request-parameter-files.ts
+    - src/request.ts
+    - src/request-parameters.ts
+    - src/cli/request-command.ts
+    - src/cli/arguments.ts
+    - requests/summarize/
+    - tests/request-parameter-files.test.ts
+    - tests/request.test.ts
+    - tests/request-cli.test.ts
+    - tests/request-parameters.test.ts
+    - tests/summarize.test.ts
+    - requests/README.md
+    - requests/decisions.md
+    nonGoals:
+    - Explicit human operator confirmation is required before modifying requests/README.md; apply only the WI-0024 contract sections.
+    - Do not execute request-asset code or infer bindings from request names.
+    - Do not redesign providers, prompt XML, response envelopes, or unrelated commands.
+    - Do not claim authenticated provider or production behavior.
+    steps:
+    - Add summarize.parameters.schema.json with path/content file metadata and exclusive source validation.
+    - Implement strict parsing of supported x-llm-req-parameter.file metadata.
+    - Implement reusable path/content materialization, deterministic ordering, explicit-file merging, and cleanup.
+    - Move parameter construction/materialization ownership to completeRequest while preserving resolved-parameter callers.
+    - Wire llm req to pass raw parameter input/assignments through the shared boundary without request-name conditionals.
+    - Add provider-free tests for generic bundles, summarize, invalid metadata/cardinality, safety, cleanup, prompt XML, and compatibility.
+  result:
+    status: implemented
+    implementation:
+      summary: Added reusable schema-declared path/content file bindings through completeRequest, preserved resolved-parameter callers, routed llm req raw parameters and --p-* assignments through the shared boundary, and added the summarize parameter schema example.
+      changes:
+      - id: WI-0024-20000000_CHANGE-001
+        type: production-code
+        summary: Added strict x-llm-req-parameter.file validation, deterministic path/content materialization, explicit-file merging, MIME/encoding handling, temporary-resource cleanup, and completeRequest ownership.
+        objectiveRefs:
+        - WI-0024-20000000_OBJ-001
+        - WI-0024-20000000_OBJ-002
+        - WI-0024-20000000_OBJ-003
+        paths:
+        - src/request-parameter-files.ts
+        - src/request.ts
+        - src/request-parameters.ts
+        - src/types.ts
+        - src/cli/request-command.ts
+      - id: WI-0024-20000000_CHANGE-002
+        type: schema
+        summary: Added the summarize path/content parameter schema with exclusive ordinary JSON Schema oneOf validation and declared file metadata.
+        objectiveRefs:
+        - WI-0024-20000000_OBJ-004
+        paths:
+        - requests/summarize/summarize.parameters.schema.json
+      - id: WI-0024-20000000_CHANGE-003
+        type: test-code
+        summary: Added provider-free trace-marked tests for metadata validation, ordering, prompt XML, success/failure cleanup, safety, shared CLI/library forwarding, compatibility, and summarize cardinality.
+        objectiveRefs:
+        - WI-0024-20000000_OBJ-001
+        - WI-0024-20000000_OBJ-002
+        - WI-0024-20000000_OBJ-003
+        - WI-0024-20000000_OBJ-004
+        - WI-0024-20000000_OBJ-005
+        paths:
+        - tests/request-parameter-files.test.ts
+      testImplementations:
+      - testCaseRef: WI-0024-10000000#test-case/WI-0024-10000000_TC-METADATA-VALIDATION
+        path: tests/request-parameter-files.test.ts
+        selector: WI-0024-10000000_TC-METADATA-VALIDATION
+        traceMarker: WI-0024-10000000_TC-METADATA-VALIDATION
+      - testCaseRef: WI-0024-10000000#test-case/WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY
+        path: tests/request-parameter-files.test.ts
+        selector: WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY
+        traceMarker: WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY
+      - testCaseRef: WI-0024-10000000#test-case/WI-0024-10000000_TC-SHARED-BOUNDARY
+        path: tests/request-parameter-files.test.ts
+        selector: WI-0024-10000000_TC-SHARED-BOUNDARY
+        traceMarker: WI-0024-10000000_TC-SHARED-BOUNDARY
+      - testCaseRef: WI-0024-10000000#test-case/WI-0024-10000000_TC-SUMMARIZE-EXAMPLE
+        path: tests/request-parameter-files.test.ts
+        selector: WI-0024-10000000_TC-SUMMARIZE-EXAMPLE
+        traceMarker: WI-0024-10000000_TC-SUMMARIZE-EXAMPLE
+      - testCaseRef: WI-0024-10000000#test-case/WI-0024-10000000_TC-COMPATIBILITY-GATE
+        path: tests/request-parameter-files.test.ts
+        selector: WI-0024-10000000_TC-COMPATIBILITY-GATE
+        traceMarker: WI-0024-10000000_TC-COMPATIBILITY-GATE
+    verification:
+      status: passed
+      objectiveRefs:
+      - WI-0024-20000000_OBJ-001
+      - WI-0024-20000000_OBJ-002
+      - WI-0024-20000000_OBJ-003
+      - WI-0024-20000000_OBJ-004
+      - WI-0024-20000000_OBJ-005
+      tests:
+      - id: WI-0024-20000000_EXEC-FOCUSED
+        type: component
+        testCaseRefs:
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-METADATA-VALIDATION
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-SHARED-BOUNDARY
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-SUMMARIZE-EXAMPLE
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-COMPATIBILITY-GATE
+        command: node --import tsx --test tests/request-parameter-files.test.ts
+        status: passed
+        result: 'All seven provider-free WI-0024 focused tests passed: five strategy-mapped cases plus cleanup-failure and safety-boundary supplemental cases.'
+      - id: WI-0024-20000000_EXEC-PACKAGE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-METADATA-VALIDATION
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-SHARED-BOUNDARY
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-SUMMARIZE-EXAMPLE
+        - WI-0024-10000000#test-case/WI-0024-10000000_TC-COMPATIBILITY-GATE
+        command: npm run typecheck && npm test && npm run build && git diff --check
+        status: passed
+        result: Typecheck passed, the full 152-test provider-free suite passed, build passed, and the final diff check passed.
+    limitations:
+    - Provider-free local evidence does not establish authenticated provider behavior, network transport, deployment, publication, downstream integration, or production readiness.
+    - requests/README.md and requests/decisions.md were not modified because their explicit contract-edit gate requires a separate human-confirmed documentation action.

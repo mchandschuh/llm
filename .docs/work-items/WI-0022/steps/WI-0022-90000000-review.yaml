@@ -1,0 +1,115 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0022
+taskUid: WI-0022-90000000
+orderKey: '90000000'
+parentTaskUid: WI-0022-80000000
+taskType: review
+processingStatus: unprocessed
+title: Review Validate dynamic request lookup and evidence coverage scope and evidence
+objective: Run the complete provider-free matrix, package gates, documentation checks,
+  scope audit, and non-goal review for dynamic request lookup.
+references:
+  required:
+  - .docs/work-items/WI-0022/work-item.json
+  - .docs/work-items/WI-0022/README.md
+  - requests/README.md
+  - requests/decisions.md
+  - .docs/work-items/
+  - .docs/work-items/WI-0022/steps/WI-0022-80000000-validation.yaml
+  - .docs/work-items/WI-0022/steps/WI-0022-20000000-implementation.yaml
+  - requests/
+  - src/
+  - tests/
+  - README.md
+  - SKILL.md
+  - package.json
+  - package-lock.json
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0022-80000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0022/steps/WI-0022-90000000-review.yaml
+  commitSubject: 'WI-0022: plan: define review evidence'
+  commitBody:
+    requiredSections:
+    - Why
+    - What
+    - How
+    - Decisions
+    - Validation
+    - Evidence
+    - Refs
+    - Next
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments:
+    - run
+    - typecheck
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review whether evidence for Validate dynamic request lookup and evidence
+      coverage is sufficient, traceable, and in scope.
+    reviewKind: planning
+    target:
+      taskType: test-strategy
+      taskRef: WI-0022-10000000
+      result:
+        ref: WI-0022-10000000#result/testCases/WI-0022-10000000_TC-MATRIX-COVERAGE
+        sha256: null
+    gateId: test-strategy
+    policyRef:
+      ref: repository-local-review-policy
+      sha256: null
+    criteria:
+    - id: CRIT-001
+      statement: Every requirement and acceptance criterion has explicit strategy
+        and validation coverage.
+      purpose: Prevent unproven obligations.
+      required: true
+      evidenceRefs:
+      - WI-0022-10000000#result/testCases/WI-0022-10000000_TC-MATRIX-COVERAGE
+    - id: CRIT-002
+      statement: The strategy preserves non-goals and evidence limitations without
+        provider or production overclaiming.
+      purpose: Prevent scope expansion.
+      required: true
+      evidenceRefs:
+      - WI-0022#work-item.json#requirement/WI-0022_REQ_001
+    - id: CRIT-003
+      statement: The validation task can execute the strategy and inspect package,
+        documentation, and changed-path gates.
+      purpose: Ensure later completion evidence is sufficient.
+      required: true
+      evidenceRefs:
+      - WI-0022-80000000
+      - WI-0022-20000000
+    evidenceRequirements:
+    - id: EVID-001
+      kind: test
+      ref: WI-0022-10000000#result/testCases/WI-0022-10000000_TC-MATRIX-COVERAGE
+      purpose: Provide the declared strategy cases.
+      required: true
+      minimumTier: inspection
+    nonGoals:
+    - id: NON-002
+      statement: "Explicit human operator confirmation is required before modifying requests/README.md; this task must apply contract sections requests/README.md#work-item-validation-gates; requests/README.md#evidence-boundary. Explicit human operator confirmation is required before modifying requests/README.md."
+    - id: NON-001
+      statement: This review does not claim implementation, provider, completion,
+        release, deployment, or production readiness.
+    context:
+    - id: CTX-001
+      kind: contract
+      ref: .docs/work-items/WI-0022/README.md
+      purpose: Apply declared scope and evidence boundary.
+      required: true

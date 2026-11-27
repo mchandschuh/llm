@@ -1,0 +1,149 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0015",
+  "status": "complete",
+  "title": "Implement request-directory discovery and asset loading",
+  "type": "feature",
+  "objective": "Resolve a safe request name beneath configured requestsDirectory, discover recognized assets, parse contents, and report bounded configuration failures before completion. Contract sections: requests/README.md#request-bundle-layout; requests/README.md#asset-mapping-and-optionality; requests/README.md#processing-order; requests/README.md#request-name-and-filesystem-safety. Explicit human operator confirmation is required before modifying requests/README.md.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "llm-request-lookup",
+      "created": false,
+      "rationale": "The record captures bounded planning without creating or switching a branch."
+    }
+  },
+  "baseline": "51984b6064503b576c52ca460d7cf21cc356f52b",
+  "request": {
+    "source": "conversation",
+    "text": "Prepare small, testable work items for dynamic request lookup: document requests/README.md; support request asset discovery; schema-aware CLI parameters including dot/index paths and --parameters JSON; $${variableName}$$ substitution; completeRequest({ requestName, parameters, files, ... }); llm req CLI integration; raw/full output; summarize compatibility; provider-free validation.",
+    "sha256": "6947fefadc20888caa47bb1e4f148f89f8188681ed40da54ec0ac59e4f7fd085"
+  },
+  "scope": [
+    {
+      "name": "safe-resolution",
+      "description": "A request name resolves only to a safe child directory beneath configured requestsDirectory.",
+      "reason": "Request names are user-controlled selectors."
+    },
+    {
+      "name": "asset-set",
+      "description": "The loader recognizes exactly one task source (prompt.md or task.json), an optional system prompt, defaults, schemas, and bounded asset alternatives as defined by requests/README.md#asset-mapping-and-optionality.",
+      "reason": "Every request property needs one deterministic source."
+    },
+    {
+      "name": "parsing-errors",
+      "description": "Malformed or wrong-shaped assets fail with bounded errors identifying request and asset kind.",
+      "reason": "Invalid configuration must stop before completion."
+    },
+    {
+      "name": "configuration-reuse",
+      "description": "Configured requestsDirectory continues using the existing shared boundary.",
+      "reason": "Users must not receive command-specific lookup behavior."
+    },
+    {
+      "name": "authoritative-contract",
+      "description": "Implement only the authoritative contract sections [Request bundle layout](#request-bundle-layout), [Asset mapping and optionality](#asset-mapping-and-optionality), [Processing order](#processing-order), [Request-name and filesystem safety](#request-name-and-filesystem-safety). Do not modify requests/README.md without explicit human operator confirmation.",
+      "reason": "The request README is the source of truth for this implementation batch."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "implementation",
+      "description": "Do not implement behavior outside this work item.",
+      "reason": "Keep the slice independently reviewable.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "provider-and-release",
+      "description": "Do not make authenticated calls, publish, deploy, or claim production readiness.",
+      "reason": "Evidence is local and provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "unrelated-refactor",
+      "description": "Do not redesign unrelated commands, providers, schemas, or persistence.",
+      "reason": "Scope is limited to dynamic request lookup.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0015_REQ_001",
+        "name": "safe-resolution",
+        "description": "A request name resolves only to a safe child directory beneath configured requestsDirectory.",
+        "reason": "Request names are user-controlled selectors.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0015_REQ_001_AC_001",
+            "description": "Valid names resolve beneath the configured root."
+          },
+          {
+            "id": "WI-0015_REQ_001_AC_002",
+            "description": "Absolute names, traversal, separators, symlinked directories, and missing directories fail before asset reads."
+          }
+        ]
+      },
+      {
+        "id": "WI-0015_REQ_002",
+        "name": "asset-set",
+        "description": "The loader recognizes exactly one task source (prompt.md or task.json), an optional system prompt, defaults, schemas, and additional input boundaries as defined by requests/README.md#asset-mapping-and-optionality.",
+        "reason": "Every request property needs one deterministic source.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0015_REQ_002_AC_001",
+            "description": "All recognized assets and the mutually exclusive task-source alternatives are discovered with stable required/optional representation."
+          },
+          {
+            "id": "WI-0015_REQ_002_AC_002",
+            "description": "Unknown or ambiguous asset names follow an explicit rule."
+          }
+        ]
+      },
+      {
+        "id": "WI-0015_REQ_003",
+        "name": "parsing-errors",
+        "description": "Malformed or wrong-shaped assets fail with bounded errors identifying request and asset kind.",
+        "reason": "Invalid configuration must stop before completion.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0015_REQ_003_AC_001",
+            "description": "Malformed JSON, non-object schemas, unreadable assets, and invalid asset types fail before provider invocation."
+          }
+        ]
+      },
+      {
+        "id": "WI-0015_REQ_004",
+        "name": "configuration-reuse",
+        "description": "Configured requestsDirectory continues using the existing shared boundary.",
+        "reason": "Users must not receive command-specific lookup behavior.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0015_REQ_004_AC_001",
+            "description": "Application/home/environment precedence and missing guidance remain covered."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0015/steps/"
+}

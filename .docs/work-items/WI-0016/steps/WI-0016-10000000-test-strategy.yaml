@@ -1,0 +1,328 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0016
+taskUid: WI-0016-10000000
+orderKey: '10000000'
+parentTaskUid: null
+taskType: test-strategy
+processingStatus: processing_completed
+title: Define Implement schema-aware request parameter construction test strategy
+objective: Construct and validate parameters from a flat schema, nested dot/index
+  assignments, and full --parameters JSON with deterministic precedence and errors.
+references:
+  required:
+  - .docs/work-items/WI-0016/work-item.json
+  - .docs/work-items/WI-0016/README.md
+  - requests/README.md
+  - requests/decisions.md
+  - src/schema.ts
+  - src/cli/arguments.ts
+  - package.json
+  - tests/cli.test.ts
+  - tests/
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0016/steps/WI-0016-10000000-test-strategy.yaml
+  commitSubject: 'WI-0016: plan: define test-strategy evidence'
+  commitBody:
+    requiredSections:
+    - Why
+    - What
+    - How
+    - Decisions
+    - Validation
+    - Evidence
+    - Refs
+    - Next
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments:
+    - run
+    - typecheck
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/result
+  intent:
+    summary: Define deterministic evidence for Implement schema-aware request parameter
+      construction.
+    inputs:
+    - id: WI-0016-10000000_INPUT-REQ-001
+      kind: requirement
+      ref: WI-0016#work-item.json#requirement/WI-0016_REQ_001
+      purpose: Define root-properties.
+      required: true
+    - id: WI-0016-10000000_INPUT-REQ-002
+      kind: requirement
+      ref: WI-0016#work-item.json#requirement/WI-0016_REQ_002
+      purpose: Define nested-paths.
+      required: true
+    - id: WI-0016-10000000_INPUT-REQ-003
+      kind: requirement
+      ref: WI-0016#work-item.json#requirement/WI-0016_REQ_003
+      purpose: Define full-object.
+      required: true
+    - id: WI-0016-10000000_INPUT-REQ-004
+      kind: requirement
+      ref: WI-0016#work-item.json#requirement/WI-0016_REQ_004
+      purpose: Define schema-validation.
+      required: true
+    requirements:
+    - id: REQ-001
+      kind: requirement
+      statement: Flat root properties are exposed as CLI parameters and parameter
+        is reserved.
+      inputRefs:
+      - WI-0016-10000000_INPUT-REQ-001
+      required: true
+    - id: REQ-002
+      kind: requirement
+      statement: Dot notation and array/map indexes update nested values without corrupting
+        siblings.
+      inputRefs:
+      - WI-0016-10000000_INPUT-REQ-002
+      required: true
+    - id: REQ-003
+      kind: requirement
+      statement: --parameters accepts full JSON and individual assignments follow
+        documented precedence.
+      inputRefs:
+      - WI-0016-10000000_INPUT-REQ-003
+      required: true
+    - id: REQ-004
+      kind: requirement
+      statement: The complete object is validated against parameters.schema.json before
+        substitution.
+      inputRefs:
+      - WI-0016-10000000_INPUT-REQ-004
+      required: true
+    invariants:
+    - id: WI-0016-10000000_INV-001
+      statement: The root-properties boundary remains explicit, deterministic, and
+        provider-free.
+      inputRefs:
+      - WI-0016-10000000_INPUT-REQ-001
+      required: true
+    - id: WI-0016-10000000_INV-002
+      statement: The nested-paths boundary remains explicit, deterministic, and provider-free.
+      inputRefs:
+      - WI-0016-10000000_INPUT-REQ-002
+      required: true
+    - id: WI-0016-10000000_INV-003
+      statement: The full-object boundary remains explicit, deterministic, and provider-free.
+      inputRefs:
+      - WI-0016-10000000_INPUT-REQ-003
+      required: true
+    - id: WI-0016-10000000_INV-004
+      statement: The schema-validation boundary remains explicit, deterministic, and
+        provider-free.
+      inputRefs:
+      - WI-0016-10000000_INPUT-REQ-004
+      required: true
+    objectives:
+    - id: WI-0016-10000000_OBJ-001
+      statement: Verify root-properties.
+      inputRefs:
+      - WI-0016-10000000_INPUT-REQ-001
+      requirementRefs:
+      - WI-0016_REQ_001
+      acceptanceCriterionRefs:
+      - WI-0016_REQ_001_AC_001
+      - WI-0016_REQ_001_AC_002
+      invariantRefs:
+      - '#intent/invariants/WI-0016-10000000_INV-001'
+    - id: WI-0016-10000000_OBJ-002
+      statement: Verify nested-paths.
+      inputRefs:
+      - WI-0016-10000000_INPUT-REQ-002
+      requirementRefs:
+      - WI-0016_REQ_002
+      acceptanceCriterionRefs:
+      - WI-0016_REQ_002_AC_001
+      invariantRefs:
+      - '#intent/invariants/WI-0016-10000000_INV-002'
+    - id: WI-0016-10000000_OBJ-003
+      statement: Verify full-object.
+      inputRefs:
+      - WI-0016-10000000_INPUT-REQ-003
+      requirementRefs:
+      - WI-0016_REQ_003
+      acceptanceCriterionRefs:
+      - WI-0016_REQ_003_AC_001
+      invariantRefs:
+      - '#intent/invariants/WI-0016-10000000_INV-003'
+    - id: WI-0016-10000000_OBJ-004
+      statement: Verify schema-validation.
+      inputRefs:
+      - WI-0016-10000000_INPUT-REQ-004
+      requirementRefs:
+      - WI-0016_REQ_004
+      acceptanceCriterionRefs:
+      - WI-0016_REQ_004_AC_001
+      invariantRefs:
+      - '#intent/invariants/WI-0016-10000000_INV-004'
+    nonGoals:
+    - "Implement only these authoritative contract sections: requests/README.md#request-defaults-and-parameter-defaults; requests/README.md#parameter-contract; requests/README.md#x-llm-req-parameter-metadata. Explicit human operator confirmation is required before modifying requests/README.md."
+    - Do not claim implementation, provider, deployment, release, or production behavior.
+  result:
+    status: defined
+    testCases:
+    - id: WI-0016-10000000_TC-ROOT-PROPERTIES
+      title: root-properties required cases
+      type: unit
+      requirementLevel: required
+      purpose: Prove Flat root properties are exposed as CLI parameters and parameter
+        is reserved.
+      procedure:
+        executionMode: executable
+        target: Focused tests for root-properties
+        steps:
+        - Arrange positive and negative fixtures.
+        - Run the focused implementation boundary.
+        - Assert required behavior and bounded failure.
+        command: npm test
+      expectedOutcome: root-properties satisfies the requirement and fails closed
+        at its boundary.
+      passCriteria: The command exits zero and all named assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations:
+      - Provider-free local evidence does not establish authenticated provider or
+        production behavior.
+    - id: WI-0016-10000000_TC-NESTED-PATHS
+      title: nested-paths required cases
+      type: unit
+      requirementLevel: required
+      purpose: Prove Dot notation and array/map indexes update nested values without
+        corrupting siblings.
+      procedure:
+        executionMode: executable
+        target: Focused tests for nested-paths
+        steps:
+        - Arrange positive and negative fixtures.
+        - Run the focused implementation boundary.
+        - Assert required behavior and bounded failure.
+        command: npm test
+      expectedOutcome: nested-paths satisfies the requirement and fails closed at
+        its boundary.
+      passCriteria: The command exits zero and all named assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations:
+      - Provider-free local evidence does not establish authenticated provider or
+        production behavior.
+    - id: WI-0016-10000000_TC-FULL-OBJECT
+      title: full-object required cases
+      type: unit
+      requirementLevel: required
+      purpose: Prove --parameters accepts full JSON and individual assignments follow
+        documented precedence.
+      procedure:
+        executionMode: executable
+        target: Focused tests for full-object
+        steps:
+        - Arrange positive and negative fixtures.
+        - Run the focused implementation boundary.
+        - Assert required behavior and bounded failure.
+        command: npm test
+      expectedOutcome: full-object satisfies the requirement and fails closed at its
+        boundary.
+      passCriteria: The command exits zero and all named assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations:
+      - Provider-free local evidence does not establish authenticated provider or
+        production behavior.
+    - id: WI-0016-10000000_TC-SCHEMA-VALIDATION
+      title: schema-validation required cases
+      type: integration
+      requirementLevel: required
+      purpose: Prove The complete object is validated against parameters.schema.json
+        before substitution.
+      procedure:
+        executionMode: executable
+        target: Focused tests for schema-validation
+        steps:
+        - Arrange positive and negative fixtures.
+        - Run the focused implementation boundary.
+        - Assert required behavior and bounded failure.
+        command: npm test
+      expectedOutcome: schema-validation satisfies the requirement and fails closed
+        at its boundary.
+      passCriteria: The command exits zero and all named assertions pass.
+      evidenceTier: integration
+      fixtureRefs: []
+      limitations:
+      - Provider-free local evidence does not establish authenticated provider or
+        production behavior.
+    fixtures: []
+    coverage:
+    - id: COV-001
+      requirementRefs:
+      - WI-0016_REQ_001
+      invariantRefs:
+      - '#intent/invariants/WI-0016-10000000_INV-001'
+      objectiveRefs:
+      - '#objective/WI-0016-10000000_OBJ-001'
+      testCaseRefs:
+      - '#result/testCases/WI-0016-10000000_TC-ROOT-PROPERTIES'
+      rationale: The root-properties case covers the requirement and every declared
+        criterion.
+      acceptanceCriterionRefs:
+      - WI-0016_REQ_001_AC_001
+      - WI-0016_REQ_001_AC_002
+    - id: COV-002
+      requirementRefs:
+      - WI-0016_REQ_002
+      invariantRefs:
+      - '#intent/invariants/WI-0016-10000000_INV-002'
+      objectiveRefs:
+      - '#objective/WI-0016-10000000_OBJ-002'
+      testCaseRefs:
+      - '#result/testCases/WI-0016-10000000_TC-NESTED-PATHS'
+      rationale: The nested-paths case covers the requirement and every declared criterion.
+      acceptanceCriterionRefs:
+      - WI-0016_REQ_002_AC_001
+    - id: COV-003
+      requirementRefs:
+      - WI-0016_REQ_003
+      invariantRefs:
+      - '#intent/invariants/WI-0016-10000000_INV-003'
+      objectiveRefs:
+      - '#objective/WI-0016-10000000_OBJ-003'
+      testCaseRefs:
+      - '#result/testCases/WI-0016-10000000_TC-FULL-OBJECT'
+      rationale: The full-object case covers the requirement and every declared criterion.
+      acceptanceCriterionRefs:
+      - WI-0016_REQ_003_AC_001
+    - id: COV-004
+      requirementRefs:
+      - WI-0016_REQ_004
+      invariantRefs:
+      - '#intent/invariants/WI-0016-10000000_INV-004'
+      objectiveRefs:
+      - '#objective/WI-0016-10000000_OBJ-004'
+      testCaseRefs:
+      - '#result/testCases/WI-0016-10000000_TC-SCHEMA-VALIDATION'
+      rationale: The schema-validation case covers the requirement and every declared
+        criterion.
+      acceptanceCriterionRefs:
+      - WI-0016_REQ_004_AC_001
+    minimumRequiredTestCaseRefs:
+    - '#result/testCases/WI-0016-10000000_TC-ROOT-PROPERTIES'
+    - '#result/testCases/WI-0016-10000000_TC-NESTED-PATHS'
+    - '#result/testCases/WI-0016-10000000_TC-FULL-OBJECT'
+    - '#result/testCases/WI-0016-10000000_TC-SCHEMA-VALIDATION'
+    recommendedTestCaseRefs: []
+    evidenceLimitations:
+    - This strategy defines evidence but does not claim execution or pass status.
+    - No authenticated provider, deployment, release, downstream, or production evidence
+      is in scope.

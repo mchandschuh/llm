@@ -1,0 +1,162 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0024
+taskUid: WI-0024-90000000
+orderKey: '90000000'
+parentTaskUid: WI-0024-80000000
+taskType: review
+processingStatus: processing_completed
+title: Review schema-declared request parameter file binding scope and evidence
+objective: Review whether the schema-declared file-binding implementation and evidence are complete, reusable, in scope, and contract-consistent.
+references:
+  required:
+  - .docs/work-items/WI-0024/work-item.json
+  - .docs/work-items/WI-0024/README.md
+  - requests/README.md
+  - requests/decisions.md
+  - requests/summarize/
+  - .docs/work-items/WI-0024/steps/WI-0024-10000000-test-strategy.yaml
+  - .docs/work-items/WI-0024/steps/WI-0024-20000000-implementation.yaml
+  - .docs/work-items/WI-0024/steps/WI-0024-80000000-validation.yaml
+  - src/request-parameter-files.ts
+  - src/request.ts
+  - src/cli/request-command.ts
+  - src/cli/arguments.ts
+  - tests/request-parameter-files.test.ts
+  - tests/request.test.ts
+  - tests/request-cli.test.ts
+  - tests/summarize.test.ts
+  - package.json
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0024-80000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0024/steps/WI-0024-90000000-review.yaml
+  commitSubject: 'WI-0024: plan: define file-binding review evidence'
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments: [run, typecheck]
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review whether schema-declared request parameter file binding evidence is sufficient, traceable, and in scope.
+    reviewKind: planning
+    target:
+      taskType: test-strategy
+      taskRef: WI-0024-10000000
+      result:
+        ref: WI-0024-10000000#test-case/WI-0024-10000000_TC-METADATA-VALIDATION
+        sha256: null
+    gateId: test-strategy
+    policyRef:
+      ref: repository-local-review-policy
+      sha256: null
+    criteria:
+    - id: CRIT-001
+      statement: Every WI-0024 requirement and acceptance criterion has explicit strategy and validation coverage.
+      purpose: Prevent unproven obligations.
+      required: true
+      evidenceRefs: ['WI-0024-10000000#test-case/WI-0024-10000000_TC-METADATA-VALIDATION']
+    - id: CRIT-002
+      statement: The implementation uses schema metadata and a shared completeRequest boundary rather than request-name conditionals.
+      purpose: Prevent the rejected special-case design.
+      required: true
+      evidenceRefs: ['WI-0024-10000000#test-case/WI-0024-10000000_TC-SHARED-BOUNDARY']
+    - id: CRIT-003
+      statement: The evidence preserves safety, cleanup, compatibility, non-goals, and provider-free limitations.
+      purpose: Ensure the feature remains bounded and reviewable.
+      required: true
+      evidenceRefs: ['WI-0024-10000000#test-case/WI-0024-10000000_TC-COMPATIBILITY-GATE']
+    evidenceRequirements:
+    - id: EVID-001
+      kind: validation
+      ref: WI-0024-80000000#result/R-001
+      purpose: Provide package and matrix validation.
+      required: true
+      minimumTier: cli-audit
+    nonGoals:
+    - id: NON-001
+      statement: Explicit human operator confirmation is required before modifying requests/README.md; this review applies only the WI-0024 contract sections.
+    - id: NON-002
+      statement: This review does not claim authenticated provider, network, deployment, release, downstream integration, or production readiness.
+    context:
+    - id: CTX-001
+      kind: contract
+      ref: .docs/work-items/WI-0024/README.md
+      purpose: Apply the declared scope and evidence boundary.
+      required: true
+  result:
+    status: complete
+    decision: accepted
+    summary: Review accepted the schema-declared file-binding implementation and provider-free evidence as in scope and contract-consistent. The implementation uses schema metadata and the shared completeRequest boundary, preserves explicit additional files and existing prompt/provider projections, and records cleanup, safety, compatibility, and summarize evidence without modifying the gated authoritative contract files.
+    actor:
+      id: wi-0024-reviewer
+      role: reviewer
+      authorityRef: WI-0024
+    criteriaEvaluations:
+    - criterionRef: '#criterion/CRIT-001'
+      status: satisfied
+      summary: All five WI-0024 requirements and acceptance criteria have strategy references and executable implementation/validation evidence.
+      evidenceRefs:
+      - WI-0024-20000000#result/R-001
+      - WI-0024-80000000#result/R-001
+      findingRefs: []
+    - criterionRef: '#criterion/CRIT-002'
+      status: satisfied
+      summary: File semantics are read from x-llm-req-parameter.file metadata through completeRequest; the scope audit found no summarize request-name conditional.
+      evidenceRefs:
+      - WI-0024-20000000#result/R-001
+      - WI-0024-80000000#result/R-001
+      findingRefs: []
+    - criterionRef: '#criterion/CRIT-003'
+      status: satisfied
+      summary: Focused and full package evidence covers ordering, cleanup on success and provider failure, symlink-directory safety, explicit-file compatibility, summarize cardinality, schema validation, and provider-free limitations.
+      evidenceRefs:
+      - WI-0024-80000000#result/R-001
+      findingRefs: []
+    findings: []
+    evidence:
+    - id: EVID-001
+      kind: validation
+      ref: WI-0024-80000000#result/R-001
+      claim: Required schema-declared file-binding validation passed locally.
+      tier: cli-audit
+      source: referenced-result
+    - id: EVID-002
+      kind: test
+      ref: WI-0024-20000000#result/R-001
+      claim: Required strategy cases have executable task-ID-prefixed trace markers.
+      tier: component
+      source: referenced-result
+    - id: EVID-003
+      kind: diff
+      ref: '#repository-state/HEAD'
+      claim: Changed paths remain within WI-0024 implementation, summarize schema, tests, and governed evidence; requests/README.md and requests/decisions.md were not modified.
+      tier: inspection
+      source: repository
+    limitations:
+    - The installed SDLC registry does not expose the strategy schema version needed for an independent whole-work-item schema audit in this environment.
+    - This decision does not establish authenticated provider behavior, network transport, deployment, publication, downstream integration, or production readiness.
+    nonClaims:
+    - This decision does not authorize deployment, publication, or a Git commit.
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: WI-0024-90000000_EXEC-REVIEW
+      status: succeeded
+      startedAt: '2026-11-26T00:00:00Z'
+      finishedAt: '2026-11-26T00:00:00Z'
