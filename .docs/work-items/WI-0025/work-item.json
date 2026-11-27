@@ -1,0 +1,148 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0025",
+  "status": "planned",
+  "title": "Return structured validation results from x-llm-req-parameter.validation.function",
+  "type": "feature",
+  "objective": "Let x-llm-req-parameter.validation.function return a well-defined result object whose error entries tell users and agents what is wrong with a parameter and how to fix it, and carry those entries unchanged to library callers and llm req error output. Contract sections: requests/README.md#validation-functions; requests/README.md#schema-declared-files-and-librarycli-boundaries.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "WI-0025-structured-validation-results",
+      "created": false,
+      "rationale": "Each work item is processed on its own branch."
+    }
+  },
+  "baseline": "ac21485967ac31034a710e2984545dd1fd552214",
+  "request": {
+    "source": "conversation",
+    "text": "The validation function should be able to return a well-defined object containing error messages intended to instruct users/agents on how to fix their parameters.",
+    "sha256": "36f564731baf513e7ae8778f691691c8e40a0aabe35dc338d27a45201641ef0f"
+  },
+  "scope": [
+    {
+      "name": "result-contract",
+      "description": "Define a closed validation result object { valid, errors?: [{ message, path?, remediation? }] } with bounded counts and lengths, read without running validator getters.",
+      "reason": "Validators need a well-defined way to report actionable problems."
+    },
+    {
+      "name": "structured-failure",
+      "description": "Raise an exported ParameterValidationFailure carrying normalized issues for every validator-driven failure, including the existing false, string, thrown, and rejected-promise forms, and add an optional metadata remediation for false and string returns.",
+      "reason": "Library callers and agents need machine-readable guidance."
+    },
+    {
+      "name": "cli-output",
+      "description": "Make llm req emit one JSON error entry per issue with parameterPath and remediation fields.",
+      "reason": "CLI users and agents must receive the fix-it guidance."
+    },
+    {
+      "name": "documentation-and-compatibility",
+      "description": "Document the result object, failure type, and error output; keep existing validator return forms and the full provider-free gate green.",
+      "reason": "The request README is the authoritative llm req contract."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "aggregate-across-validators",
+      "description": "Do not change the rule that the first failing validator stops validation; one validator may report several issues.",
+      "reason": "Keep the WI-0023 ordering contract."
+    },
+    {
+      "name": "response-envelope",
+      "description": "Do not change the llm/response/v1 schema, error codes, or non-request commands.",
+      "reason": "The change is limited to request parameter validation."
+    },
+    {
+      "name": "provider-and-release",
+      "description": "Do not make authenticated provider calls, publish, deploy, or claim production readiness.",
+      "reason": "Evidence is local and provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0025_REQ_001",
+        "name": "result-contract",
+        "description": "A validation function may return { valid, errors } where valid is a boolean and each error has a required message and optional path and remediation; malformed results fail closed.",
+        "reason": "The result shape must be well-defined.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0025_REQ_001_AC_001",
+            "description": "valid: true passes; valid: false with 1 to 20 errors fails with those errors; paths default to the validator's concrete path."
+          },
+          {
+            "id": "WI-0025_REQ_001_AC_002",
+            "description": "Unknown members, wrong types, empty or oversized error lists, valid: true with errors, and accessor properties are configuration errors that never run validator getters."
+          }
+        ]
+      },
+      {
+        "id": "WI-0025_REQ_002",
+        "name": "structured-failure",
+        "description": "Every validator-driven failure raises an exported ParameterValidationFailure with normalized issues; metadata remediation applies to false and string returns.",
+        "reason": "Library callers need machine-readable guidance.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0025_REQ_002_AC_001",
+            "description": "Object, false, string, thrown, and rejected-promise failures all yield ParameterValidationFailure issues with path, message, and remediation when supplied."
+          },
+          {
+            "id": "WI-0025_REQ_002_AC_002",
+            "description": "The failure keeps code CONFIGURATION_INVALID, a bounded summary message, zero provider calls, and is exported from the package entry point."
+          }
+        ]
+      },
+      {
+        "id": "WI-0025_REQ_003",
+        "name": "cli-output",
+        "description": "llm req emits one JSON error entry per issue with code, phase, message, parameterPath, and remediation when supplied, and exits nonzero.",
+        "reason": "CLI users and agents must receive the guidance.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0025_REQ_003_AC_001",
+            "description": "A multi-issue validator produces matching error entries in order on stderr with exit code 1 and no stdout."
+          },
+          {
+            "id": "WI-0025_REQ_003_AC_002",
+            "description": "Non-validation failures keep the existing single-entry error shape."
+          }
+        ]
+      },
+      {
+        "id": "WI-0025_REQ_004",
+        "name": "documentation-and-compatibility",
+        "description": "requests/README.md, the decision log, README.md, and SKILL.md document the result object, failure type, and error output; existing behavior and the full provider-free gate stay green.",
+        "reason": "The contract must match behavior and the change must be additive.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0025_REQ_004_AC_001",
+            "description": "Contract text names every result member, bound, the failure type, and the CLI error fields."
+          },
+          {
+            "id": "WI-0025_REQ_004_AC_002",
+            "description": "The full repository gate passes, including existing WI-0023 validator tests."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0025/steps/"
+}

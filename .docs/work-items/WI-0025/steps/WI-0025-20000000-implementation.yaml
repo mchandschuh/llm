@@ -1,0 +1,126 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0025
+taskUid: WI-0025-20000000
+orderKey: '20000000'
+parentTaskUid: WI-0025-10000000
+taskType: implementation
+processingStatus: unprocessed
+title: Implement structured validation results
+objective: Implement structured validation result objects, ParameterValidationFailure, and per-issue llm req error output.
+references:
+  required:
+  - .docs/work-items/WI-0025/work-item.json
+  - .docs/work-items/WI-0025/README.md
+  - .docs/work-items/WI-0025/work-item-request.md
+  - requests/README.md
+  - requests/decisions.md
+  - src/request-parameter-validation.ts
+  - src/cli/request-command.ts
+  - tests/request-parameter-validation.test.ts
+  - package.json
+  - .docs/work-items/WI-0025/steps/WI-0025-10000000-test-strategy.yaml
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0025-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0025/steps/WI-0025-20000000-implementation.yaml
+  - src/request-parameter-validation.ts
+  - src/index.ts
+  - src/cli/request-command.ts
+  - tests/request-parameter-validation.test.ts
+  - requests/README.md
+  - requests/decisions.md
+  - README.md
+  - SKILL.md
+  commitSubject: 'WI-0025: feat(llm): return structured validation results'
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+  - id: typecheck
+    executable: npm
+    arguments: [run, typecheck]
+    expectedExitCode: 0
+  - id: build
+    executable: npm
+    arguments: [run, build]
+    expectedExitCode: 0
+  - id: focused-tests
+    executable: npm
+    arguments: [test]
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement structured validation results. Implement only the declared contract and focused tests.
+    changeTypes: [production-code, test-code, documentation]
+    changeIntent: feature
+    inputs:
+    - id: WI-0025-20000000_INPUT-STRATEGY
+      kind: testStrategy
+      ref: WI-0025-10000000#result/R-001
+      purpose: Provide the required test matrix and evidence boundary.
+      required: true
+    - id: WI-0025-20000000_INPUT-REQ-001
+      kind: requirement
+      ref: WI-0025#work-item.json#requirement/WI-0025_REQ_001
+      purpose: Define result contract.
+      required: true
+    - id: WI-0025-20000000_INPUT-REQ-002
+      kind: requirement
+      ref: WI-0025#work-item.json#requirement/WI-0025_REQ_002
+      purpose: Define structured failure.
+      required: true
+    - id: WI-0025-20000000_INPUT-REQ-003
+      kind: requirement
+      ref: WI-0025#work-item.json#requirement/WI-0025_REQ_003
+      purpose: Define CLI error output.
+      required: true
+    - id: WI-0025-20000000_INPUT-REQ-004
+      kind: requirement
+      ref: WI-0025#work-item.json#requirement/WI-0025_REQ_004
+      purpose: Define documentation and compatibility.
+      required: true
+    objectives:
+    - id: WI-0025-20000000_OBJ-001
+      statement: Parse closed validation result objects through own data properties with bounded counts and lengths.
+      inputRefs: [WI-0025-20000000_INPUT-STRATEGY, WI-0025-20000000_INPUT-REQ-001]
+      testCaseRefs: ['WI-0025-10000000#test-case/WI-0025-10000000_TC-RESULT-OBJECT-CONTRACT']
+    - id: WI-0025-20000000_OBJ-002
+      statement: Raise an exported ParameterValidationFailure with normalized issues for every validator-driven failure.
+      inputRefs: [WI-0025-20000000_INPUT-STRATEGY, WI-0025-20000000_INPUT-REQ-002]
+      testCaseRefs: ['WI-0025-10000000#test-case/WI-0025-10000000_TC-STRUCTURED-FAILURE']
+    - id: WI-0025-20000000_OBJ-003
+      statement: Emit one llm req JSON error entry per issue with parameterPath and remediation.
+      inputRefs: [WI-0025-20000000_INPUT-STRATEGY, WI-0025-20000000_INPUT-REQ-003]
+      testCaseRefs: ['WI-0025-10000000#test-case/WI-0025-10000000_TC-CLI-ERROR-OUTPUT']
+    - id: WI-0025-20000000_OBJ-004
+      statement: Document the contract and keep existing behavior green.
+      inputRefs: [WI-0025-20000000_INPUT-STRATEGY, WI-0025-20000000_INPUT-REQ-004]
+      testCaseRefs: ['WI-0025-10000000#test-case/WI-0025-10000000_TC-CONTRACT-DOCUMENTATION']
+    ownedPaths:
+    - src/request-parameter-validation.ts
+    - src/index.ts
+    - src/cli/request-command.ts
+    - tests/request-parameter-validation.test.ts
+    - requests/README.md
+    - requests/decisions.md
+    - README.md
+    - SKILL.md
+    nonGoals:
+    - Apply only the WI-0025 contract sections (requests/README.md#validation-functions and requests/README.md#schema-declared-files-and-librarycli-boundaries).
+    - Do not aggregate failures across validators or change the response schema, error codes, or non-request commands.
+    - Do not claim authenticated provider or production behavior.
+    steps:
+    - Add the result-object parser, the ParameterValidationFailure class, and metadata remediation in src/request-parameter-validation.ts.
+    - Export the failure and result types from src/index.ts.
+    - Emit per-issue error entries from src/cli/request-command.ts.
+    - Add provider-free trace-marked tests for every strategy case.
+    - Update requests/README.md, requests/decisions.md, README.md, and SKILL.md.
