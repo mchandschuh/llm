@@ -4,7 +4,7 @@ taskUid: WI-0023-90000000
 orderKey: '90000000'
 parentTaskUid: WI-0023-80000000
 taskType: review
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Review x-llm-req-parameter.validation.function scope and evidence
 objective: Review whether the parameter validation-function implementation and evidence are complete, in scope, and contract-consistent, including its trust boundary.
 references:
@@ -37,7 +37,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
@@ -88,3 +88,174 @@ task:
       ref: .docs/work-items/WI-0023/README.md
       purpose: Apply the declared scope and evidence boundary.
       required: true
+  result:
+    status: complete
+    decision: accepted
+    summary: Review accepted WI-0023 after rework. An independent read-only review of the diff found two required defects (process-terminating unhandled rejections and silently ignored validator positions) and five advisory defects; all were fixed in 1913817 and covered by tests. Two documented limitations remain waived. Validators are declared only through schema metadata, run only through completeRequest before materialization and provider use, and the contract states that node:vm isolation is not a security boundary.
+    actor:
+      id: wi-0023-reviewer
+      role: reviewer
+      authorityRef: WI-0023
+    criteriaEvaluations:
+    - criterionRef: '#criterion/CRIT-001'
+      status: satisfied
+      summary: All five requirements and ten acceptance criteria map to COV-001 through COV-006, and every case has a trace-named test that passed in the focused and full runs.
+      evidenceRefs:
+      - WI-0023-20000000#result/R-001
+      - WI-0023-80000000#result/R-001
+      findingRefs:
+      - '#finding/WI-0023-90000000_FIND-003'
+      - '#finding/WI-0023-90000000_FIND-004'
+      - '#finding/WI-0023-90000000_FIND-006'
+      - '#finding/WI-0023-90000000_FIND-007'
+    - criterionRef: '#criterion/CRIT-002'
+      status: satisfied
+      summary: Validators are discovered from schema metadata and run only in completeRequest after JSON Schema validation and before materialization and provider use; library and llm req callers share the path, with no request-name conditional.
+      evidenceRefs:
+      - WI-0023-80000000#result/R-001
+      findingRefs:
+      - '#finding/WI-0023-90000000_FIND-001'
+      - '#finding/WI-0023-90000000_FIND-002'
+      - '#finding/WI-0023-90000000_FIND-009'
+    - criterionRef: '#criterion/CRIT-003'
+      status: satisfied
+      summary: requests/README.md, README.md, and SKILL.md state that request bundles are trusted code and that node:vm isolation is not a security boundary. They also document the Node promise-job timeout limitation. No sandbox, provider, or production claim is made.
+      evidenceRefs:
+      - WI-0023-80000000#result/R-001
+      findingRefs:
+      - '#finding/WI-0023-90000000_FIND-005'
+      - '#finding/WI-0023-90000000_FIND-008'
+    findings:
+    - id: WI-0023-90000000_FIND-001
+      severity: required
+      status: resolved
+      message: 'A promise rejected inside a validator (stray Promise.reject, or an async validator that throws) surfaced as an unhandled rejection after validation returned and terminated the process.'
+      requestedChange: 'Fixed in 1913817: promises created during a validator run are captured with v8 promiseHooks and handled, and their rejections become bounded validation failures.'
+      criterionRefs:
+      - '#criterion/CRIT-002'
+      affectedRefs:
+      - src/request-parameter-validation.ts
+      evidenceRefs:
+      - WI-0023-80000000#result/R-001
+    - id: WI-0023-90000000_FIND-002
+      severity: required
+      status: resolved
+      message: 'Validation metadata under contains, propertyNames, dependencies, additionalItems, unevaluatedProperties/Items, or tuple-form items was silently ignored instead of failing closed.'
+      requestedChange: 'Fixed in 1913817: every draft-07 and 2020-12 subschema keyword is walked and rejects validation metadata.'
+      criterionRefs:
+      - '#criterion/CRIT-002'
+      affectedRefs:
+      - src/request-parameter-validation.ts
+      evidenceRefs:
+      - WI-0023-80000000#result/R-001
+    - id: WI-0023-90000000_FIND-003
+      severity: advisory
+      status: resolved
+      message: 'Compile-stage errors from the vm realm lost their message because of an instanceof Error check, and a compile-stage timeout was reported as a generic evaluation error.'
+      requestedChange: 'Fixed in 1913817: messages and the timeout code are read through own data properties.'
+      criterionRefs:
+      - '#criterion/CRIT-001'
+      affectedRefs:
+      - src/request-parameter-validation.ts
+      evidenceRefs:
+      - WI-0023-80000000#result/R-001
+    - id: WI-0023-90000000_FIND-004
+      severity: advisory
+      status: resolved
+      message: 'A class expression passed the function check and then failed at call time as a value validation failure instead of a metadata error.'
+      requestedChange: 'Fixed in 1913817: class expressions are rejected at compile time.'
+      criterionRefs:
+      - '#criterion/CRIT-001'
+      affectedRefs:
+      - src/request-parameter-validation.ts
+      evidenceRefs:
+      - WI-0023-80000000#result/R-001
+    - id: WI-0023-90000000_FIND-005
+      severity: advisory
+      status: resolved
+      message: 'Host-side inspection of returned or thrown objects (then/message getters) ran validator code outside the timeout.'
+      requestedChange: 'Fixed in 1913817: results are classified without reading properties, and thrown messages are read only from own data properties.'
+      criterionRefs:
+      - '#criterion/CRIT-003'
+      affectedRefs:
+      - src/request-parameter-validation.ts
+      evidenceRefs:
+      - WI-0023-80000000#result/R-001
+    - id: WI-0023-90000000_FIND-006
+      severity: advisory
+      status: resolved
+      message: 'Reported paths were ambiguous for property names containing dots or brackets.'
+      requestedChange: 'Fixed in 1913817: non-identifier property names are bracket-quoted as ["name"].'
+      criterionRefs:
+      - '#criterion/CRIT-001'
+      affectedRefs:
+      - src/request-parameter-validation.ts
+      evidenceRefs:
+      - WI-0023-80000000#result/R-001
+    - id: WI-0023-90000000_FIND-007
+      severity: advisory
+      status: resolved
+      message: 'Tests did not cover rejecting async validators, the newly rejected positions, or the promise-job timeout.'
+      requestedChange: 'Fixed in 1913817: assertions were added to TC-METADATA-CONTRACT and TC-RESULT-SEMANTICS; the promise-job timeout is checked in a child process.'
+      criterionRefs:
+      - '#criterion/CRIT-001'
+      affectedRefs:
+      - src/request-parameter-validation.ts
+      evidenceRefs:
+      - WI-0023-80000000#result/R-001
+    - id: WI-0023-90000000_FIND-008
+      severity: advisory
+      status: waived
+      message: 'Node v24.21.0 aborts natively (InternalCallbackScope assertion) when a vm timeout fires inside a promise job while async-context tracking is active, for example under node:test. This happens even without promise hooks, so it is a Node limitation rather than an llm defect. The CLI is unaffected.'
+      requestedChange: 'None in llm; documented in requests/README.md. Revisit if Node fixes vm timeouts under async-context tracking.'
+      criterionRefs:
+      - '#criterion/CRIT-003'
+      affectedRefs:
+      - src/request-parameter-validation.ts
+      evidenceRefs:
+      - WI-0023-80000000#result/R-001
+    - id: WI-0023-90000000_FIND-009
+      severity: advisory
+      status: waived
+      message: 'Validators inside schemas reached only through an external $ref are not discovered.'
+      requestedChange: 'None; documented in requests/README.md. Authors must declare validators in the parameter schema itself.'
+      criterionRefs:
+      - '#criterion/CRIT-002'
+      affectedRefs:
+      - src/request-parameter-validation.ts
+      evidenceRefs:
+      - WI-0023-80000000#result/R-001
+    evidence:
+    - id: EVID-001
+      kind: validation
+      ref: WI-0023-80000000#result/R-001
+      claim: The required WI-0023 validation passed locally after the rework.
+      tier: cli-audit
+      source: referenced-result
+    - id: EVID-002
+      kind: test
+      ref: WI-0023-20000000#result/R-001
+      claim: Every required strategy case has an executable task-ID-prefixed trace marker.
+      tier: component
+      source: referenced-result
+    - id: EVID-003
+      kind: diff
+      ref: '#repository-state/HEAD'
+      claim: An independent read-only review subagent inspected git diff master...HEAD and reproduced its findings with throwaway scripts; changed paths remain within WI-0023 owned paths.
+      tier: inspection
+      source: repository
+    limitations:
+    - The independent reviewer was an AI subagent, and the final acceptance was made by the same agent session that implemented the change; this is not an independent human review.
+    - This decision does not establish sandbox security, authenticated provider behavior, network transport, deployment, publication, downstream integration, or production readiness.
+    nonClaims:
+    - This decision does not authorize deployment, publication, or release.
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: WI-0023-90000000_EXEC-REVIEW
+      status: succeeded
+      startedAt: '2026-11-27T00:00:00Z'
+      finishedAt: '2026-11-27T00:00:00Z'

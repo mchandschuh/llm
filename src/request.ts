@@ -3,6 +3,7 @@ import { resolveRequestsDirectory } from './requests-config.js';
 import { loadRequestDirectory, type RequestDirectoryAssets } from './request-directory.js';
 import { constructRequestParameters } from './request-parameters.js';
 import { materializeParameterFiles } from './request-parameter-files.js';
+import { runParameterValidators } from './request-parameter-validation.js';
 import { substituteRequestVariables } from './request-variables.js';
 import { complete } from './complete.js';
 import { normalizeRequest } from './normalize.js';
@@ -101,6 +102,10 @@ export async function completeRequest(options: CompleteRequestOptions): Promise<
     parameters: options.parameters,
     assignments: options.assignments,
     schemaRoots: [requestsDirectory],
+  });
+  await runParameterValidators(loaded.assets.parametersSchema?.value, parameters, {
+    name: options.requestName,
+    directory: loaded.requestDirectory,
   });
   const declaredFiles = await materializeParameterFiles(loaded.assets.parametersSchema?.value, parameters);
   try {

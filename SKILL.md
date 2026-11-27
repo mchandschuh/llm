@@ -164,7 +164,12 @@ the layered `config.json`. Parameters come from `--parameters` and
 `x-llm-req-parameter.file` becomes a file under `<files>`. For example,
 `llm req summarize --p-path notes.md` or `--p-content <text>`. Unprefixed
 schema-parameter options such as `--path` are rejected on `llm req` with a
-`--p-` suggestion. `llm summarize` is a compatibility form for
+`--p-` suggestion. A schema node may declare
+`x-llm-req-parameter.validation.function`, an inline synchronous JavaScript
+function `(value, context) => true | false | 'failure message'`. It runs
+before file materialization and provider use, and its context includes the
+resolved parameters and read-only `fs` helpers. Request bundles that declare
+validators are trusted code. `llm summarize` is a compatibility form for
 `llm req summarize`. See `requests/README.md` for the full request-bundle
 contract.
 

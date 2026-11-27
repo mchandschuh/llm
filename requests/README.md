@@ -17,9 +17,9 @@ action and must be recorded in
 
 The request that introduced the `x-llm-req-parameter` metadata decision is
 recorded at `/home/michael/src/github/llm/.docs/work-items/WI-0023/work-item-request.md`.
-The schema-declared file-binding extension is specified by WI-0024. These records
-are intake and contract evidence; neither permits arbitrary code execution from a
-request asset.
+WI-0023 specifies inline validation functions, and WI-0024 specifies the
+schema-declared file-binding extension. Validation-function source is the only
+request-asset content that is executed.
 
 ## Request bundle layout
 
@@ -149,8 +149,14 @@ request without a parameter schema accepts only an empty parameter object.
 
 `x-llm-req-parameter` is the supported JSON Schema extension namespace for
 request-parameter metadata. It is declared inside
-`<request-name>.parameters.schema.json`. The `file` property is the supported
-runtime binding in this contract. It gives a parameter field file semantics
+`<request-name>.parameters.schema.json` and supports two members: `file`, which
+binds a parameter to `<files>`, and `validation`, which declares an inline
+JavaScript validation function. Unknown members fail before provider
+invocation.
+
+### File bindings
+
+The `file` property gives a parameter field file semantics
 without coupling behavior to a request name; a request named `summarize` and a
 request named `review` use the same materialization boundary when their schemas
 declare the same binding.
@@ -224,10 +230,83 @@ The parameter schema's ordinary JSON Schema constraints, including `oneOf`,
 remain responsible for cardinality and value validation. In the example, an
 empty object and an object containing both `path` and `content` are invalid.
 
-The `validation` member remains reserved for a separately qualified future
-feature. This runtime does not evaluate function references or execute code from
-request assets. Unknown `x-llm-req-parameter` members and malformed `file`
-metadata fail before provider invocation.
+Malformed `file` metadata fails before provider invocation.
+
+### Validation functions
+
+`validation` declares bespoke validation that JSON Schema cannot express. It may
+appear on the parameter schema root, on any node reached through `properties`,
+and on array `items`, where it runs once per element. It is rejected under every
+other subschema keyword, such as `oneOf`, `anyOf`, `allOf`, `not`,
+`if`/`then`/`else`, `contains`, `propertyNames`, `additionalProperties`,
+`patternProperties`, `$defs`, or tuple-form `items`. It may share a node with
+`file`. Schemas reached only through an external `$ref` are not inspected, so
+declare validators in the parameter schema itself.
+
+```json
+{
+  "x-llm-req-parameter": {
+    "validation": {
+      "function": "(value, context) => context.fs.isFile(value) || `not a file: ${value}`",
+      "message": "Optional failure message used when the function returns false"
+    }
+  }
+}
+```
+
+- `function` is required. It is a JavaScript function expression, either as one
+  string or as an array of strings joined with newlines. It must compile and
+  evaluate to a callable function, not a class, before any value is
+  validated.
+- `message` is optional and must be a non-empty string.
+- No other members are accepted.
+
+Each function is called as `fn(value, context)` after the complete parameter
+object passes JSON Schema validation. Validators run in schema declaration
+order: a node's own validator runs before its descendants. Values absent from
+the resolved parameters are skipped. `context` is frozen and contains:
+
+| Member | Value |
+| --- | --- |
+| `path` | Concrete parameter path, such as `sections[0].title`; `''` for the root. Property names that are not identifiers are quoted, as in `["a.b"]` |
+| `value` | The validated value, the same as the first argument |
+| `parameters` | A deep-frozen copy of the complete resolved parameter object |
+| `schema` | A deep-frozen copy of the declaring schema node |
+| `request` | `{ name, directory }` of the selected request bundle |
+| `workingDirectory` | The application current working directory |
+| `fs` | Read-only helpers that resolve relative paths from `workingDirectory` |
+
+The `fs` helpers are `fs.resolve(path)`, `fs.exists(path)`, `fs.isFile(path)`,
+`fs.isDirectory(path)`, and `fs.readText(path)`. `fs.readText` returns UTF-8
+text from a regular file of at most 1048576 bytes.
+
+The return value decides the outcome:
+
+- `true` or `undefined` passes.
+- `false` fails with `message`, or a default message.
+- A non-empty string fails with that string as the message.
+- A thrown error fails with the error's message.
+- Any other result, including a promise or other thenable, is a configuration
+  error. Validators must be synchronous.
+- A promise that the function creates and that rejects without a handler
+  fails validation with the rejection message. It does not surface as an
+  unhandled rejection.
+
+A failure stops the request with a bounded `CONFIGURATION_INVALID` error naming
+the parameter path, before file materialization, placeholder substitution, and
+provider invocation.
+
+Each call runs in a fresh `node:vm` context with a 1000 ms timeout that also
+covers the context's promise jobs. The context has no `require`, `process`,
+`module`, timers, or `fetch`, and string code generation (`eval`, `Function`)
+is disabled. Returned and thrown values are inspected without running their
+getters outside the timeout. Known Node limitation: when the timeout fires
+inside a promise job while the host process tracks async context (for example
+under `node:test` or with `AsyncLocalStorage`), Node 24 may abort the process
+instead of reporting the timeout. The `llm` CLI is not affected. This isolation prevents
+accidental use of Node APIs; it is not a security boundary. Treat request
+bundles as trusted code with the same privileges as the `llm` process, and
+only configure a `requestsDirectory` whose contents you trust.
 
 ## Processing order
 
@@ -245,9 +324,13 @@ Implementations must use this order and fail closed at each boundary:
    and [Parameter contract](#parameter-contract).
 5. Load and validate `<request-name>.parameters.schema.json` before parameter
    resolution. This asset cannot contain placeholders and is never substituted.
-6. Resolve parameters, validate supported `x-llm-req-parameter.file` metadata,
-   and reject unsupported executable validation metadata before file access.
-7. Discover schema-declared `x-llm-req-parameter.file` bindings and materialize
+6. Resolve parameters, validate them against the parameter schema, and
+   validate supported `x-llm-req-parameter.file` and
+   `x-llm-req-parameter.validation` metadata. Malformed metadata fails here.
+7. Run every `x-llm-req-parameter.validation.function` in schema declaration
+   order, as described in [Validation functions](#validation-functions). A
+   failing validator stops the request before file access.
+8. Discover schema-declared `x-llm-req-parameter.file` bindings and materialize
    their resolved parameter values as reference files in deterministic schema
    declaration order. A `path` binding accepts a regular file or directory and
    uses the existing recursive file and symlink rules; each array element is
@@ -255,17 +338,18 @@ Implementations must use this order and fail closed at each boundary:
    with its declared name, or one indexed file per array element. File-binding
    temporary resources are owned by the completion operation and are cleaned up
    after provider delegation, including failure paths.
-8. Apply `$${variableName}$$` substitution to every other recognized asset's raw
+9. Apply `$${variableName}$$` substitution to every other recognized asset's raw
    content, including Markdown and JSON, before parsing or constructing the
    request.
-9. Resolve explicit additional input files using
+10. Resolve explicit additional input files using
    [Additional input files](#additional-input-files), construct the existing
    `LlmRequest` with `REQUEST_SCHEMA`, and merge them after schema-declared files
    in deterministic order. Both file sources resolve from the application
    current working directory and are available to the existing prompt composer.
-10. Delegate once to the existing `complete` function. Invalid configuration,
-   parameters, metadata, schemas, or substitutions produce zero provider calls.
-11. Serialize through the existing raw/full response contract.
+11. Delegate once to the existing `complete` function. Invalid configuration,
+   parameters, metadata, validation functions, schemas, or substitutions
+   produce zero provider calls.
+12. Serialize through the existing raw/full response contract.
 
 ## Additional input files
 
@@ -436,9 +520,11 @@ directory. Request asset loading rejects `.env`, `.env.*`, `credentials/`, and
 `secrets/` paths. Additional `LlmRequest.files` inputs are intentionally exempt
 from repository/request-directory containment and resolve from application CWD.
 
-The loader does not execute shell text, JavaScript source, module paths,
-templates, metadata function source, or provider configuration found in an
-asset. Error messages are bounded and sanitized through the existing error
+The loader does not execute shell text, module paths, templates, or provider
+configuration found in an asset. The only JavaScript executed from a request
+bundle is `x-llm-req-parameter.validation.function` source, run as described in
+[Validation functions](#validation-functions). That isolation is not a security
+boundary, so a request bundle is trusted code. Error messages are bounded and sanitized through the existing error
 boundary.
 
 ## Work-item contract references and edit gate
@@ -456,6 +542,7 @@ cite the exact section(s) it implements. The authoritative section mapping is:
 | WI-0020 | [Additional input files](#additional-input-files), [Schema-declared files and library/CLI boundaries](#schema-declared-files-and-librarycli-boundaries), [Request-name and filesystem safety](#request-name-and-filesystem-safety) |
 | WI-0021 | [Prompt, schema, and summarize compatibility](#prompt-schema-and-summarize-compatibility), [Additional input files](#additional-input-files) |
 | WI-0022 | [Work-item validation gates](#work-item-validation-gates), [Evidence boundary](#evidence-boundary) |
+| WI-0023 | [x-llm-req-parameter metadata](#x-llm-req-parameter-metadata), [Processing order](#processing-order), [Request-name and filesystem safety](#request-name-and-filesystem-safety), [Evidence boundary](#evidence-boundary) |
 | WI-0024 | [x-llm-req-parameter metadata](#x-llm-req-parameter-metadata), [Schema-declared files and library/CLI boundaries](#schema-declared-files-and-librarycli-boundaries), [Additional input files](#additional-input-files), [Prompt, schema, and summarize compatibility](#prompt-schema-and-summarize-compatibility), [Request-name and filesystem safety](#request-name-and-filesystem-safety) |
 
 Explicit human operator confirmation is required before any work-item or task
@@ -487,6 +574,6 @@ for the current work item and preserve its result before continuing.
 The contract and work-item records define provider-free implementation and
 validation evidence. They do not establish authenticated provider availability,
 deployment, publication, production readiness, or external service behavior.
-No credentials may be committed. Custom validation metadata is a bounded
-extension point; its approved implementation is separately owned by the
-WI-0023 request and must remain fail-closed until implemented and tested.
+No credentials may be committed. Validation-function evidence is provider-free
+and local. It does not establish that the `node:vm` isolation is a security
+sandbox.

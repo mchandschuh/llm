@@ -8,6 +8,7 @@ const FILE_METADATA = 'x-llm-req-parameter';
 const MIME_TYPE = /^[a-z][a-z0-9!#$&^_.+-]*\/[a-z0-9!#$&^_.+-]+$/u;
 const FILE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/u;
 const FILE_METADATA_KEYS = new Set(['mode', 'name', 'type', 'purpose', 'encoding']);
+const EXTENSION_KEYS = new Set(['file', 'validation']);
 
 export interface ParameterFileMetadata {
   readonly mode: 'path' | 'content';
@@ -57,11 +58,13 @@ function assertMimeType(type: string): void {
 function parseMetadata(node: Record<string, unknown>, path: string): ParsedParameterFileMetadata | undefined {
   if (!Object.prototype.hasOwnProperty.call(node, FILE_METADATA)) return undefined;
   const extension = node[FILE_METADATA];
-  if (!isRecord(extension)) throw parameterFileFailure(`${FILE_METADATA} at '${path}' must be an object containing only file.`);
-  const extensionKeys = Object.keys(extension);
-  if (extensionKeys.length !== 1 || extensionKeys[0] !== 'file' || !isRecord(extension.file)) {
-    throw parameterFileFailure(`${FILE_METADATA} at '${path}' contains unsupported custom validation metadata or another member.`);
+  if (!isRecord(extension)) throw parameterFileFailure(`${FILE_METADATA} at '${path}' must be an object.`);
+  for (const key of Object.keys(extension)) {
+    if (!EXTENSION_KEYS.has(key)) throw parameterFileFailure(`${FILE_METADATA} at '${path}' contains unsupported member '${key}'.`);
   }
+  // `validation` is parsed by request-parameter-validation.ts.
+  if (!Object.prototype.hasOwnProperty.call(extension, 'file')) return undefined;
+  if (!isRecord(extension.file)) throw parameterFileFailure(`${FILE_METADATA}.file at '${path}' must be an object.`);
   const file = extension.file;
   for (const key of Object.keys(file)) {
     if (!FILE_METADATA_KEYS.has(key)) throw parameterFileFailure(`file metadata at '${path}' contains unsupported member '${key}'.`);

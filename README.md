@@ -146,6 +146,24 @@ schema. Assignment paths support nested (`--p-filters.owner`) and indexed
 `<files>`. Unprefixed options that name a schema parameter are rejected with a
 `--p-` suggestion.
 
+A schema node can also declare bespoke validation with
+`x-llm-req-parameter.validation.function`, an inline JavaScript function called
+as `fn(value, context)` before any file or provider work:
+
+```json
+"path": {
+  "type": "string",
+  "x-llm-req-parameter": {
+    "validation": { "function": "(value, context) => context.fs.exists(value) || `missing: ${value}`" }
+  }
+}
+```
+
+Validators run synchronously with a 1000 ms timeout and a frozen context
+(`path`, `value`, `parameters`, `schema`, `request`, `workingDirectory`, and
+read-only `fs` helpers). The vm isolation is not a security sandbox, so only
+configure request directories you trust.
+
 The bundled `summarize` request declares `path` and `content` file parameters:
 
 ```text

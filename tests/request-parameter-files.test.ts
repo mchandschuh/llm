@@ -111,7 +111,7 @@ async function withRequestConfiguration<T>(configuration: string, operation: () 
   }
 }
 
-test('WI-0024-10000000_TC-METADATA-VALIDATION accepts supported bindings and rejects malformed or executable metadata', () => {
+test('WI-0024-10000000_TC-METADATA-VALIDATION accepts supported bindings and rejects malformed metadata or unknown members', () => {
   const bindings = validateParameterFileSchema(schema);
   assert.deepEqual(bindings.map((binding) => binding.path), ['path', 'content', 'paths', 'contents']);
   assert.equal(bindings[0]?.metadata.mode, 'path');
@@ -126,7 +126,9 @@ test('WI-0024-10000000_TC-METADATA-VALIDATION accepts supported bindings and rej
     ['object binding', { ...schema, properties: { path: { type: 'object', 'x-llm-req-parameter': { file: { mode: 'path', type: 'text/plain', purpose: 'Source.' } } } } }],
     ['non-string array binding', { ...schema, properties: { path: { type: 'array', items: { type: 'number' }, 'x-llm-req-parameter': { file: { mode: 'path', type: 'text/plain', purpose: 'Source.' } } } } }],
     ['array item composition', { ...schema, properties: { path: { type: 'array', items: { oneOf: [{ type: 'string' }] }, 'x-llm-req-parameter': { file: { mode: 'path', type: 'text/plain', purpose: 'Source.' } } } } }],
-    ['custom validation metadata', { ...schema, 'x-llm-req-parameter': { validation: { function: 'validate' } } }],
+    // WI-0023 moved validation-member parsing to request-parameter-validation.ts; unknown extension members still fail here.
+    ['unknown extension member', { ...schema, 'x-llm-req-parameter': { execute: 'code' } }],
+    ['non-object file member', { ...schema, properties: { path: { ...schema.properties.path, 'x-llm-req-parameter': { file: 'path' } } } }],
   ];
   for (const [name, invalid] of invalidSchemas) {
     assert.throws(() => validateParameterFileSchema(invalid as typeof schema), (error: unknown) => {
