@@ -28,7 +28,8 @@
     "start": "node ./bin/cli.js",
     "typecheck": "tsc --noEmit",
     "test": "tsx --import ./tests/support/claude-guard.ts --test tests/*.test.ts",
-    "test:pattern": "tsx --import ./tests/support/claude-guard.ts --test tests/*.test.ts --test-name-pattern"
+    "test:pattern": "tsx --import ./tests/support/claude-guard.ts --test tests/*.test.ts --test-name-pattern",
+    "test:live:claude": "npm run build && node tests/live/claude-live.mjs"
   },
   "dependencies": {
     "ajv": "^8.17.1",

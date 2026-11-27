@@ -137,6 +137,19 @@ output, and tool calling through the claude provider.
 provider at a fake CLI. The suite therefore never starts the real `claude`,
 even on machines where it is installed.
 
+`npm run test:live:claude` builds the package and runs `tests/live/claude-live.mjs`
+against the real `claude` CLI. It uses that CLI's sign-in and costs money, so it
+is never part of `npm test`. The checks cover:
+
+- a text completion;
+- structured output with `$defs`;
+- `llm summarize` through the compiled CLI;
+- a chat session that uses sandboxed `read_file` and `write_file` tools across
+  two tool rounds and a follow-up turn.
+
+Each check prints one JSON line, and the command exits non-zero if any check
+fails.
+
 ## Dynamic requests
 
 `llm req` runs a named request bundle from the configured request directory:

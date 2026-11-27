@@ -428,3 +428,77 @@ test('WI-0026-10000000_TC-DOCUMENTATION-AND-ISOLATION documents the claude provi
   assert.match(pkg.scripts.test!, /--import \.\/tests\/support\/claude-guard\.ts/u);
   assert.match(pkg.scripts['test:pattern']!, /--import \.\/tests\/support\/claude-guard\.ts/u);
 });
+
+// SDLC-TEST-CASE: WI-0027-10000000_TC-SCHEMA-DIALECT
+test('WI-0027-10000000_TC-SCHEMA-DIALECT strips $schema dialects from every emitted --json-schema without changing validation', async () => {
+  const DIALECT = 'https://json-schema.org/draft/2020-12/schema';
+  const containsDialect = (value: unknown): boolean => Array.isArray(value)
+    ? value.some(containsDialect)
+    : Boolean(value) && typeof value === 'object' && Object.entries(value as Record<string, unknown>).some(([key, child]) => (key === '$schema' && typeof child === 'string') || containsDialect(child));
+  const emitted = async (request: Partial<ProviderCompletionRequest>, reply: unknown) => withFake([success({ structured_output: reply })], async (fake) => {
+    await new ClaudeProvider({ environment: fake.environment }).complete(providerRequest(request));
+    return JSON.parse(flagValue((await fake.invocations())[0]!.argv, '--json-schema')!) as Record<string, any>;
+  });
+
+  // The bundled summarize outputSchema declares the 2020-12 dialect that the real CLI rejects.
+  const summarizeSchema = JSON.parse(await readFile('requests/summarize/summarize.outputSchema.json', 'utf8')) as Record<string, unknown>;
+  assert.equal(summarizeSchema.$schema, DIALECT);
+  const summarizeEmitted = await emitted({ outputSchema: summarizeSchema }, { summary: 's' });
+  assert.equal(containsDialect(summarizeEmitted), false);
+  const { $schema: _dialect, ...summarizeWithoutDialect } = summarizeSchema;
+  assert.deepEqual(summarizeEmitted, summarizeWithoutDialect);
+
+  // A property named $schema, and instance data containing $schema, are preserved.
+  const tricky = {
+    $schema: DIALECT,
+    type: 'object',
+    required: ['$schema'],
+    properties: { $schema: { type: 'string', const: DIALECT }, nested: { $schema: DIALECT, type: 'object', default: { $schema: 'kept' } } },
+  };
+  const trickyEmitted = await emitted({ outputSchema: tricky }, { $schema: DIALECT });
+  assert.equal(trickyEmitted.$schema, undefined);
+  assert.deepEqual(Object.keys(trickyEmitted.properties), ['$schema', 'nested']);
+  assert.deepEqual(trickyEmitted.properties.$schema, { type: 'string', const: DIALECT });
+  assert.equal(trickyEmitted.properties.nested.$schema, undefined);
+  assert.deepEqual(trickyEmitted.properties.nested.default, { $schema: 'kept' });
+  const validateTricky = compileEmitted(trickyEmitted);
+  assert.equal(validateTricky({ $schema: DIALECT }), true);
+  assert.equal(validateTricky({ $schema: 'other' }), false);
+  assert.equal(validateTricky({}), false);
+
+  // Wrapped roots, tool envelopes, and $id-scoped embedded schemas are stripped too.
+  const wrapped = await emitted({ outputSchema: { $schema: DIALECT, type: 'array', items: { type: 'string' } } }, { value: ['a'] });
+  const scopedTool = { $schema: DIALECT, $id: 'https://example.test/args', type: 'object', required: ['q'], properties: { q: { type: 'string' } } };
+  const envelope = await emitted({
+    outputSchema: { $schema: DIALECT, type: 'object', required: ['answer'], properties: { answer: { type: 'string' } } },
+    toolOptions: { tools: [{ name: 'search', description: 'Search.', inputSchema: JSON.stringify(scopedTool) }], autoInvoke: false, maxRounds: 1, maxCalls: 4 },
+  }, { decision: 'stop', output: { answer: 'ok' } });
+  for (const schema of [wrapped, envelope]) {
+    assert.equal(containsDialect(schema), false, JSON.stringify(schema));
+    compileEmitted(schema);
+  }
+  const validateEnvelope = compileEmitted(envelope);
+  assert.equal(validateEnvelope({ decision: 'continue', toolCalls: [{ id: 'c', name: 'search', arguments: { q: 'x' } }] }), true);
+  assert.equal(validateEnvelope({ decision: 'continue', toolCalls: [{ id: 'c', name: 'search', arguments: { q: 1 } }] }), false);
+  assert.equal(compileEmitted(wrapped)({ value: ['a'] }), true);
+  assert.equal(compileEmitted(wrapped)({ value: [1] }), false);
+});
+
+// SDLC-TEST-CASE: WI-0027-10000000_TC-LIVE-SUITE-WIRING
+test('WI-0027-10000000_TC-LIVE-SUITE-WIRING keeps the live claude suite opt-in and documented', async () => {
+  const pkg = JSON.parse(await readFile('package.json', 'utf8')) as { scripts: Record<string, string> };
+  assert.equal(pkg.scripts['test:live:claude'], 'npm run build && node tests/live/claude-live.mjs');
+  assert.match(pkg.scripts.test!, /tests\/\*\.test\.ts/u);
+  assert.doesNotMatch(pkg.scripts.test!, /live/u);
+  const live = await readFile('tests/live/claude-live.mjs', 'utf8');
+  for (const check of ['text-completion', 'structured-output-defs', 'cli-summarize', 'chat-read-write-file-tools']) {
+    assert.match(live, new RegExp(`check\\('${check}'`, 'u'), check);
+  }
+  for (const tool of ["name: 'read_file'", "name: 'write_file'"]) assert.ok(live.includes(tool), tool);
+  assert.match(live, /delete process\.env\.LLM_CLAUDE_EXECUTABLE/u, 'the live suite must use the real CLI, not the test guard');
+  const [readme, skill] = await Promise.all([readFile('README.md', 'utf8'), readFile('SKILL.md', 'utf8')]);
+  for (const document of [readme, skill]) {
+    assert.match(document, /npm run test:live:claude/u);
+    assert.match(document, /read_file/u);
+  }
+});

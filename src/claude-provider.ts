@@ -307,6 +307,31 @@ function responseShape(request: ProviderCompletionRequest): ResponseShape {
   };
 }
 
+/** Keywords whose object value maps names to subschemas: keep every name, recurse into each subschema. */
+const NAME_MAP_KEYWORDS = new Set(['properties', 'patternProperties', '$defs', 'definitions', 'dependentSchemas', 'dependencies']);
+/** Keywords whose value is instance data, not a subschema: copy unchanged. */
+const DATA_KEYWORDS = new Set(['const', 'enum', 'default', 'examples']);
+
+/**
+ * Remove `$schema` dialect declarations. The Claude Code CLI rejects dialect
+ * URIs it does not bundle, such as https://json-schema.org/draft/2020-12/schema.
+ * `$schema` only selects a dialect and does not constrain values, so removing
+ * it leaves validation semantics unchanged. Property names and instance data
+ * named `$schema` are preserved.
+ */
+export function withoutSchemaDialect(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(withoutSchemaDialect);
+  if (!isRecord(value)) return value;
+  const result: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value)) {
+    if (key === '$schema') continue;
+    if (DATA_KEYWORDS.has(key)) result[key] = child;
+    else if (NAME_MAP_KEYWORDS.has(key) && isRecord(child)) result[key] = Object.fromEntries(Object.entries(child).map(([name, schema]) => [name, withoutSchemaDialect(schema)]));
+    else result[key] = withoutSchemaDialect(child);
+  }
+  return result;
+}
+
 /** Command-line arguments for one completion. The positional instruction comes first because tool flags are variadic. */
 export function claudeArguments(request: ProviderCompletionRequest, schema?: InlineJsonSchema): readonly string[] {
   return [
@@ -320,7 +345,7 @@ export function claudeArguments(request: ProviderCompletionRequest, schema?: Inl
     '--strict-mcp-config',
     '--disallowedTools', 'mcp__*',
     '--no-session-persistence',
-    ...(schema === undefined ? [] : ['--json-schema', JSON.stringify(schema)]),
+    ...(schema === undefined ? [] : ['--json-schema', JSON.stringify(withoutSchemaDialect(schema))]),
   ];
 }
 
