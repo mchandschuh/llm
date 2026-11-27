@@ -112,3 +112,16 @@ Malformed or unsupported file metadata, invalid annotated values, and parameter
 schema violations fail before provider invocation. The current contract
 supports scalar string and string-array file fields; custom validation-function
 execution and object file-binding values remain outside this work item.
+
+## D15 — CLI files come only from schema-declared bindings
+
+Confirmed by the human operator during WI-0021: `requests/README.md` documents
+current `llm req` behavior and is updated when it disagrees with the
+implementation. `llm req` has no explicit `--path`/`--content` file options.
+Command-line files reach `<files>` only through parameters that the request's
+parameter schema declares with `x-llm-req-parameter.file`. `--p-path` and
+`--p-content` are file inputs for `summarize` only because its parameter schema
+declares them. Explicit additional files remain a library-only
+`completeRequest({ files })` option. `llm summarize` is a compatibility adapter
+that maps `--path`/`--content` to the generic `path`/`content` parameters and
+maps `--provider`/`--model`/`--thinking` to explicit request settings.
