@@ -1,0 +1,179 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0028
+taskUid: WI-0028-80000000
+orderKey: "80000000"
+parentTaskUid: WI-0028-20000000
+taskType: validation
+processingStatus: processing_completed
+title: Validate llm req help
+objective: Validate WI-0028 against every required strategy case and scope boundary.
+references:
+  required:
+    - .docs/work-items/WI-0028/work-item.json
+    - .docs/work-items/WI-0028/work-item-request.md
+    - src/cli/request-help.ts
+    - src/cli/arguments.ts
+    - src/cli.ts
+    - src/cli/help.ts
+    - tests/request-help.test.ts
+    - requests/README.md
+    - .docs/work-items/WI-0028/steps/WI-0028-10000000-test-strategy.yaml
+    - .docs/work-items/WI-0028/steps/WI-0028-20000000-implementation.yaml
+  informational:
+    - README.md
+    - SKILL.md
+dependsOn:
+  - WI-0028-10000000
+  - WI-0028-20000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0028/steps/WI-0028-80000000-validation.yaml
+  commitSubject: "WI-0028: plan: define validation evidence"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: schema-audit
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: full-suite
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Validate WI-0028 against every required strategy case and scope boundary.
+    inputs:
+      - id: WI-0028-80000000_INPUT-STRATEGY
+        kind: testStrategy
+        ref: WI-0028-10000000#result/testCases
+        purpose: Provide required cases and coverage.
+        required: true
+      - id: WI-0028-80000000_INPUT-IMPLEMENTATION
+        kind: implementation
+        ref: WI-0028-20000000#result/implementation
+        purpose: Identify implementation outputs and owned paths.
+        required: true
+    targets:
+      - id: WI-0028-80000000_TARGET-REPOSITORY
+        kind: repositoryState
+        ref: "#repository-state/HEAD"
+        purpose: Inspect implementation, tests, docs, and changed paths.
+        required: true
+      - id: WI-0028-80000000_TARGET-IMPLEMENTATION
+        kind: taskResult
+        taskType: implementation
+        ref: WI-0028-20000000#result/implementation
+        purpose: Validate implementation evidence.
+        required: true
+    objectiveRefs: &a1
+      - WI-0028-10000000#objective/WI-0028-10000000_OBJ-001
+      - WI-0028-10000000#objective/WI-0028-10000000_OBJ-002
+      - WI-0028-10000000#objective/WI-0028-10000000_OBJ-003
+      - WI-0028-10000000#objective/WI-0028-10000000_OBJ-004
+      - WI-0028-10000000#objective/WI-0028-10000000_OBJ-005
+    testCaseRefs: &a2
+      - WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-OUTPUT
+      - WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-UNAVAILABLE
+      - WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-EMPTY
+      - WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-CONFIG-ERROR
+      - WI-0028-10000000#test-case/WI-0028-10000000_TC-PARAMETER-LINES
+      - WI-0028-10000000#test-case/WI-0028-10000000_TC-ANNOTATIONS
+      - WI-0028-10000000#test-case/WI-0028-10000000_TC-NESTED-ARRAYS-ENUMS
+      - WI-0028-10000000#test-case/WI-0028-10000000_TC-CONSTRAINTS-AND-SETTINGS
+      - WI-0028-10000000#test-case/WI-0028-10000000_TC-NO-PARAMETERS-AND-SUMMARIZE
+      - WI-0028-10000000#test-case/WI-0028-10000000_TC-HELP-ERRORS
+      - WI-0028-10000000#test-case/WI-0028-10000000_TC-HELP-POSITIONS-PROVIDER-FREE
+      - WI-0028-10000000#test-case/WI-0028-10000000_TC-NON-HELP-UNCHANGED
+      - WI-0028-10000000#test-case/WI-0028-10000000_TC-HELP-DOCUMENTATION
+      - WI-0028-10000000#test-case/WI-0028-10000000_TC-QUALITY-GATES
+    procedures:
+      - id: WI-0028-80000000_VAL-ALL
+        sequence: 1
+        name: validate-all-wi-0028-evidence
+        description: Run the focused help tests with the claude guard log, the full package gate, a without-fix check, and changed-path review.
+        reason: Every requirement needs bounded local evidence, and help must not reach a provider.
+        targetRefs:
+          - "#target/WI-0028-80000000_TARGET-REPOSITORY"
+          - "#target/WI-0028-80000000_TARGET-IMPLEMENTATION"
+        objectiveRefs: *a1
+        testCaseRefs: *a2
+        method:
+          executionMode: executable
+          target: Provider-free WI-0028 matrix
+          steps:
+            - Run tests/request-help.test.ts with FAKE_CLAUDE_GUARD_LOG set and assert no claude invocation was recorded.
+            - Remove the production change temporarily and confirm the new tests fail.
+            - Run npm run typecheck, npm test, npm run build, and git diff --check.
+            - Inspect the docs, changed paths, requests/README.md, and non-goals.
+          command: npm run typecheck && npm test && npm run build && git diff --check
+        expected:
+          outcome: passed
+          exitCode: 0
+          assertions:
+            - All required strategy cases pass and are trace-marked.
+            - No provider is invoked by help.
+            - requests/README.md is unchanged.
+        evidenceTier: cli-audit
+        required: true
+    nonGoals:
+      - Do not change request loading, validation, execution, or provider behavior.
+      - Do not edit requests/README.md, requests/decisions.md, or the bundled request assets.
+      - Do not invoke a provider or add live checks to npm test.
+  result:
+    status: passed
+    summary: The provider-free WI-0028 gate passed at 9f13a7a.
+    executions:
+      - id: WI-0028-80000000_EXEC-ALL
+        procedureRef: "#procedure/WI-0028-80000000_VAL-ALL"
+        status: passed
+        observed:
+          outcome: passed
+          exitCode: 0
+          summary: 188 provider-free tests passed, including all 14 WI-0028 cases.
+          assertions:
+            - "All 14 WI-0028 strategy cases passed; each has exactly one test whose name and // SDLC-TEST-CASE: marker carry its canonical id."
+            - Without the production change, 12 of the 14 new tests fail; the non-help regression and trace cases pass by design.
+            - FAKE_CLAUDE_GUARD_LOG recorded no claude invocation during the help tests, so no provider was started.
+            - Help is recognized only immediately after `req` or the request name; `--p-content -h` keeps -h as a value.
+            - requests/README.md is byte-identical to the baseline a62c17e.
+            - The changed paths versus master are WI-0028 records, src/cli/request-help.ts, src/cli/arguments.ts, src/cli.ts, src/cli/help.ts, tests/request-help.test.ts, README.md, and SKILL.md, all owned by WI-0028-20000000.
+            - npm run typecheck exited zero; npm test passed 188 of 188 tests; npm run build exited zero; git diff --check exited zero.
+            - sdlc work-item validate --work-item WI-0028 reported valid.
+        evidenceTier: cli-audit
+        evidence:
+          - kind: test
+            source: tests/request-help.test.ts
+            claim: All 14 WI-0028 tests passed with no claude invocation.
+            command: FAKE_CLAUDE_GUARD_LOG=<log> tsx --import ./tests/support/claude-guard.ts --test tests/request-help.test.ts
+          - kind: command
+            source: repository package gate
+            claim: The complete provider-free package gate passed.
+            command: npm run typecheck && npm test && npm run build && git diff --check
+          - kind: command
+            source: bin/cli.js
+            claim: llm req -h lists summarize and llm req summarize -h prints its file-bound parameters and exactly-one constraint.
+            command: node ./bin/cli.js req -h; node ./bin/cli.js req summarize -h
+    findings: []
+    evidenceTier: cli-audit
+    limitations:
+      - Help rendering is proven for fixture bundles and the shipped summarize request; it does not establish rendering for every JSON Schema construct.
+    nonClaims:
+      - This validation does not authorize deployment, publication, or release.
