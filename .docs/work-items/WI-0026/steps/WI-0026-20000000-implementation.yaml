@@ -4,7 +4,7 @@ taskUid: WI-0026-20000000
 orderKey: '20000000'
 parentTaskUid: WI-0026-10000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement the claude provider
 objective: Implement the claude provider, structured-output tool calling, the provider registry, and the claude/sonnet default.
 references:
@@ -35,6 +35,9 @@ governance:
   - .docs/work-items/WI-0026/steps/WI-0026-20000000-implementation.yaml
   - src/claude-provider.ts
   - src/providers.ts
+  - src/provider-defaults.ts
+  - tests/support/claude-guard.ts
+  - package.json
   - src/normalize.ts
   - src/complete.ts
   - src/request.ts
@@ -71,7 +74,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -134,6 +137,9 @@ task:
     ownedPaths:
     - src/claude-provider.ts
     - src/providers.ts
+    - src/provider-defaults.ts
+    - tests/support/claude-guard.ts
+    - package.json
     - src/normalize.ts
     - src/complete.ts
     - src/request.ts
@@ -162,3 +168,137 @@ task:
     - Change the defaults, the request schema documentation, and the summarize defaults.
     - Add a fake claude executable fixture and trace-marked tests, and make existing tests that relied on the default provider explicit.
     - Update SKILL.md, README.md, requests/README.md, and requests/decisions.md.
+  result:
+    status: implemented
+    implementation:
+      summary: "Added the claude provider (Claude Code CLI via claude -p with --safe-mode, JSON output, no built-in or MCP tools, no session persistence, request on stdin) and a provider registry used by complete, completeRequest, chat, and CLI provider overrides. claude/sonnet is now the default and openrouter keeps its default model. Structured output maps to --json-schema, and tool calling uses a stop/continue envelope built from the existing tool schemas. A suite-wide guard keeps every test off the real CLI."
+      changes:
+      - id: WI-0026-20000000_CHANGE-001
+        type: production-code
+        summary: "Added ClaudeProvider: executable resolution (LLM_CLAUDE_EXECUTABLE or PATH), validate(), the documented efficient invocation, the stdin prompt projection (llmPrompt plus conversation, tools, toolResults, and responseInstructions), defensive envelope parsing checked with the exit code, AbortSignal cancellation, output bounds, 10 MB stdin limit, and image rejection."
+        objectiveRefs:
+        - WI-0026-20000000_OBJ-001
+        paths:
+        - src/claude-provider.ts
+      - id: WI-0026-20000000_CHANGE-002
+        type: production-code
+        summary: "Structured output: outputSchema becomes --json-schema, with non-object roots wrapped, and structured_output is returned as JSON content. Tool calling: a stop/output or continue/toolCalls envelope whose calls use the tool-call shape and each tool inputSchema. complete() now passes outputSchema in provider requests on both the text and tool paths."
+        objectiveRefs:
+        - WI-0026-20000000_OBJ-002
+        paths:
+        - src/claude-provider.ts
+        - src/complete.ts
+      - id: WI-0026-20000000_CHANGE-003
+        type: production-code
+        summary: "Added the provider registry (createProvider, REGISTERED_PROVIDERS) and routed complete (text and tool paths) and completeRequest through it. Unknown names produce a configuration error listing the registered providers, and injected providers still win."
+        objectiveRefs:
+        - WI-0026-20000000_OBJ-003
+        paths:
+        - src/providers.ts
+        - src/complete.ts
+        - src/request.ts
+        - src/index.ts
+      - id: WI-0026-20000000_CHANGE-004
+        type: production-code
+        summary: "Made claude/sonnet the default through src/provider-defaults.ts (per-provider default models; unregistered names keep the previous fallback model). Removed the openrouter pins from the summarize defaults and updated the request schema provider and model defaults and descriptions."
+        objectiveRefs:
+        - WI-0026-20000000_OBJ-004
+        paths:
+        - src/provider-defaults.ts
+        - src/normalize.ts
+        - requests/summarize/summarize.defaults.json
+        - schemas/request/v1/request.schema.json
+      - id: WI-0026-20000000_CHANGE-005
+        type: test-code
+        summary: "Added the fake claude CLI fixture, the suite-wide claude guard loaded by the npm test scripts, and six trace-marked WI-0026 tests. Updated the two tests that relied on the old default: the OpenRouter transport test now selects openrouter explicitly, and the defaults and summarize assertions expect claude/sonnet."
+        objectiveRefs:
+        - WI-0026-20000000_OBJ-001
+        - WI-0026-20000000_OBJ-002
+        - WI-0026-20000000_OBJ-003
+        - WI-0026-20000000_OBJ-004
+        - WI-0026-20000000_OBJ-005
+        paths:
+        - tests/claude-provider.test.ts
+        - tests/fixtures/fake-claude.mjs
+        - tests/support/claude-guard.ts
+        - package.json
+        - tests/llm.test.ts
+        - tests/summarize.test.ts
+      - id: WI-0026-20000000_CHANGE-006
+        type: documentation
+        summary: "Documented the providers, defaults, claude invocation, limitations, and tool calling through structured output in SKILL.md. Added a Providers section to README.md and the default-provider rule to requests/README.md, and recorded decision D19."
+        objectiveRefs:
+        - WI-0026-20000000_OBJ-005
+        paths:
+        - SKILL.md
+        - README.md
+        - requests/README.md
+        - requests/decisions.md
+      testImplementations:
+      - testCaseRef: WI-0026-10000000#test-case/WI-0026-10000000_TC-CLAUDE-INVOCATION
+        path: tests/claude-provider.test.ts
+        selector: WI-0026-10000000_TC-CLAUDE-INVOCATION
+        traceMarker: WI-0026-10000000_TC-CLAUDE-INVOCATION
+      - testCaseRef: WI-0026-10000000#test-case/WI-0026-10000000_TC-STRUCTURED-OUTPUT
+        path: tests/claude-provider.test.ts
+        selector: WI-0026-10000000_TC-STRUCTURED-OUTPUT
+        traceMarker: WI-0026-10000000_TC-STRUCTURED-OUTPUT
+      - testCaseRef: WI-0026-10000000#test-case/WI-0026-10000000_TC-TOOL-CALLING
+        path: tests/claude-provider.test.ts
+        selector: WI-0026-10000000_TC-TOOL-CALLING
+        traceMarker: WI-0026-10000000_TC-TOOL-CALLING
+      - testCaseRef: WI-0026-10000000#test-case/WI-0026-10000000_TC-PROVIDER-RESOLUTION
+        path: tests/claude-provider.test.ts
+        selector: WI-0026-10000000_TC-PROVIDER-RESOLUTION
+        traceMarker: WI-0026-10000000_TC-PROVIDER-RESOLUTION
+      - testCaseRef: WI-0026-10000000#test-case/WI-0026-10000000_TC-DEFAULT-PROVIDER
+        path: tests/claude-provider.test.ts
+        selector: WI-0026-10000000_TC-DEFAULT-PROVIDER
+        traceMarker: WI-0026-10000000_TC-DEFAULT-PROVIDER
+      - testCaseRef: WI-0026-10000000#test-case/WI-0026-10000000_TC-DOCUMENTATION-AND-ISOLATION
+        path: tests/claude-provider.test.ts
+        selector: WI-0026-10000000_TC-DOCUMENTATION-AND-ISOLATION
+        traceMarker: WI-0026-10000000_TC-DOCUMENTATION-AND-ISOLATION
+    verification:
+      status: passed
+      objectiveRefs:
+      - WI-0026-20000000_OBJ-001
+      - WI-0026-20000000_OBJ-002
+      - WI-0026-20000000_OBJ-003
+      - WI-0026-20000000_OBJ-004
+      - WI-0026-20000000_OBJ-005
+      tests:
+      - id: WI-0026-20000000_EXEC-FOCUSED
+        type: component
+        testCaseRefs:
+        - WI-0026-10000000#test-case/WI-0026-10000000_TC-CLAUDE-INVOCATION
+        - WI-0026-10000000#test-case/WI-0026-10000000_TC-STRUCTURED-OUTPUT
+        - WI-0026-10000000#test-case/WI-0026-10000000_TC-TOOL-CALLING
+        - WI-0026-10000000#test-case/WI-0026-10000000_TC-PROVIDER-RESOLUTION
+        - WI-0026-10000000#test-case/WI-0026-10000000_TC-DEFAULT-PROVIDER
+        - WI-0026-10000000#test-case/WI-0026-10000000_TC-DOCUMENTATION-AND-ISOLATION
+        command: tsx --import ./tests/support/claude-guard.ts --test tests/claude-provider.test.ts
+        status: passed
+        result: All six provider-free WI-0026 strategy cases passed against the fake claude CLI.
+      - id: WI-0026-20000000_EXEC-PACKAGE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0026-10000000#test-case/WI-0026-10000000_TC-CLAUDE-INVOCATION
+        - WI-0026-10000000#test-case/WI-0026-10000000_TC-STRUCTURED-OUTPUT
+        - WI-0026-10000000#test-case/WI-0026-10000000_TC-TOOL-CALLING
+        - WI-0026-10000000#test-case/WI-0026-10000000_TC-PROVIDER-RESOLUTION
+        - WI-0026-10000000#test-case/WI-0026-10000000_TC-DEFAULT-PROVIDER
+        - WI-0026-10000000#test-case/WI-0026-10000000_TC-DOCUMENTATION-AND-ISOLATION
+        command: npm run typecheck && npm test && npm run build && git diff --check
+        status: passed
+        result: "Typecheck passed, the full 172-test suite passed, build passed, and the diff check passed. The suite also ran with a fake claude first on PATH and FAKE_CLAUDE_GUARD_LOG set, which recorded zero real and zero unconfigured claude invocations."
+      - id: WI-0026-20000000_EXEC-CLI-SMOKE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0026-10000000#test-case/WI-0026-10000000_TC-PROVIDER-RESOLUTION
+        command: LLM_CLAUDE_EXECUTABLE=tests/fixtures/fake-claude.mjs node ./bin/cli.js summarize --content <text>
+        status: passed
+        result: "The compiled CLI defaulted to claude and printed the structured summary. The fake recorded --model sonnet, --effort low, --safe-mode, --json-schema, and the content on stdin; OPENROUTER_API_KEY was unset."
+    limitations:
+    - "Provider-free evidence uses a fake claude CLI and does not establish real Claude Code behavior, authentication, model quality, cost, or production readiness. No live claude run is part of this evidence."
+    - "An earlier unguarded local run of the suite, before tests/support/claude-guard.ts existed, started the real claude CLI once from the OpenRouter transport test that relied on the default provider. That test now selects openrouter explicitly, and the guard prevents recurrence."
