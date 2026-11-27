@@ -4,7 +4,7 @@ taskUid: WI-0021-80000000
 orderKey: '80000000'
 parentTaskUid: WI-0021-20000000
 taskType: validation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Validate Migrate and validate the summarize request example
 objective: Make summarize an explicit generic request example while preserving specialized
   path/content source behavior, output formats, and compatibility.
@@ -58,7 +58,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
@@ -140,3 +140,49 @@ task:
     - "Implement only these authoritative contract sections: requests/README.md#prompt-schema-and-summarize-compatibility; requests/README.md#additional-input-files. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not claim authenticated provider, deployment, release, downstream, or production
       behavior.
+  result:
+    status: passed
+    summary: All six WI-0021 strategy cases, the summarize parameter schema check, the changed-path scope audit, and the complete provider-free package gate passed locally.
+    executions:
+    - id: WI-0021-80000000_EXEC-ALL
+      procedureRef: '#procedure/WI-0021-80000000_VAL-ALL'
+      status: passed
+      observed:
+        outcome: passed
+        exitCode: 0
+        summary: Focused WI-0021 tests passed six cases; the complete package gate passed 148 tests, typecheck, build, and whitespace checks.
+        assertions:
+        - The six strategy cases passed and carry SDLC-TEST-CASE trace markers. The intent lists four; TC-PARAMETER-PREFIX-GUIDANCE and TC-CONTRACT-DOCUMENTATION were added to the strategy later and are accounted for here.
+        - The summarize parameter schema passed schema-validate with no findings.
+        - The only summarize request-name literal in src outside argument parsing and dispatch is the llm summarize compatibility adapter; the generic loader and completeRequest have no summarize branch.
+        - The changed paths versus master are WI-0021 task records, the work-item record, requests/README.md, requests/decisions.md, and tests/summarize.test.ts, all owned by WI-0021.
+        - npm run typecheck exited zero.
+        - npm test passed 148 of 148 tests.
+        - npm run build exited zero.
+        - git diff --check exited zero.
+        - sdlc work-item validate --work-item WI-0021 reported valid.
+        - No provider or production claim was made.
+      evidenceTier: cli-audit
+      evidence:
+      - kind: test
+        source: tests/summarize.test.ts
+        claim: All six focused WI-0021 tests passed.
+        command: node --import tsx --test --test-name-pattern WI-0021 tests/summarize.test.ts
+      - kind: command
+        source: requests/summarize/summarize.parameters.schema.json
+        claim: The summarize parameter schema passed the local JSON Schema authoring validator.
+        command: schema-validate requests/summarize/summarize.parameters.schema.json --json
+      - kind: command
+        source: repository package gate
+        claim: The complete provider-free package gate passed.
+        command: npm run typecheck && npm test && npm run build && git diff --check
+      - kind: command
+        source: .docs/work-items/WI-0021/work-item.json
+        claim: The work item, its references, and its tasks validated.
+        command: sdlc work-item validate --work-item WI-0021 --json
+    findings: []
+    evidenceTier: cli-audit
+    limitations:
+    - Provider-free local validation does not establish authenticated provider behavior, network transport, deployment, publication, downstream integration, or production readiness.
+    nonClaims:
+    - This validation does not authorize deployment, publication, or release.
