@@ -43,6 +43,20 @@ const schema = {
         file: { mode: 'content', name: 'inline.txt', type: 'text/plain', purpose: 'Inline source.' },
       },
     },
+    paths: {
+      type: 'array',
+      items: { type: 'string', minLength: 1 },
+      'x-llm-req-parameter': {
+        file: { mode: 'path', type: 'text/plain', purpose: 'Path sources.' },
+      },
+    },
+    contents: {
+      type: 'array',
+      items: { type: 'string', minLength: 1 },
+      'x-llm-req-parameter': {
+        file: { mode: 'content', name: 'inline.txt', type: 'text/plain', purpose: 'Inline sources.' },
+      },
+    },
   },
 } as const;
 
@@ -99,16 +113,19 @@ async function withRequestConfiguration<T>(configuration: string, operation: () 
 
 test('WI-0024-10000000_TC-METADATA-VALIDATION accepts supported bindings and rejects malformed or executable metadata', () => {
   const bindings = validateParameterFileSchema(schema);
-  assert.deepEqual(bindings.map((binding) => binding.path), ['path', 'content']);
+  assert.deepEqual(bindings.map((binding) => binding.path), ['path', 'content', 'paths', 'contents']);
   assert.equal(bindings[0]?.metadata.mode, 'path');
   assert.equal(bindings[1]?.metadata.mode, 'content');
+  assert.equal(bindings[2]?.array, true);
+  assert.equal(bindings[3]?.array, true);
 
   const invalidSchemas: readonly [string, unknown][] = [
     ['unknown file member', { ...schema, properties: { path: { ...schema.properties.path, 'x-llm-req-parameter': { file: { mode: 'path', type: 'text/plain', purpose: 'Source.', execute: 'code' } } } } }],
     ['invalid MIME type', { ...schema, properties: { path: { ...schema.properties.path, 'x-llm-req-parameter': { file: { mode: 'path', type: 'plain', purpose: 'Source.' } } } } }],
     ['missing content name', { ...schema, properties: { content: { ...schema.properties.content, 'x-llm-req-parameter': { file: { mode: 'content', type: 'text/plain', purpose: 'Source.' } } } } }],
     ['object binding', { ...schema, properties: { path: { type: 'object', 'x-llm-req-parameter': { file: { mode: 'path', type: 'text/plain', purpose: 'Source.' } } } } }],
-    ['array binding', { ...schema, properties: { path: { type: 'array', items: { type: 'string' }, 'x-llm-req-parameter': { file: { mode: 'path', type: 'text/plain', purpose: 'Source.' } } } } }],
+    ['non-string array binding', { ...schema, properties: { path: { type: 'array', items: { type: 'number' }, 'x-llm-req-parameter': { file: { mode: 'path', type: 'text/plain', purpose: 'Source.' } } } } }],
+    ['array item composition', { ...schema, properties: { path: { type: 'array', items: { oneOf: [{ type: 'string' }] }, 'x-llm-req-parameter': { file: { mode: 'path', type: 'text/plain', purpose: 'Source.' } } } } }],
     ['custom validation metadata', { ...schema, 'x-llm-req-parameter': { validation: { function: 'validate' } } }],
   ];
   for (const [name, invalid] of invalidSchemas) {
@@ -118,6 +135,42 @@ test('WI-0024-10000000_TC-METADATA-VALIDATION accepts supported bindings and rej
       assert.match((error as Error).message, /file|metadata|schema/u, name);
       return true;
     });
+  }
+});
+
+test('WI-0024-10000000_TC-ARRAY-MATERIALIZATION preserves array order and creates indexed content files', async () => {
+  const value = await fixture();
+  const scalarPath = join(value.root, 'scalar.txt');
+  const firstPath = join(value.root, 'first.txt');
+  const secondPath = join(value.root, 'second.txt');
+  const calls: ProviderCompletionRequest[] = [];
+  const materializedContentPaths: string[] = [];
+  await Promise.all([
+    writeFile(scalarPath, 'scalar source'),
+    writeFile(firstPath, 'first path source'),
+    writeFile(secondPath, 'second path source'),
+  ]);
+  try {
+    await withRequestConfiguration(value.configuration, () => completeRequest({
+      requestName: 'report',
+      configurationRoot: value.configuration,
+      parameters: {
+        path: scalarPath,
+        content: 'scalar inline source',
+        paths: [secondPath, firstPath],
+        contents: ['first inline source', 'second inline source'],
+      },
+      provider: provider('done', calls, async (request) => {
+        const contentFiles = request.files.filter((file) => file.name.startsWith('inline-'));
+        materializedContentPaths.push(...contentFiles.map((file) => file.path));
+        assert.deepEqual(request.files.map((file) => file.name), ['scalar.txt', 'inline.txt', 'second.txt', 'first.txt', 'inline-0.txt', 'inline-1.txt']);
+        assert.deepEqual(request.files.map((file) => file.content), ['scalar source', 'scalar inline source', 'second path source', 'first path source', 'first inline source', 'second inline source']);
+      }),
+    }));
+    assert.equal(calls.length, 1);
+    for (const path of materializedContentPaths) await assertMissing(path);
+  } finally {
+    await rm(value.root, { recursive: true, force: true });
   }
 });
 

@@ -98,14 +98,17 @@ the next work item begins. Focused tests supplement but never replace this gate.
 ## D14 — Schema-declared parameter file bindings
 
 `x-llm-req-parameter.file` is the request-schema declaration for turning a
-resolved string parameter into one or more `LlmRequest.files` reference files.
+resolved string or string-array parameter into one or more `LlmRequest.files`
+reference files. Array elements are materialized independently in declaration
+and element order.
 The declaration is interpreted by the shared `completeRequest` boundary, not by
 the request name or a summarize-specific CLI branch. `mode: path` uses the
 existing external path/directory traversal and source-safety behavior;
-`mode: content` creates one declared-name temporary file. The materialized files
+`mode: content` creates one declared-name temporary file for scalar bindings or
+one indexed temporary file per array element. The materialized files
 are merged with explicit additional files before normalization and prompt
 composition, and temporary resources are cleaned up on all completion paths.
 Malformed or unsupported file metadata, invalid annotated values, and parameter
-schema violations fail before provider invocation. The current contract supports
-scalar string file fields only; custom validation-function execution and array or
-object file-binding values remain outside this work item.
+schema violations fail before provider invocation. The current contract
+supports scalar string and string-array file fields; custom validation-function
+execution and object file-binding values remain outside this work item.

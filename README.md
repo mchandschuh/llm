@@ -47,6 +47,10 @@ source.
 npm ci
 npm run typecheck
 npm test
+# Run only tests whose names match a regular expression. Quote patterns with spaces or shell metacharacters.
+npm run test:pattern -- 'provider validation fails'
+# Equivalent native Node test-runner form:
+npm test -- --test-name-pattern='provider validation fails'
 npm run build
 ```
 

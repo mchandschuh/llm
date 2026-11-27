@@ -169,15 +169,18 @@ The metadata shape is:
 }
 ```
 
-`file` is valid only on a parameter schema node whose effective value is one
-non-empty string. Its fields are:
+`file` is valid on a parameter schema node whose effective value is either one
+non-empty string or an array of non-empty strings (`type: "array"` with
+`items.type: "string"`). Array elements are materialized independently in their
+JSON array order. Its fields are:
 
 - `mode` is required and is either `path` or `content`.
 - `type` is required and is a valid MIME type used for every materialized file.
 - `purpose` is required and is copied to each resulting `ReferenceFile`.
 - `name` is required for `content` and is the synthetic file name. It is not
   used for `path`; path-backed names use the existing stable relative-path
-  naming rules.
+  naming rules. For array-valued `content` bindings, the zero-based element
+  index is inserted before the extension (`content-0.txt`, `content-1.txt`).
 - `encoding` is optional and is either `utf8` or `base64`; when absent, the
   existing MIME-based encoding default applies.
 
@@ -247,8 +250,9 @@ Implementations must use this order and fail closed at each boundary:
 7. Discover schema-declared `x-llm-req-parameter.file` bindings and materialize
    their resolved parameter values as reference files in deterministic schema
    declaration order. A `path` binding accepts a regular file or directory and
-   uses the existing recursive file and symlink rules; a `content` binding
-   creates one temporary UTF-8 file with its declared name. File-binding
+   uses the existing recursive file and symlink rules; each array element is
+   processed in order. A `content` binding creates one temporary UTF-8 file
+   with its declared name, or one indexed file per array element. File-binding
    temporary resources are owned by the completion operation and are cleaned up
    after provider delegation, including failure paths.
 8. Apply `$${variableName}$$` substitution to every other recognized asset's raw

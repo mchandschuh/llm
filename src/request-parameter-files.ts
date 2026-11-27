@@ -20,6 +20,12 @@ export interface ParameterFileMetadata {
 export interface ParameterFileBinding {
   readonly path: string;
   readonly metadata: ParameterFileMetadata;
+  readonly array?: boolean;
+}
+
+interface ParsedParameterFileMetadata {
+  readonly metadata: ParameterFileMetadata;
+  readonly array: boolean;
 }
 
 export interface PreparedReferenceFiles {
@@ -48,7 +54,7 @@ function assertMimeType(type: string): void {
   if (!MIME_TYPE.test(type)) throw parameterFileFailure(`file.type '${type}' must be a valid MIME type.`);
 }
 
-function parseMetadata(node: Record<string, unknown>, path: string): ParameterFileMetadata | undefined {
+function parseMetadata(node: Record<string, unknown>, path: string): ParsedParameterFileMetadata | undefined {
   if (!Object.prototype.hasOwnProperty.call(node, FILE_METADATA)) return undefined;
   const extension = node[FILE_METADATA];
   if (!isRecord(extension)) throw parameterFileFailure(`${FILE_METADATA} at '${path}' must be an object containing only file.`);
@@ -70,23 +76,34 @@ function parseMetadata(node: Record<string, unknown>, path: string): ParameterFi
   if (mode === 'content' && name === undefined) throw parameterFileFailure(`file.name at '${path}' is required for content bindings.`);
   const encoding = file.encoding === undefined ? undefined : assertString(file.encoding, `file.encoding at '${path}'`);
   if (encoding !== undefined && encoding !== 'utf8' && encoding !== 'base64') throw parameterFileFailure(`file.encoding at '${path}' must be utf8 or base64.`);
-  if (node.type !== 'string' || Object.keys(node).some((key) => ['$ref', 'oneOf', 'anyOf', 'allOf', 'not', 'if', 'then', 'else'].includes(key))) {
-    throw parameterFileFailure(`file metadata at '${path}' is supported only on a scalar string schema node.`);
+  const unsupportedComposition = Object.keys(node).some((key) => ['$ref', 'oneOf', 'anyOf', 'allOf', 'not', 'if', 'then', 'else'].includes(key));
+  const array = node.type === 'array';
+  const stringArray = array && isRecord(node.items) && node.items.type === 'string'
+    && !Object.keys(node.items).some((key) => ['$ref', 'oneOf', 'anyOf', 'allOf', 'not', 'if', 'then', 'else'].includes(key));
+  if ((node.type !== 'string' && !stringArray) || unsupportedComposition) {
+    throw parameterFileFailure(`file metadata at '${path}' is supported only on a scalar string schema node or a string array schema node.`);
   }
   return {
-    mode,
-    type,
-    purpose,
-    ...(name === undefined ? {} : { name }),
-    ...(encoding === undefined ? {} : { encoding }),
+    metadata: {
+      mode,
+      type,
+      purpose,
+      ...(name === undefined ? {} : { name }),
+      ...(encoding === undefined ? {} : { encoding }),
+    },
+    array: stringArray,
   };
 }
 
 function walkSchema(node: Record<string, unknown>, path: string, allowBinding: boolean, bindings: ParameterFileBinding[]): void {
-  const metadata = parseMetadata(node, path);
-  if (metadata !== undefined) {
+  const parsedMetadata = parseMetadata(node, path);
+  if (parsedMetadata !== undefined) {
     if (!allowBinding) throw parameterFileFailure(`file metadata at '${path}' is not supported in this schema position.`);
-    bindings.push({ path, metadata });
+    bindings.push({
+      path,
+      metadata: parsedMetadata.metadata,
+      ...(parsedMetadata.array ? { array: true } : {}),
+    });
   }
 
   const properties = node.properties;
@@ -191,15 +208,21 @@ async function preparePathFiles(path: string, type: string, purpose: string, enc
   return [sourceFile(absolutePath, type, purpose, encoding)];
 }
 
-async function createContentFile(root: string, content: string, metadata: ParameterFileMetadata): Promise<ReferenceFile> {
-  const path = join(root, metadata.name!);
+function indexedFileName(name: string, index: number): string {
+  const extension = name.lastIndexOf('.');
+  return extension > 0 ? `${name.slice(0, extension)}-${index}${name.slice(extension)}` : `${name}-${index}`;
+}
+
+async function createContentFile(root: string, content: string, metadata: ParameterFileMetadata, index?: number): Promise<ReferenceFile> {
+  const name = index === undefined ? metadata.name! : indexedFileName(metadata.name!, index);
+  const path = join(root, name);
   try {
     await writeFile(path, content, 'utf8');
   } catch {
     throw sourceFailure('A schema-declared content file could not be created.');
   }
   return {
-    name: metadata.name!,
+    name,
     path,
     type: metadata.type,
     purpose: metadata.purpose,
@@ -216,12 +239,18 @@ export async function materializeParameterFiles(schema: InlineJsonSchema | undef
     for (const binding of bindings) {
       const value = valueAtPath(parameters, binding.path);
       if (value === undefined) continue;
-      if (typeof value !== 'string' || value.length === 0) throw parameterFileFailure(`The value for '${binding.path}' must be a non-empty string.`);
-      if (binding.metadata.mode === 'path') {
-        files.push(...await preparePathFiles(value, binding.metadata.type, binding.metadata.purpose, binding.metadata.encoding));
-      } else {
-        temporaryRoot ??= await mkdtemp(join(tmpdir(), 'llm-request-parameter-files-'));
-        files.push(await createContentFile(temporaryRoot, value, binding.metadata));
+      if (binding.array === true && !Array.isArray(value)) throw parameterFileFailure(`The value for '${binding.path}' must be an array of non-empty strings.`);
+      const values: readonly unknown[] = binding.array === true ? value as readonly unknown[] : [value];
+      for (const [index, item] of values.entries()) {
+        if (typeof item !== 'string' || item.length === 0) {
+          throw parameterFileFailure(binding.array === true ? `The value for '${binding.path}[${index}]' must be a non-empty string.` : `The value for '${binding.path}' must be a non-empty string.`);
+        }
+        if (binding.metadata.mode === 'path') {
+          files.push(...await preparePathFiles(item, binding.metadata.type, binding.metadata.purpose, binding.metadata.encoding));
+        } else {
+          temporaryRoot ??= await mkdtemp(join(tmpdir(), 'llm-request-parameter-files-'));
+          files.push(await createContentFile(temporaryRoot, item, binding.metadata, binding.array === true ? index : undefined));
+        }
       }
     }
     return {

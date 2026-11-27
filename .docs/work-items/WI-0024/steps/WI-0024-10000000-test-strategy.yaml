@@ -189,6 +189,24 @@ task:
       evidenceTier: component
       fixtureRefs: []
       limitations: [The injected provider seam does not establish authenticated HTTP transport.]
+    - id: WI-0024-10000000_TC-ARRAY-MATERIALIZATION
+      title: Materialize string-array file bindings
+      type: component
+      requirementLevel: required
+      purpose: Prove string-array path/content bindings preserve element order and create distinct indexed content files.
+      procedure:
+        executionMode: executable
+        target: completeRequest string-array file materialization
+        steps:
+        - Arrange string-array path and content bindings with multiple ordered elements.
+        - Capture the injected provider request and inspect materialized file names and content.
+        - Assert array elements remain ordered and indexed temporary content files are cleaned up.
+        command: npm test -- --test-name-pattern=WI-0024-10000000_TC-ARRAY-MATERIALIZATION
+      expectedOutcome: Each string-array element becomes an ordered file binding without collisions between content files.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations: [Provider-free tests do not establish authenticated provider behavior.]
     - id: WI-0024-10000000_TC-SHARED-BOUNDARY
       title: Verify shared CLI and library parameter boundary
       type: integration
@@ -256,8 +274,8 @@ task:
       requirementRefs: [WI-0024_REQ_002]
       invariantRefs: ['#intent/invariants/WI-0024-10000000_INV-002', '#intent/invariants/WI-0024-10000000_INV-003']
       objectiveRefs: ['#objective/WI-0024-10000000_OBJ-002']
-      testCaseRefs: ['#result/testCases/WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY']
-      rationale: Materialization, ordering, cleanup, and prompt handoff are exercised together.
+      testCaseRefs: ['#result/testCases/WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY', '#result/testCases/WI-0024-10000000_TC-ARRAY-MATERIALIZATION']
+      rationale: Scalar and string-array materialization, ordering, cleanup, and prompt handoff are exercised together.
       acceptanceCriterionRefs: [WI-0024_REQ_002_AC_001, WI-0024_REQ_002_AC_002]
     - id: COV-003
       requirementRefs: [WI-0024_REQ_003]
@@ -283,6 +301,7 @@ task:
     minimumRequiredTestCaseRefs:
     - '#result/testCases/WI-0024-10000000_TC-METADATA-VALIDATION'
     - '#result/testCases/WI-0024-10000000_TC-MATERIALIZATION-BOUNDARY'
+    - '#result/testCases/WI-0024-10000000_TC-ARRAY-MATERIALIZATION'
     - '#result/testCases/WI-0024-10000000_TC-SHARED-BOUNDARY'
     - '#result/testCases/WI-0024-10000000_TC-SUMMARIZE-EXAMPLE'
     - '#result/testCases/WI-0024-10000000_TC-COMPATIBILITY-GATE'
