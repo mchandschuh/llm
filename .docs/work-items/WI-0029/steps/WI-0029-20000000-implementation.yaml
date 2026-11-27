@@ -1,0 +1,190 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0029
+taskUid: WI-0029-20000000
+orderKey: "20000000"
+parentTaskUid: WI-0029-10000000
+taskType: implementation
+processingStatus: unprocessed
+title: Implement multiple request directories
+objective: Resolve request directories from requestsDirectory and requestDirectories, locate requests across them without shadowing, extend request help, document the change in the confirmed contract passages, and implement every WI-0029 test case with trace markers.
+references:
+  required:
+    - .docs/work-items/WI-0029/work-item.json
+    - .docs/work-items/WI-0029/work-item-request.md
+    - .docs/work-items/WI-0029/steps/WI-0029-10000000-test-strategy.yaml
+    - src/requests-config.ts
+    - src/request-directory.ts
+    - src/request.ts
+    - src/cli/arguments.ts
+    - src/cli.ts
+    - src/cli/request-help.ts
+    - src/cli/summarize-command.ts
+    - requests/README.md
+    - requests/decisions.md
+  informational:
+    - README.md
+    - SKILL.md
+    - tests/request-help.test.ts
+    - tests/summarize.test.ts
+    - tests/request-directory.test.ts
+dependsOn:
+  - WI-0029-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0029/steps/WI-0029-20000000-implementation.yaml
+    - src/requests-config.ts
+    - src/request-directory.ts
+    - src/request.ts
+    - src/cli/arguments.ts
+    - src/cli.ts
+    - src/cli/request-help.ts
+    - src/cli/summarize-command.ts
+    - tests/request-directories.test.ts
+    - tests/request-help.test.ts
+    - tests/request-directory.test.ts
+    - tests/summarize.test.ts
+    - README.md
+    - SKILL.md
+    - requests/README.md
+    - requests/decisions.md
+  commitSubject: "WI-0029: feat(req): support multiple request directories"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments:
+        - run
+        - build
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement multiple request directories for llm req, request help, llm summarize, and completeRequest, with documentation, the confirmed contract update, D20, and trace-marked tests.
+    changeTypes:
+      - production-code
+      - test-code
+      - documentation
+    changeIntent: feature
+    inputs:
+      - id: WI-0029-20000000_INPUT-REQ-001
+        kind: requirement
+        ref: WI-0029#work-item.json#requirement/WI-0029_REQ_001
+        purpose: Implement WI-0029_REQ_001.
+        required: true
+      - id: WI-0029-20000000_INPUT-REQ-002
+        kind: requirement
+        ref: WI-0029#work-item.json#requirement/WI-0029_REQ_002
+        purpose: Implement WI-0029_REQ_002.
+        required: true
+      - id: WI-0029-20000000_INPUT-REQ-003
+        kind: requirement
+        ref: WI-0029#work-item.json#requirement/WI-0029_REQ_003
+        purpose: Implement WI-0029_REQ_003.
+        required: true
+      - id: WI-0029-20000000_INPUT-REQ-004
+        kind: requirement
+        ref: WI-0029#work-item.json#requirement/WI-0029_REQ_004
+        purpose: Implement WI-0029_REQ_004.
+        required: true
+      - id: WI-0029-20000000_INPUT-REQ-005
+        kind: requirement
+        ref: WI-0029#work-item.json#requirement/WI-0029_REQ_005
+        purpose: Implement WI-0029_REQ_005.
+        required: true
+    objectives:
+      - id: WI-0029-20000000_OBJ-001
+        statement: Resolve, validate, order, and de-duplicate the configured request directories from both keys.
+        inputRefs:
+          - WI-0029-20000000_INPUT-REQ-001
+        testCaseRefs:
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-STRING-ONLY-REGRESSION
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-ARRAY-ONLY
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-BOTH-KEYS-ORDER-AND-LAYERS
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-SAME-DIRECTORY-DEDUPLICATED
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-INVALID-ARRAY-SHAPE
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-INVALID-ARRAY-ENTRIES
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-NEITHER-KEY
+      - id: WI-0029-20000000_OBJ-002
+        statement: Locate each request in exactly one configured directory for llm req, completeRequest, and llm summarize, fail closed on duplicates, and scope schema roots to the owning directory.
+        inputRefs:
+          - WI-0029-20000000_INPUT-REQ-002
+        testCaseRefs:
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-LATER-DIRECTORIES-RESOLVE
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-DUPLICATE-AMBIGUOUS
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-UNKNOWN-AND-UNSAFE-NAMES
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-CLI-CONFIGURATION-ERROR-PROVIDER-FREE
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-SCHEMA-ROOTS-OWN-DIRECTORY
+      - id: WI-0029-20000000_OBJ-003
+        statement: List requests from every directory with a duplicate report, and resolve request help across directories.
+        inputRefs:
+          - WI-0029-20000000_INPUT-REQ-003
+        testCaseRefs:
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-HELP-LISTING-MULTI
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-REQUEST-HELP-MULTI
+      - id: WI-0029-20000000_OBJ-004
+        statement: Document both keys and the naming convention, update the confirmed contract passages, and add D20.
+        inputRefs:
+          - WI-0029-20000000_INPUT-REQ-004
+        testCaseRefs:
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-DOCUMENTATION-AND-CONTRACT
+      - id: WI-0029-20000000_OBJ-005
+        statement: Pass the gates with every test case trace-marked.
+        inputRefs:
+          - WI-0029-20000000_INPUT-REQ-005
+        testCaseRefs:
+          - WI-0029-10000000#test-case/WI-0029-10000000_TC-QUALITY-GATES
+    ownedPaths:
+      - src/requests-config.ts
+      - src/request-directory.ts
+      - src/request.ts
+      - src/cli/arguments.ts
+      - src/cli.ts
+      - src/cli/request-help.ts
+      - src/cli/summarize-command.ts
+      - tests/request-directories.test.ts
+      - tests/request-help.test.ts
+      - tests/request-directory.test.ts
+      - tests/summarize.test.ts
+      - README.md
+      - SKILL.md
+      - requests/README.md
+      - requests/decisions.md
+    nonGoals:
+      - Do not edit ~/.llm/config.json or the sdlc repository.
+      - Do not change requests/README.md outside the operator-confirmed requestsDirectory passages, requests/decisions.md beyond D20, or the bundled request assets.
+      - Do not change parameter construction, validation, file materialization, provider selection, or response output.
+      - Do not invoke a provider or add live checks to npm test.
+    steps:
+      - Write tests/request-directories.test.ts first and record that the new cases fail against the baseline implementation.
+      - Replace resolveRequestsDirectory with resolveRequestDirectories in src/requests-config.ts, validating both keys, naming the bad key or index, mentioning both keys in the guidance, and de-duplicating by real path.
+      - Add locateRequest to src/request-directory.ts to validate the request name and select the one configured directory that contains it, failing with every matching directory on a duplicate.
+      - Use the located directory in completeRequest (including schemaRoots), llm req argument parsing, request help, and llm summarize; surface request-directory configuration failures from llm req parsing as configuration_error with exit 1.
+      - Extend the request listing with the configured directories and a duplicate section while keeping the single-directory output unchanged.
+      - Update README.md, SKILL.md (including request-naming guidance), the confirmed requests/README.md passages, and add D20 to requests/decisions.md, as confirmed by the operator.
+      - Adapt the existing tests that call resolveRequestsDirectory, and the WI-0028 documentation test that pinned requests/README.md to its baseline, to the confirmed contract change.
+  result: null

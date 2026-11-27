@@ -1,0 +1,629 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0029
+taskUid: WI-0029-10000000
+orderKey: "10000000"
+parentTaskUid: null
+taskType: test-strategy
+processingStatus: processing_completed
+title: Define multiple request directories test strategy
+objective: Define provider-free positive and negative evidence for request-directory configuration, request resolution across directories, help across directories, and documentation.
+references:
+  required:
+    - .docs/work-items/WI-0029/work-item.json
+    - .docs/work-items/WI-0029/work-item-request.md
+    - src/requests-config.ts
+    - src/request-directory.ts
+    - src/request.ts
+    - src/cli/arguments.ts
+    - src/cli/request-help.ts
+    - src/cli/summarize-command.ts
+    - requests/README.md
+    - requests/decisions.md
+    - tests/request-help.test.ts
+  informational:
+    - README.md
+    - SKILL.md
+    - tests/request-cli.test.ts
+    - tests/summarize.test.ts
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0029/steps/WI-0029-10000000-test-strategy.yaml
+  commitSubject: "WI-0029: plan: qualify multiple request directories"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: schema-audit
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/result
+  intent:
+    summary: Define provider-free positive and negative evidence that multiple request directories are configured, validated, resolved, listed, and documented without silent shadowing.
+    inputs:
+      - id: WI-0029-10000000_INPUT-REQ-001
+        kind: requirement
+        ref: WI-0029#work-item.json#requirement/WI-0029_REQ_001
+        purpose: Define evidence for WI-0029_REQ_001.
+        required: true
+      - id: WI-0029-10000000_INPUT-REQ-002
+        kind: requirement
+        ref: WI-0029#work-item.json#requirement/WI-0029_REQ_002
+        purpose: Define evidence for WI-0029_REQ_002.
+        required: true
+      - id: WI-0029-10000000_INPUT-REQ-003
+        kind: requirement
+        ref: WI-0029#work-item.json#requirement/WI-0029_REQ_003
+        purpose: Define evidence for WI-0029_REQ_003.
+        required: true
+      - id: WI-0029-10000000_INPUT-REQ-004
+        kind: requirement
+        ref: WI-0029#work-item.json#requirement/WI-0029_REQ_004
+        purpose: Define evidence for WI-0029_REQ_004.
+        required: true
+      - id: WI-0029-10000000_INPUT-REQ-005
+        kind: requirement
+        ref: WI-0029#work-item.json#requirement/WI-0029_REQ_005
+        purpose: Define evidence for WI-0029_REQ_005.
+        required: true
+    requirements:
+      - id: REQ-001
+        kind: requirement
+        statement: "`requestsDirectory`, `requestDirectories`, or both resolve to one ordered, de-duplicated, validated directory list."
+        inputRefs:
+          - WI-0029-10000000_INPUT-REQ-001
+        required: true
+      - id: REQ-002
+        kind: requirement
+        statement: Requests resolve from whichever configured directory contains them, and duplicate names fail closed.
+        inputRefs:
+          - WI-0029-10000000_INPUT-REQ-002
+        required: true
+      - id: REQ-003
+        kind: requirement
+        statement: Request help lists every configured directory and reports duplicates.
+        inputRefs:
+          - WI-0029-10000000_INPUT-REQ-003
+        required: true
+      - id: REQ-004
+        kind: requirement
+        statement: README.md, SKILL.md, and the operator-confirmed contract passages document multiple directories; D20 records the change.
+        inputRefs:
+          - WI-0029-10000000_INPUT-REQ-004
+        required: true
+      - id: REQ-005
+        kind: requirement
+        statement: Quality gates pass and every test case is traceable.
+        inputRefs:
+          - WI-0029-10000000_INPUT-REQ-005
+        required: true
+    invariants:
+      - id: WI-0029-10000000_INV-001
+        statement: A request name never resolves silently to one directory while another configured directory also contains it.
+        inputRefs:
+          - WI-0029-10000000_INPUT-REQ-002
+          - WI-0029-10000000_INPUT-REQ-003
+        required: true
+      - id: WI-0029-10000000_INV-002
+        statement: A configuration with only `requestsDirectory` behaves exactly as before this work item.
+        inputRefs:
+          - WI-0029-10000000_INPUT-REQ-001
+        required: true
+      - id: WI-0029-10000000_INV-003
+        statement: No configuration failure or ambiguity creates a provider, and tests never read the operator's real ~/.llm/config.json.
+        inputRefs:
+          - WI-0029-10000000_INPUT-REQ-001
+          - WI-0029-10000000_INPUT-REQ-002
+        required: true
+    objectives:
+      - id: WI-0029-10000000_OBJ-001
+        statement: Verify WI-0029_REQ_001.
+        inputRefs:
+          - WI-0029-10000000_INPUT-REQ-001
+        requirementRefs:
+          - WI-0029_REQ_001
+        invariantRefs:
+          - "#intent/invariants/WI-0029-10000000_INV-002"
+          - "#intent/invariants/WI-0029-10000000_INV-003"
+        acceptanceCriterionRefs:
+          - WI-0029_REQ_001_AC_001
+          - WI-0029_REQ_001_AC_002
+          - WI-0029_REQ_001_AC_003
+          - WI-0029_REQ_001_AC_004
+          - WI-0029_REQ_001_AC_005
+      - id: WI-0029-10000000_OBJ-002
+        statement: Verify WI-0029_REQ_002.
+        inputRefs:
+          - WI-0029-10000000_INPUT-REQ-002
+        requirementRefs:
+          - WI-0029_REQ_002
+        invariantRefs:
+          - "#intent/invariants/WI-0029-10000000_INV-001"
+          - "#intent/invariants/WI-0029-10000000_INV-003"
+        acceptanceCriterionRefs:
+          - WI-0029_REQ_002_AC_001
+          - WI-0029_REQ_002_AC_002
+          - WI-0029_REQ_002_AC_003
+          - WI-0029_REQ_002_AC_004
+          - WI-0029_REQ_002_AC_005
+      - id: WI-0029-10000000_OBJ-003
+        statement: Verify WI-0029_REQ_003.
+        inputRefs:
+          - WI-0029-10000000_INPUT-REQ-003
+        requirementRefs:
+          - WI-0029_REQ_003
+        invariantRefs:
+          - "#intent/invariants/WI-0029-10000000_INV-001"
+        acceptanceCriterionRefs:
+          - WI-0029_REQ_003_AC_001
+          - WI-0029_REQ_003_AC_002
+          - WI-0029_REQ_003_AC_003
+      - id: WI-0029-10000000_OBJ-004
+        statement: Verify WI-0029_REQ_004.
+        inputRefs:
+          - WI-0029-10000000_INPUT-REQ-004
+        requirementRefs:
+          - WI-0029_REQ_004
+        invariantRefs:
+          - "#intent/invariants/WI-0029-10000000_INV-002"
+        acceptanceCriterionRefs:
+          - WI-0029_REQ_004_AC_001
+          - WI-0029_REQ_004_AC_002
+          - WI-0029_REQ_004_AC_003
+      - id: WI-0029-10000000_OBJ-005
+        statement: Verify WI-0029_REQ_005.
+        inputRefs:
+          - WI-0029-10000000_INPUT-REQ-005
+        requirementRefs:
+          - WI-0029_REQ_005
+        invariantRefs:
+          - "#intent/invariants/WI-0029-10000000_INV-003"
+        acceptanceCriterionRefs:
+          - WI-0029_REQ_005_AC_001
+    nonGoals:
+      - Do not edit ~/.llm/config.json or the sdlc repository.
+      - Do not change requests/README.md outside the operator-confirmed requestsDirectory passages, requests/decisions.md beyond D20, or the bundled request assets.
+      - Do not change parameter construction, validation, file materialization, provider selection, or response output.
+      - Do not invoke a provider or add live checks to npm test.
+  result:
+    status: defined
+    testCases:
+      - id: WI-0029-10000000_TC-STRING-ONLY-REGRESSION
+        title: Keep a requestsDirectory-only configuration unchanged
+        type: cli
+        requirementLevel: required
+        purpose: "Positive and regression: prove a configuration with only requestsDirectory resolves to that one directory and keeps the single-directory request and help behavior."
+        procedure:
+          executionMode: executable
+          target: resolveRequestDirectories, runRequestCommand, and main() with a fixture configuration
+          steps:
+            - Configure only requestsDirectory naming a fixture directory with request `report`.
+            - Resolve the directory list, run `report` through runRequestCommand with an injected provider, and run main(['req', '-h']).
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-STRING-ONLY-REGRESSION
+        expectedOutcome: "The list contains exactly that directory; the request completes once; the listing prints `Requests directory: <path>` and no `Request directories:` or duplicate section."
+        passCriteria: List equality, provider call count 1, exit codes 0, and the exact single-directory listing line.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUEST-DIRECTORIES"
+        limitations:
+          - Fixture configurations are temporary and selected through HOME and LLM_CONFIG; they do not establish other operator configurations.
+      - id: WI-0029-10000000_TC-ARRAY-ONLY
+        title: Resolve a requestDirectories-only configuration
+        type: cli
+        requirementLevel: required
+        purpose: "Positive: prove requestDirectories alone configures the directories in array order."
+        procedure:
+          executionMode: executable
+          target: resolveRequestDirectories and runRequestCommand with a fixture configuration
+          steps:
+            - Configure only requestDirectories with two fixture directories.
+            - Resolve the list and run a request from the first directory with an injected provider.
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-ARRAY-ONLY
+        expectedOutcome: The list equals the array in order and the request completes.
+        passCriteria: List equality and exit 0 with one provider call.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUEST-DIRECTORIES"
+        limitations:
+          - Fixture configurations are temporary and selected through HOME and LLM_CONFIG; they do not establish other operator configurations.
+      - id: WI-0029-10000000_TC-BOTH-KEYS-ORDER-AND-LAYERS
+        title: Order both keys and combine configuration layers
+        type: unit
+        requirementLevel: required
+        purpose: "Positive: prove requestsDirectory comes first, then requestDirectories in order, and that keys from different layers combine while a later array replaces an earlier one."
+        procedure:
+          executionMode: executable
+          target: resolveRequestDirectories with explicit home, application, and environment roots
+          steps:
+            - Configure both keys in one layer and resolve.
+            - Put requestsDirectory in the home layer and requestDirectories in the LLM_CONFIG layer and resolve.
+            - Put one requestDirectories array in the home layer and another in the LLM_CONFIG layer and resolve.
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-BOTH-KEYS-ORDER-AND-LAYERS
+        expectedOutcome: "[string, ...array] in the first two cases; only the LLM_CONFIG array (plus no string) in the third."
+        passCriteria: Each resolved list equals the expected order exactly.
+        evidenceTier: unit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUEST-DIRECTORIES"
+        limitations:
+          - Layer precedence itself is owned by nodejs-common; this case proves only how the two keys combine.
+      - id: WI-0029-10000000_TC-SAME-DIRECTORY-DEDUPLICATED
+        title: Treat the same directory listed twice as one directory
+        type: cli
+        requirementLevel: required
+        purpose: "Boundary: prove repeated paths, trailing separators, and symlink aliases are de-duplicated and never reported as ambiguous."
+        procedure:
+          executionMode: executable
+          target: resolveRequestDirectories, runRequestCommand, and main() with a fixture configuration
+          steps:
+            - Configure requestsDirectory as A and requestDirectories as [A/, A, symlink-to-A, B].
+            - Resolve the list, run a request that exists only in A, and run main(['req', '-h']).
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-SAME-DIRECTORY-DEDUPLICATED
+        expectedOutcome: The list is [A, B]; the request completes; the listing has no duplicate section and lists the request once.
+        passCriteria: List equality, exit 0, and no "Duplicate requests" text.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUEST-DIRECTORIES"
+        limitations:
+          - Symlink aliasing is proven on the local filesystem only.
+      - id: WI-0029-10000000_TC-LATER-DIRECTORIES-RESOLVE
+        title: Resolve requests from the second and third directories
+        type: cli
+        requirementLevel: required
+        purpose: "Positive: prove every configured directory is searched by llm req parsing, runRequestCommand, completeRequest, and llm summarize."
+        procedure:
+          executionMode: executable
+          target: parseCliArgumentsAsync, runRequestCommand, completeRequest, and runSummarizeCommand with three fixture directories
+          steps:
+            - Configure three directories with request `second` only in the second, `third` only in the third, and the repository summarize bundle reachable only through the third.
+            - Parse `req second --p-topic x`, run `second` and `third` with an injected provider, and run summarize with --content.
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-LATER-DIRECTORIES-RESOLVE
+        expectedOutcome: Parsing accepts the second directory's parameter; each request completes with its own task text; summarize completes from the third directory.
+        passCriteria: Parsed assignments, provider task text per request, and exit 0 for each command.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUEST-DIRECTORIES"
+        limitations:
+          - Fixture configurations are temporary and selected through HOME and LLM_CONFIG; they do not establish other operator configurations.
+      - id: WI-0029-10000000_TC-DUPLICATE-AMBIGUOUS
+        title: Fail closed on a request name in more than one directory
+        type: cli
+        requirementLevel: required
+        purpose: "Negative: prove a duplicate name fails with a configuration error naming every matching directory, including when one copy is broken, and no provider runs."
+        procedure:
+          executionMode: executable
+          target: runRequestCommand and completeRequest with three fixture directories
+          steps:
+            - Put valid request `dup` in the first and third directories and a broken `half` bundle in the first with a valid `half` in the second.
+            - Run both names with a counting provider.
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-DUPLICATE-AMBIGUOUS
+        expectedOutcome: Each run exits 1 with one CONFIGURATION_INVALID entry whose message names both matching directories, and the provider is never called.
+        passCriteria: Exit codes, both paths present in each message, and zero provider calls.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUEST-DIRECTORIES"
+        limitations:
+          - Fixture configurations are temporary and selected through HOME and LLM_CONFIG; they do not establish other operator configurations.
+      - id: WI-0029-10000000_TC-UNKNOWN-AND-UNSAFE-NAMES
+        title: Report unknown names with the searched directories and reject unsafe names
+        type: cli
+        requirementLevel: required
+        purpose: "Negative: prove an absent name names the searched directories and an unsafe name is rejected before probing."
+        procedure:
+          executionMode: executable
+          target: completeRequest with two fixture directories
+          steps:
+            - Run `missing` and `../x` with a counting provider.
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-UNKNOWN-AND-UNSAFE-NAMES
+        expectedOutcome: "`missing` fails with \"the request directory does not exist\" and both directory paths; `../x` fails with the safe-name message; no provider runs."
+        passCriteria: Both rejections match and the provider count is zero.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUEST-DIRECTORIES"
+        limitations:
+          - Fixture configurations are temporary and selected through HOME and LLM_CONFIG; they do not establish other operator configurations.
+      - id: WI-0029-10000000_TC-CLI-CONFIGURATION-ERROR-PROVIDER-FREE
+        title: Surface configuration errors from llm req without a provider
+        type: cli
+        requirementLevel: required
+        purpose: "Negative and invariant: prove main(['req', name, ...]) prints a configuration_error for an ambiguous name and an invalid configuration, never starts a provider, and keeps exit 2 for other parse failures."
+        procedure:
+          executionMode: executable
+          target: main() from src/cli.ts with the claude guard log
+          steps:
+            - Run main(['req', 'dup', '--p-topic', 'x']) with `dup` in two directories.
+            - Run main(['req', 'report']) with requestDirectories[1] relative.
+            - Run main(['req', 'report', '--bogus']) with a valid configuration.
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-CLI-CONFIGURATION-ERROR-PROVIDER-FREE
+        expectedOutcome: The first two write one configuration_error JSON entry naming the directories or `requestDirectories[1]`, nothing on stdout, exit 1, and no claude invocation is recorded; the third keeps the exit-2 usage error.
+        passCriteria: Exit codes, messages, empty stdout, and an empty claude guard log.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUEST-DIRECTORIES"
+        limitations:
+          - Provider absence is proven through the fake claude guard log and the configuration path ordering, not through every provider.
+      - id: WI-0029-10000000_TC-INVALID-ARRAY-SHAPE
+        title: Reject a non-array or empty requestDirectories
+        type: unit
+        requirementLevel: required
+        purpose: "Negative: prove malformed array shapes are reported against the requestDirectories key with guidance for both keys."
+        procedure:
+          executionMode: executable
+          target: resolveRequestDirectories with fixture configurations
+          steps:
+            - Resolve with requestDirectories set to a string, an object, and [].
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-INVALID-ARRAY-SHAPE
+        expectedOutcome: Each fails with CONFIGURATION_INVALID naming `requestDirectories` and mentioning both keys in the guidance.
+        passCriteria: Code, key name, and guidance present for all three.
+        evidenceTier: unit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUEST-DIRECTORIES"
+        limitations:
+          - Fixture configurations are temporary; they do not establish other operator configurations.
+      - id: WI-0029-10000000_TC-INVALID-ARRAY-ENTRIES
+        title: Reject invalid requestDirectories entries by index
+        type: unit
+        requirementLevel: required
+        purpose: "Negative: prove each invalid entry kind is reported with its index."
+        procedure:
+          executionMode: executable
+          target: resolveRequestDirectories with fixture configurations
+          steps:
+            - Resolve with a valid first entry and, at index 1, a number, an empty string, a relative path, a path containing `..`, a missing directory, and a regular file.
+            - Resolve with requestsDirectory relative and missing to confirm the existing messages.
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-INVALID-ARRAY-ENTRIES
+        expectedOutcome: Each array case fails with CONFIGURATION_INVALID naming `requestDirectories[1]`; the string cases keep the `requestsDirectory must be an absolute path` and `requestsDirectory does not exist or is not a directory` messages.
+        passCriteria: Every case matches its expected key and message.
+        evidenceTier: unit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUEST-DIRECTORIES"
+        limitations:
+          - Fixture configurations are temporary; they do not establish other operator configurations.
+      - id: WI-0029-10000000_TC-NEITHER-KEY
+        title: Reject a configuration with neither key
+        type: unit
+        requirementLevel: required
+        purpose: "Negative: prove a configuration without either key, and a missing configuration, fail with guidance for both keys."
+        procedure:
+          executionMode: executable
+          target: resolveRequestDirectories and main() with fixture configurations
+          steps:
+            - Resolve with a config.json containing only chatSessionStore.
+            - Resolve and run main(['req', '-h']) with no config.json in any layer.
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-NEITHER-KEY
+        expectedOutcome: Both fail with CONFIGURATION_INVALID whose message mentions `requestsDirectory` and `requestDirectories`; the second keeps "No llm request configuration was found." and help exits 1.
+        passCriteria: Code and both key names present in each message.
+        evidenceTier: unit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUEST-DIRECTORIES"
+        limitations:
+          - Fixture configurations are temporary; they do not establish other operator configurations.
+      - id: WI-0029-10000000_TC-SCHEMA-ROOTS-OWN-DIRECTORY
+        title: Resolve a non-first request's schema refs within its own directory
+        type: cli
+        requirementLevel: required
+        purpose: "Positive and negative: prove a request loaded from the third directory validates against its own `$defs` refs and is unaffected by a same-`$id` schema in another directory."
+        procedure:
+          executionMode: executable
+          target: completeRequest with three fixture directories
+          steps:
+            - "Put request `brief` in the third directory with a parameters schema whose `name` property is `$ref: '#/$defs/name'` (minLength 3), and put a schema file with the same `$id` in the first directory."
+            - Run `brief` with name `Ada` and with name `A`.
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-SCHEMA-ROOTS-OWN-DIRECTORY
+        expectedOutcome: "`Ada` completes; `A` fails with the minLength parameter-validation message before the provider runs."
+        passCriteria: One provider call and the expected validation failure.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUEST-DIRECTORIES"
+        limitations:
+          - The loader compiles each schema standalone, so references to other schema files are rejected before resolution in every directory; cross-directory isolation of file references is therefore by construction and not separately exercised.
+      - id: WI-0029-10000000_TC-HELP-LISTING-MULTI
+        title: List requests from every directory and report duplicates
+        type: cli
+        requirementLevel: required
+        purpose: "Positive and negative: prove llm req -h covers every directory, separates unavailable requests, and reports duplicates with their directories."
+        procedure:
+          executionMode: executable
+          target: main() from src/cli.ts with three fixture directories
+          steps:
+            - Put `alpha` in the first, `beta` and a broken `broken` in the second, `gamma` in the third, and `dup` in the first and third.
+            - Run main(['req', '-h']).
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-HELP-LISTING-MULTI
+        expectedOutcome: Exit 0; `Request directories:` lists the three directories in order; alpha, beta, gamma are available; broken is unavailable; `dup` appears only under "Duplicate requests" with the first and third directories.
+        passCriteria: Exit 0, empty stderr, and each exact section.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUEST-DIRECTORIES"
+        limitations:
+          - Fixture configurations are temporary and selected through HOME and LLM_CONFIG; they do not establish other operator configurations.
+      - id: WI-0029-10000000_TC-REQUEST-HELP-MULTI
+        title: Print request help across directories and fail on duplicates
+        type: cli
+        requirementLevel: required
+        purpose: "Positive and negative: prove llm req <name> -h finds a non-first request and rejects a duplicate name."
+        procedure:
+          executionMode: executable
+          target: main() from src/cli.ts with three fixture directories
+          steps:
+            - Run main(['req', 'gamma', '-h']) for a request in the third directory.
+            - Run main(['req', 'dup', '-h']) for a name in two directories.
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-REQUEST-HELP-MULTI
+        expectedOutcome: The first prints gamma's parameter help and exits 0; the second writes one configuration_error naming both directories and exits 1.
+        passCriteria: Exit codes and expected output for both.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUEST-DIRECTORIES"
+        limitations:
+          - Fixture configurations are temporary and selected through HOME and LLM_CONFIG; they do not establish other operator configurations.
+      - id: WI-0029-10000000_TC-DOCUMENTATION-AND-CONTRACT
+        title: Document both keys, the naming convention, and the confirmed contract change
+        type: unit
+        requirementLevel: required
+        purpose: "Positive and scope: prove the docs describe both keys and the naming convention, and the contract change stays within the confirmed passages."
+        procedure:
+          executionMode: executable
+          target: README.md, SKILL.md, requests/README.md, requests/decisions.md, and git history
+          steps:
+            - Check README.md and SKILL.md for both keys, the search order, de-duplication, and the duplicate-name error, and SKILL.md for the repository-prefix naming guidance.
+            - Check each confirmed requests/README.md passage for requestDirectories and decisions.md for D20 citing WI-0029.
+            - Compare requests/README.md with the baseline after removing the confirmed passages, and list changed paths under requests/ since the baseline.
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-DOCUMENTATION-AND-CONTRACT
+        expectedOutcome: Every mention is present, the rest of requests/README.md is unchanged, and only requests/README.md and requests/decisions.md changed under requests/.
+        passCriteria: All assertions pass.
+        evidenceTier: unit
+        fixtureRefs: []
+        limitations:
+          - Documentation presence does not establish documentation quality.
+      - id: WI-0029-10000000_TC-QUALITY-GATES
+        title: Pass repository gates with traceable test cases
+        type: cli
+        requirementLevel: required
+        purpose: "Gate: prove typecheck, tests, build, and work-item validation pass and every case has a trace marker."
+        procedure:
+          executionMode: executable
+          target: repository quality commands and test sources
+          steps:
+            - Run npm run typecheck, npm test, npm run build, git diff --check, and sdlc work-item validate --work-item WI-0029 --json.
+            - Assert each WI-0029 test case id appears in a test name directly below its `// SDLC-TEST-CASE:` marker.
+          command: npm test -- --test-name-pattern=WI-0029-10000000_TC-QUALITY-GATES
+        expectedOutcome: All commands exit 0 and every case is traceable.
+        passCriteria: All gates pass in one run.
+        evidenceTier: cli-audit
+        fixtureRefs: []
+        limitations:
+          - Local gates do not establish production readiness.
+    fixtures:
+      - id: FIX-REQUEST-DIRECTORIES
+        name: temporary-request-directories
+        purpose: Provide several request directories and configuration isolated from the operator configuration.
+        setup: Create a temporary root with numbered request directories and a config.json, and point both HOME and LLM_CONFIG at the temporary root so the operator's ~/.llm/config.json is never read.
+        teardown: Restore HOME and LLM_CONFIG and delete the temporary root.
+        sourceRefs:
+          - WI-0029#work-item.json#requirement/WI-0029_REQ_001
+          - WI-0029#work-item.json#requirement/WI-0029_REQ_002
+          - WI-0029#work-item.json#requirement/WI-0029_REQ_003
+    coverage:
+      - id: COV-001
+        requirementRefs:
+          - WI-0029_REQ_001
+        invariantRefs:
+          - "#intent/invariants/WI-0029-10000000_INV-002"
+          - "#intent/invariants/WI-0029-10000000_INV-003"
+        objectiveRefs:
+          - "#objective/WI-0029-10000000_OBJ-001"
+        testCaseRefs:
+          - "#result/testCases/WI-0029-10000000_TC-STRING-ONLY-REGRESSION"
+          - "#result/testCases/WI-0029-10000000_TC-ARRAY-ONLY"
+          - "#result/testCases/WI-0029-10000000_TC-BOTH-KEYS-ORDER-AND-LAYERS"
+          - "#result/testCases/WI-0029-10000000_TC-SAME-DIRECTORY-DEDUPLICATED"
+          - "#result/testCases/WI-0029-10000000_TC-INVALID-ARRAY-SHAPE"
+          - "#result/testCases/WI-0029-10000000_TC-INVALID-ARRAY-ENTRIES"
+          - "#result/testCases/WI-0029-10000000_TC-NEITHER-KEY"
+        rationale: These cases prove each acceptance criterion of WI-0029_REQ_001, with positive cases for each key combination and negative cases for every malformed shape and entry.
+        acceptanceCriterionRefs:
+          - WI-0029_REQ_001_AC_001
+          - WI-0029_REQ_001_AC_002
+          - WI-0029_REQ_001_AC_003
+          - WI-0029_REQ_001_AC_004
+          - WI-0029_REQ_001_AC_005
+      - id: COV-002
+        requirementRefs:
+          - WI-0029_REQ_002
+        invariantRefs:
+          - "#intent/invariants/WI-0029-10000000_INV-001"
+          - "#intent/invariants/WI-0029-10000000_INV-003"
+        objectiveRefs:
+          - "#objective/WI-0029-10000000_OBJ-002"
+        testCaseRefs:
+          - "#result/testCases/WI-0029-10000000_TC-LATER-DIRECTORIES-RESOLVE"
+          - "#result/testCases/WI-0029-10000000_TC-DUPLICATE-AMBIGUOUS"
+          - "#result/testCases/WI-0029-10000000_TC-UNKNOWN-AND-UNSAFE-NAMES"
+          - "#result/testCases/WI-0029-10000000_TC-CLI-CONFIGURATION-ERROR-PROVIDER-FREE"
+          - "#result/testCases/WI-0029-10000000_TC-SCHEMA-ROOTS-OWN-DIRECTORY"
+        rationale: These cases prove each acceptance criterion of WI-0029_REQ_002, including the ambiguity, unknown-name, and provider-free failure paths.
+        acceptanceCriterionRefs:
+          - WI-0029_REQ_002_AC_001
+          - WI-0029_REQ_002_AC_002
+          - WI-0029_REQ_002_AC_003
+          - WI-0029_REQ_002_AC_004
+          - WI-0029_REQ_002_AC_005
+      - id: COV-003
+        requirementRefs:
+          - WI-0029_REQ_003
+        invariantRefs:
+          - "#intent/invariants/WI-0029-10000000_INV-001"
+        objectiveRefs:
+          - "#objective/WI-0029-10000000_OBJ-003"
+        testCaseRefs:
+          - "#result/testCases/WI-0029-10000000_TC-HELP-LISTING-MULTI"
+          - "#result/testCases/WI-0029-10000000_TC-REQUEST-HELP-MULTI"
+          - "#result/testCases/WI-0029-10000000_TC-SAME-DIRECTORY-DEDUPLICATED"
+          - "#result/testCases/WI-0029-10000000_TC-STRING-ONLY-REGRESSION"
+        rationale: These cases prove each acceptance criterion of WI-0029_REQ_003, including duplicate reporting and the unchanged single-directory listing.
+        acceptanceCriterionRefs:
+          - WI-0029_REQ_003_AC_001
+          - WI-0029_REQ_003_AC_002
+          - WI-0029_REQ_003_AC_003
+      - id: COV-004
+        requirementRefs:
+          - WI-0029_REQ_004
+        invariantRefs:
+          - "#intent/invariants/WI-0029-10000000_INV-002"
+        objectiveRefs:
+          - "#objective/WI-0029-10000000_OBJ-004"
+        testCaseRefs:
+          - "#result/testCases/WI-0029-10000000_TC-DOCUMENTATION-AND-CONTRACT"
+        rationale: This case proves each acceptance criterion of WI-0029_REQ_004, including the bound on the contract change.
+        acceptanceCriterionRefs:
+          - WI-0029_REQ_004_AC_001
+          - WI-0029_REQ_004_AC_002
+          - WI-0029_REQ_004_AC_003
+      - id: COV-005
+        requirementRefs:
+          - WI-0029_REQ_005
+        invariantRefs:
+          - "#intent/invariants/WI-0029-10000000_INV-003"
+        objectiveRefs:
+          - "#objective/WI-0029-10000000_OBJ-005"
+        testCaseRefs:
+          - "#result/testCases/WI-0029-10000000_TC-QUALITY-GATES"
+        rationale: This case proves WI-0029_REQ_005_AC_001.
+        acceptanceCriterionRefs:
+          - WI-0029_REQ_005_AC_001
+    minimumRequiredTestCaseRefs:
+      - "#result/testCases/WI-0029-10000000_TC-STRING-ONLY-REGRESSION"
+      - "#result/testCases/WI-0029-10000000_TC-ARRAY-ONLY"
+      - "#result/testCases/WI-0029-10000000_TC-BOTH-KEYS-ORDER-AND-LAYERS"
+      - "#result/testCases/WI-0029-10000000_TC-SAME-DIRECTORY-DEDUPLICATED"
+      - "#result/testCases/WI-0029-10000000_TC-LATER-DIRECTORIES-RESOLVE"
+      - "#result/testCases/WI-0029-10000000_TC-DUPLICATE-AMBIGUOUS"
+      - "#result/testCases/WI-0029-10000000_TC-UNKNOWN-AND-UNSAFE-NAMES"
+      - "#result/testCases/WI-0029-10000000_TC-CLI-CONFIGURATION-ERROR-PROVIDER-FREE"
+      - "#result/testCases/WI-0029-10000000_TC-INVALID-ARRAY-SHAPE"
+      - "#result/testCases/WI-0029-10000000_TC-INVALID-ARRAY-ENTRIES"
+      - "#result/testCases/WI-0029-10000000_TC-NEITHER-KEY"
+      - "#result/testCases/WI-0029-10000000_TC-SCHEMA-ROOTS-OWN-DIRECTORY"
+      - "#result/testCases/WI-0029-10000000_TC-HELP-LISTING-MULTI"
+      - "#result/testCases/WI-0029-10000000_TC-REQUEST-HELP-MULTI"
+      - "#result/testCases/WI-0029-10000000_TC-DOCUMENTATION-AND-CONTRACT"
+      - "#result/testCases/WI-0029-10000000_TC-QUALITY-GATES"
+    recommendedTestCaseRefs: []
+    evidenceLimitations:
+      - This strategy defines evidence but does not claim execution or pass status.
+      - All cases are provider-free; they do not establish provider behavior or production readiness.
+      - No test reads the operator's ~/.llm/config.json; real multi-repository configurations are not exercised.

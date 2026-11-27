@@ -1,0 +1,208 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0029",
+  "status": "planned",
+  "title": "Support multiple request directories",
+  "type": "feature",
+  "objective": "Let `~/.llm/config.json` name request directories through the existing `requestsDirectory` string, a new `requestDirectories` string array, or both, and make `llm req <request-name>`, `llm req -h`, `llm req <request-name> -h`, `llm summarize`, and `completeRequest` search every configured directory, failing closed when a request name exists in more than one directory.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "WI-0029-multiple-request-directories",
+      "created": false,
+      "rationale": "Each work item is processed on its own branch."
+    }
+  },
+  "baseline": "cb45d3fdbdf8249786b10b87c9a75b168b06bed7",
+  "request": {
+    "source": "conversation",
+    "text": "Support multiple request directories in `~/.llm/config.json`. Keep `requestsDirectory` (string) and add `requestDirectories` (string[]). Support both by scanning both the variable and every array element for requests when resolving which `llm req <request-name>` the caller is invoking.",
+    "sha256": "17491326698b5c8afe8ce08a9e75cc412dfefeb14d0d0cb8229bda8dd8799d65"
+  },
+  "scope": [
+    {
+      "name": "request-directory-configuration",
+      "description": "Resolve the ordered, de-duplicated list of configured request directories from `requestsDirectory` and `requestDirectories` in the layered `config.json`, validating each entry and naming the bad key or index in CONFIGURATION_INVALID failures whose guidance mentions both keys.",
+      "reason": "The request keeps `requestsDirectory` and adds `requestDirectories`, and both must be honored."
+    },
+    {
+      "name": "request-resolution-across-directories",
+      "description": "Locate `<request-name>` in every configured directory for `llm req`, `completeRequest`, and `llm summarize`; load it from the one directory that contains it, resolve its parameter schemas only within that directory, and fail with a configuration error naming every matching directory when the name exists in more than one.",
+      "reason": "The request asks that every configured directory be scanned when resolving which request the caller invokes; the operator decided duplicates are ambiguous."
+    },
+    {
+      "name": "request-help-across-directories",
+      "description": "Make `llm req -h` list requests from every configured directory and report duplicate names with their directories, and make `llm req <request-name> -h` resolve the request across directories.",
+      "reason": "The operator decided help lists all directories and reports duplicates."
+    },
+    {
+      "name": "documentation-and-contract",
+      "description": "Document both keys in README.md and SKILL.md, add request-naming guidance to SKILL.md, update the operator-confirmed `requestsDirectory` sections of requests/README.md, and record decision D20 in requests/decisions.md.",
+      "reason": "The operator confirmed the contract edit under D12, and asked mid-conversation for SKILL.md guidance that agents prefix request names with the owning repository (for example `sdlc-work-item-expand`) unless the request is truly general, such as `summarize`."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "operator-configuration-and-sdlc",
+      "description": "Do not edit `~/.llm/config.json` or the sdlc repository, and do not add sdlc requests.",
+      "reason": "This work item only adds the capability; sdlc adopts it separately.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "unconfirmed-contract-and-request-assets",
+      "description": "Do not change requests/README.md outside the operator-confirmed `requestsDirectory` passages (configured root, bundle layout, trust note, processing-order steps 1 and 2, and the summarize adapter), do not change requests/decisions.md other than adding D20, and do not change the bundled request assets.",
+      "reason": "Under D12 a contract edit needs explicit operator confirmation, which covers only the named passages.",
+      "forbiddenFileWrites": [
+        "requests/summarize/"
+      ],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "request-execution-semantics",
+      "description": "Do not change request-bundle loading rules, parameter construction or validation, file materialization, provider selection, or response output; do not add a library option for multiple directories.",
+      "reason": "Only the choice of which configured directory holds a request changes.",
+      "forbiddenFileWrites": [
+        "src/request-parameters.ts",
+        "src/request-parameter-files.ts",
+        "src/request-parameter-validation.ts",
+        "src/providers.ts",
+        "src/claude-provider.ts",
+        "src/provider.ts"
+      ],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "live-provider-checks",
+      "description": "Do not invoke a provider or add live checks; all evidence is provider-free.",
+      "reason": "npm test stays provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*"
+      ]
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0029_REQ_001",
+        "name": "request-directory-configuration",
+        "description": "The layered `config.json` configures request directories through `requestsDirectory`, `requestDirectories`, or both, resolved into one ordered, de-duplicated list.",
+        "reason": "The request keeps the string key and adds the array key.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0029_REQ_001_AC_001",
+            "description": "A configuration with only `requestsDirectory` resolves to that one directory and behaves exactly as before, including the single-directory `llm req -h` output."
+          },
+          {
+            "id": "WI-0029_REQ_001_AC_002",
+            "description": "A configuration with only `requestDirectories`, or with both keys, resolves to `requestsDirectory` first and then each `requestDirectories` entry in array order; keys from different config layers combine, and a later layer's array replaces an earlier layer's array."
+          },
+          {
+            "id": "WI-0029_REQ_001_AC_003",
+            "description": "Entries that resolve to the same real directory (repeated paths, trailing separators, or symlink aliases) are kept once, at their first position, and are never reported as ambiguous."
+          },
+          {
+            "id": "WI-0029_REQ_001_AC_004",
+            "description": "A non-array or empty `requestDirectories`, a non-string or empty entry, a relative entry, an entry containing `..`, and an entry that is missing or not a directory each fail with CONFIGURATION_INVALID naming `requestDirectories` or `requestDirectories[<index>]`; the existing `requestsDirectory` messages are kept."
+          },
+          {
+            "id": "WI-0029_REQ_001_AC_005",
+            "description": "A configuration with neither key, or no configuration file, fails with CONFIGURATION_INVALID, and every configuration failure's guidance mentions both `requestsDirectory` and `requestDirectories`."
+          }
+        ]
+      },
+      {
+        "id": "WI-0029_REQ_002",
+        "name": "request-resolution-across-directories",
+        "description": "`llm req <request-name>`, `completeRequest`, and `llm summarize` find the request in whichever configured directory contains it and never let one directory silently shadow another.",
+        "reason": "The request asks that every configured directory be scanned; the operator decided duplicate names are ambiguous.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0029_REQ_002_AC_001",
+            "description": "Requests that exist only in the second or third configured directory are loaded from that directory and complete through `llm req` argument parsing, `runRequestCommand`, `completeRequest`, and `llm summarize`."
+          },
+          {
+            "id": "WI-0029_REQ_002_AC_002",
+            "description": "A request name present in more than one configured directory, even where one copy is a broken bundle, fails with one CONFIGURATION_INVALID configuration error that names every matching directory, before any provider is created."
+          },
+          {
+            "id": "WI-0029_REQ_002_AC_003",
+            "description": "A request name absent from every configured directory fails with a configuration error that names the searched directories when more than one is configured; an unsafe name such as `../x` is rejected before any directory is probed."
+          },
+          {
+            "id": "WI-0029_REQ_002_AC_004",
+            "description": "`llm req <request-name>` reports a request-directory configuration failure or an ambiguous name as one configuration_error JSON entry on stderr with exit 1 instead of the generic usage error, writes nothing to stdout, and starts no provider; other parse failures keep exit 2."
+          },
+          {
+            "id": "WI-0029_REQ_002_AC_005",
+            "description": "A request's parameter-schema `$ref`s resolve only within the configured directory that contains it: a request in a non-first directory validates against its own `$defs` both positively and negatively, and a schema with the same `$id` in another configured directory does not affect it."
+          }
+        ]
+      },
+      {
+        "id": "WI-0029_REQ_003",
+        "name": "request-help-across-directories",
+        "description": "Request help covers every configured directory and reports duplicates.",
+        "reason": "The operator decided help lists requests from all directories and reports duplicates.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0029_REQ_003_AC_001",
+            "description": "With more than one directory, `llm req -h` prints every configured directory in order and lists the available and unavailable requests from all of them, sorted by name."
+          },
+          {
+            "id": "WI-0029_REQ_003_AC_002",
+            "description": "A name present in more than one directory is listed only under \"Duplicate requests\" with every matching directory, not as available or unavailable, and the listing still exits 0."
+          },
+          {
+            "id": "WI-0029_REQ_003_AC_003",
+            "description": "`llm req <request-name> -h` prints help for a request in a non-first directory, and fails with a configuration_error naming every matching directory for a duplicate name, without creating a provider."
+          }
+        ]
+      },
+      {
+        "id": "WI-0029_REQ_004",
+        "name": "documentation-and-contract",
+        "description": "The user documentation, the agent skill, and the operator-confirmed contract passages describe multiple request directories, and the contract change is recorded as D20.",
+        "reason": "The operator confirmed the requests/README.md edit and asked for request-naming guidance in SKILL.md.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0029_REQ_004_AC_001",
+            "description": "README.md and SKILL.md document `requestsDirectory`, `requestDirectories`, the search order, de-duplication, and the duplicate-name error."
+          },
+          {
+            "id": "WI-0029_REQ_004_AC_002",
+            "description": "SKILL.md tells agents to prefix request names with the owning repository name, such as `sdlc-work-item-expand`, unless the request is truly general, such as `summarize`."
+          },
+          {
+            "id": "WI-0029_REQ_004_AC_003",
+            "description": "requests/README.md mentions `requestDirectories` in the configured-root, bundle-layout, trust, processing-order, and summarize-adapter passages and changes nothing else; requests/decisions.md adds D20 citing the WI-0029 request and the operator confirmation; no other file under requests/ changes."
+          }
+        ]
+      },
+      {
+        "id": "WI-0029_REQ_005",
+        "name": "quality-gates",
+        "description": "Repository quality gates pass and every WI-0029 test case is implemented with an SDLC-TEST-CASE trace marker.",
+        "reason": "The work item is complete only when all test cases pass and are traceable.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0029_REQ_005_AC_001",
+            "description": "`npm run typecheck`, `npm test`, `npm run build`, `git diff --check`, and `sdlc work-item validate --work-item WI-0029 --json` all exit 0, and each WI-0029 test case has a test whose name and `// SDLC-TEST-CASE:` marker carry its canonical identifier."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0029/steps/"
+}
