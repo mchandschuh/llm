@@ -1,0 +1,320 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0026
+taskUid: WI-0026-10000000
+orderKey: '10000000'
+parentTaskUid: null
+taskType: test-strategy
+processingStatus: processing_completed
+title: Define claude provider test strategy
+objective: Define deterministic provider-free evidence for the claude provider, tool calling, provider resolution, and defaults.
+references:
+  required:
+  - .docs/work-items/WI-0026/work-item.json
+  - .docs/work-items/WI-0026/README.md
+  - .docs/work-items/WI-0026/work-item-request.md
+  - src/provider.ts
+  - src/openrouter-projection.ts
+  - src/complete.ts
+  - src/normalize.ts
+  - src/request.ts
+  - src/types.ts
+  - schemas/tool-definition/v1/tool-definition.schema.json
+  - schemas/tool-call/v1/tool-call.schema.json
+  - schemas/tool-calls/v1/tool-calls.schema.json
+  - requests/summarize/summarize.defaults.json
+  - package.json
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0026/steps/WI-0026-10000000-test-strategy.yaml
+  commitSubject: 'WI-0026: plan: define claude provider test strategy'
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+  - id: schema-audit
+    executable: npm
+    arguments: [run, typecheck]
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/result
+  intent:
+    summary: Define deterministic provider-free evidence for the claude provider.
+    inputs:
+    - id: WI-0026-10000000_INPUT-REQ-001
+      kind: requirement
+      ref: WI-0026#work-item.json#requirement/WI-0026_REQ_001
+      purpose: Define evidence for the claude provider.
+      required: true
+    - id: WI-0026-10000000_INPUT-REQ-002
+      kind: requirement
+      ref: WI-0026#work-item.json#requirement/WI-0026_REQ_002
+      purpose: Define evidence for structured output and tool calling.
+      required: true
+    - id: WI-0026-10000000_INPUT-REQ-003
+      kind: requirement
+      ref: WI-0026#work-item.json#requirement/WI-0026_REQ_003
+      purpose: Define evidence for provider resolution.
+      required: true
+    - id: WI-0026-10000000_INPUT-REQ-004
+      kind: requirement
+      ref: WI-0026#work-item.json#requirement/WI-0026_REQ_004
+      purpose: Define evidence for the default provider.
+      required: true
+    - id: WI-0026-10000000_INPUT-REQ-005
+      kind: requirement
+      ref: WI-0026#work-item.json#requirement/WI-0026_REQ_005
+      purpose: Define evidence for documentation and isolation.
+      required: true
+    requirements:
+    - id: REQ-001
+      kind: requirement
+      statement: ClaudeProvider runs claude -p efficiently and parses its JSON result envelope with bounded failures.
+      inputRefs: [WI-0026-10000000_INPUT-REQ-001]
+      required: true
+    - id: REQ-002
+      kind: requirement
+      statement: outputSchema maps to --json-schema and tool-capable requests use a structured stop/continue envelope built from the existing tool schemas.
+      inputRefs: [WI-0026-10000000_INPUT-REQ-002]
+      required: true
+    - id: REQ-003
+      kind: requirement
+      statement: A provider registry resolves claude and openrouter for every selection mechanism and rejects unknown names.
+      inputRefs: [WI-0026-10000000_INPUT-REQ-003]
+      required: true
+    - id: REQ-004
+      kind: requirement
+      statement: claude/sonnet is the default, openrouter keeps its default model, and summarize uses claude.
+      inputRefs: [WI-0026-10000000_INPUT-REQ-004]
+      required: true
+    - id: REQ-005
+      kind: requirement
+      statement: SKILL.md, README.md, and requests/README.md document the provider, and no automated test runs the real claude CLI.
+      inputRefs: [WI-0026-10000000_INPUT-REQ-005]
+      required: true
+    invariants:
+    - id: WI-0026-10000000_INV-001
+      statement: Automated tests never run the real claude CLI or any authenticated provider.
+      inputRefs: [WI-0026-10000000_INPUT-REQ-001, WI-0026-10000000_INPUT-REQ-002, WI-0026-10000000_INPUT-REQ-003, WI-0026-10000000_INPUT-REQ-005]
+      required: true
+    - id: WI-0026-10000000_INV-002
+      statement: Provider failures are bounded LlmFailure errors and never leak raw process output beyond the bounded message.
+      inputRefs: [WI-0026-10000000_INPUT-REQ-001, WI-0026-10000000_INPUT-REQ-002]
+      required: true
+    - id: WI-0026-10000000_INV-003
+      statement: Injected providers and explicit provider and model settings always take precedence over defaults.
+      inputRefs: [WI-0026-10000000_INPUT-REQ-003, WI-0026-10000000_INPUT-REQ-004]
+      required: true
+    - id: WI-0026-10000000_INV-004
+      statement: OpenRouter behavior is unchanged apart from being selected through the registry.
+      inputRefs: [WI-0026-10000000_INPUT-REQ-003, WI-0026-10000000_INPUT-REQ-004]
+      required: true
+    objectives:
+    - id: WI-0026-10000000_OBJ-001
+      statement: Verify the claude provider.
+      inputRefs: [WI-0026-10000000_INPUT-REQ-001]
+      requirementRefs: [WI-0026_REQ_001]
+      invariantRefs: ['#intent/invariants/WI-0026-10000000_INV-001', '#intent/invariants/WI-0026-10000000_INV-002']
+      acceptanceCriterionRefs: [WI-0026_REQ_001_AC_001, WI-0026_REQ_001_AC_002]
+    - id: WI-0026-10000000_OBJ-002
+      statement: Verify structured output and tool calling.
+      inputRefs: [WI-0026-10000000_INPUT-REQ-002]
+      requirementRefs: [WI-0026_REQ_002]
+      invariantRefs: ['#intent/invariants/WI-0026-10000000_INV-001', '#intent/invariants/WI-0026-10000000_INV-002']
+      acceptanceCriterionRefs: [WI-0026_REQ_002_AC_001, WI-0026_REQ_002_AC_002]
+    - id: WI-0026-10000000_OBJ-003
+      statement: Verify provider resolution.
+      inputRefs: [WI-0026-10000000_INPUT-REQ-003]
+      requirementRefs: [WI-0026_REQ_003]
+      invariantRefs: ['#intent/invariants/WI-0026-10000000_INV-003', '#intent/invariants/WI-0026-10000000_INV-004']
+      acceptanceCriterionRefs: [WI-0026_REQ_003_AC_001, WI-0026_REQ_003_AC_002]
+    - id: WI-0026-10000000_OBJ-004
+      statement: Verify the default provider.
+      inputRefs: [WI-0026-10000000_INPUT-REQ-004]
+      requirementRefs: [WI-0026_REQ_004]
+      invariantRefs: ['#intent/invariants/WI-0026-10000000_INV-003', '#intent/invariants/WI-0026-10000000_INV-004']
+      acceptanceCriterionRefs: [WI-0026_REQ_004_AC_001, WI-0026_REQ_004_AC_002]
+    - id: WI-0026-10000000_OBJ-005
+      statement: Verify documentation and isolation.
+      inputRefs: [WI-0026-10000000_INPUT-REQ-005]
+      requirementRefs: [WI-0026_REQ_005]
+      invariantRefs: ['#intent/invariants/WI-0026-10000000_INV-001']
+      acceptanceCriterionRefs: [WI-0026_REQ_005_AC_001, WI-0026_REQ_005_AC_002]
+    nonGoals:
+    - Apply only the WI-0026 documentation surfaces (README.md, SKILL.md, and the provider statements in requests/README.md).
+    - Do not support image attachments or stream-json input, and do not change OpenRouter projection or credentials.
+    - Do not invoke the real claude CLI or any authenticated provider from automated tests, and do not claim production readiness.
+  result:
+    status: defined
+    testCases:
+    - id: WI-0026-10000000_TC-CLAUDE-INVOCATION
+      title: Run claude with the documented invocation
+      type: component
+      requirementLevel: required
+      purpose: Prove the provider passes the documented flags, model, effort, and system prompt, writes the prompt to stdin, returns result text, validates the executable, and fails boundedly on missing executables, non-zero exits, error envelopes, invalid JSON, aborts, and image attachments.
+      procedure:
+        executionMode: executable
+        target: ClaudeProvider with a fake claude executable
+        steps:
+        - Arrange a fake claude executable that records argv and stdin and replies with configured envelopes.
+        - Run completions for success and each failure mode.
+        - Assert argv, stdin, content, and bounded PROVIDER_REQUEST_FAILED or CONFIGURATION_INVALID errors.
+        command: npm test -- --test-name-pattern=WI-0026-10000000_TC-CLAUDE-INVOCATION
+      expectedOutcome: The claude-invocation behavior matches the contract and fails closed at its boundary.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations: [A fake claude executable does not establish real Claude Code, authentication, or model behavior.]
+    - id: WI-0026-10000000_TC-STRUCTURED-OUTPUT
+      title: Map outputSchema to --json-schema
+      type: component
+      requirementLevel: required
+      purpose: Prove outputSchema is passed as --json-schema, structured_output becomes JSON content that satisfies the schema through complete, non-object roots are wrapped and unwrapped, and a missing structured_output fails.
+      procedure:
+        executionMode: executable
+        target: ClaudeProvider and complete with a fake claude executable
+        steps:
+        - Arrange object and non-object output schemas.
+        - Run provider completions and complete with the fake executable.
+        - Assert the schema argument, content, and the missing-output failure.
+        command: npm test -- --test-name-pattern=WI-0026-10000000_TC-STRUCTURED-OUTPUT
+      expectedOutcome: The structured-output behavior matches the contract and fails closed at its boundary.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations: [A fake claude executable does not establish real Claude Code, authentication, or model behavior.]
+    - id: WI-0026-10000000_TC-TOOL-CALLING
+      title: Call tools through structured output
+      type: component
+      requirementLevel: required
+      purpose: Prove tool definitions and tool history reach the stdin prompt, the --json-schema constrains replies to stop/output or continue/toolCalls with each tool inputSchema, and the complete tool loop runs end to end through claude.
+      procedure:
+        executionMode: executable
+        target: ClaudeProvider and the complete tool loop with a fake claude executable
+        steps:
+        - Arrange a tool-capable request and a fake executable that replies continue and then stop.
+        - Run the complete tool loop with an injected tool invoker.
+        - Assert the envelope schema, prompt contents for each round, tool calls, tool results, and final output.
+        command: npm test -- --test-name-pattern=WI-0026-10000000_TC-TOOL-CALLING
+      expectedOutcome: The tool-calling behavior matches the contract and fails closed at its boundary.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations: [A fake claude executable does not establish real Claude Code, authentication, or model behavior.]
+    - id: WI-0026-10000000_TC-PROVIDER-RESOLUTION
+      title: Resolve providers through every mechanism
+      type: component
+      requirementLevel: required
+      purpose: Prove request.provider, request defaults, completion settings, and llm summarize --provider resolve the registered adapter, injected providers take precedence, and unknown names fail with a configuration error listing the available providers.
+      procedure:
+        executionMode: executable
+        target: Provider registry, complete, completeRequest, and the summarize command
+        steps:
+        - Arrange requests selecting claude, openrouter, and an unknown provider.
+        - Run each selection mechanism with the fake executable and no OpenRouter key.
+        - Assert the adapter used, the injected-provider precedence, and the unknown-provider error.
+        command: npm test -- --test-name-pattern=WI-0026-10000000_TC-PROVIDER-RESOLUTION
+      expectedOutcome: The provider-resolution behavior matches the contract and fails closed at its boundary.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations: [A fake claude executable does not establish real Claude Code, authentication, or model behavior.]
+    - id: WI-0026-10000000_TC-DEFAULT-PROVIDER
+      title: Default to claude with sonnet
+      type: unit
+      requirementLevel: required
+      purpose: Prove requests without a provider normalize to claude/sonnet, openrouter without a model keeps openai/gpt-5.6-luna, summarize defaults no longer pin openrouter, and the request schema documents the new defaults.
+      procedure:
+        executionMode: executable
+        target: normalizeRequest, summarize defaults, and the request schema
+        steps:
+        - Normalize requests with and without provider and model.
+        - Read the summarize defaults and the request schema.
+        - Assert the defaults and documentation.
+        command: npm test -- --test-name-pattern=WI-0026-10000000_TC-DEFAULT-PROVIDER
+      expectedOutcome: The default-provider behavior matches the contract and fails closed at its boundary.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: unit
+      fixtureRefs: []
+      limitations: [A fake claude executable does not establish real Claude Code, authentication, or model behavior.]
+    - id: WI-0026-10000000_TC-DOCUMENTATION-AND-ISOLATION
+      title: Document the provider and keep tests provider-free
+      type: integration
+      requirementLevel: required
+      purpose: Prove SKILL.md documents claude selection, defaults, flags, limitations, and the tool-calling schema mapping, and that the suite never runs the real claude CLI.
+      procedure:
+        executionMode: executable
+        target: SKILL.md, README.md, requests/README.md, and a PATH-shimmed suite run
+        steps:
+        - Read the public docs.
+        - Assert the required statements.
+        - Record the PATH-shim run of the full suite in validation evidence.
+        command: npm test -- --test-name-pattern=WI-0026-10000000_TC-DOCUMENTATION-AND-ISOLATION
+      expectedOutcome: The documentation-and-isolation behavior matches the contract and fails closed at its boundary.
+      passCriteria: The focused test exits zero and all assertions pass.
+      evidenceTier: integration
+      fixtureRefs: []
+      limitations: [A fake claude executable does not establish real Claude Code, authentication, or model behavior.]
+    fixtures: []
+    coverage:
+    - id: COV-001
+      requirementRefs: [WI-0026_REQ_001]
+      invariantRefs: ['#intent/invariants/WI-0026-10000000_INV-001', '#intent/invariants/WI-0026-10000000_INV-002']
+      objectiveRefs: ['#objective/WI-0026-10000000_OBJ-001']
+      testCaseRefs: ['#result/testCases/WI-0026-10000000_TC-CLAUDE-INVOCATION']
+      rationale: The claude-invocation case covers the mapped acceptance criteria.
+      acceptanceCriterionRefs: [WI-0026_REQ_001_AC_001, WI-0026_REQ_001_AC_002]
+    - id: COV-002
+      requirementRefs: [WI-0026_REQ_002]
+      invariantRefs: ['#intent/invariants/WI-0026-10000000_INV-001', '#intent/invariants/WI-0026-10000000_INV-002']
+      objectiveRefs: ['#objective/WI-0026-10000000_OBJ-002']
+      testCaseRefs: ['#result/testCases/WI-0026-10000000_TC-STRUCTURED-OUTPUT']
+      rationale: The structured-output case covers the mapped acceptance criteria.
+      acceptanceCriterionRefs: [WI-0026_REQ_002_AC_001]
+    - id: COV-003
+      requirementRefs: [WI-0026_REQ_002]
+      invariantRefs: ['#intent/invariants/WI-0026-10000000_INV-001', '#intent/invariants/WI-0026-10000000_INV-002']
+      objectiveRefs: ['#objective/WI-0026-10000000_OBJ-002']
+      testCaseRefs: ['#result/testCases/WI-0026-10000000_TC-TOOL-CALLING']
+      rationale: The tool-calling case covers the mapped acceptance criteria.
+      acceptanceCriterionRefs: [WI-0026_REQ_002_AC_002]
+    - id: COV-004
+      requirementRefs: [WI-0026_REQ_003]
+      invariantRefs: ['#intent/invariants/WI-0026-10000000_INV-003', '#intent/invariants/WI-0026-10000000_INV-004']
+      objectiveRefs: ['#objective/WI-0026-10000000_OBJ-003']
+      testCaseRefs: ['#result/testCases/WI-0026-10000000_TC-PROVIDER-RESOLUTION']
+      rationale: The provider-resolution case covers the mapped acceptance criteria.
+      acceptanceCriterionRefs: [WI-0026_REQ_003_AC_001, WI-0026_REQ_003_AC_002]
+    - id: COV-005
+      requirementRefs: [WI-0026_REQ_004]
+      invariantRefs: ['#intent/invariants/WI-0026-10000000_INV-003', '#intent/invariants/WI-0026-10000000_INV-004']
+      objectiveRefs: ['#objective/WI-0026-10000000_OBJ-004']
+      testCaseRefs: ['#result/testCases/WI-0026-10000000_TC-DEFAULT-PROVIDER']
+      rationale: The default-provider case covers the mapped acceptance criteria.
+      acceptanceCriterionRefs: [WI-0026_REQ_004_AC_001, WI-0026_REQ_004_AC_002]
+    - id: COV-006
+      requirementRefs: [WI-0026_REQ_005]
+      invariantRefs: ['#intent/invariants/WI-0026-10000000_INV-001']
+      objectiveRefs: ['#objective/WI-0026-10000000_OBJ-005']
+      testCaseRefs: ['#result/testCases/WI-0026-10000000_TC-DOCUMENTATION-AND-ISOLATION']
+      rationale: The documentation-and-isolation case covers the mapped acceptance criteria.
+      acceptanceCriterionRefs: [WI-0026_REQ_005_AC_001, WI-0026_REQ_005_AC_002]
+    minimumRequiredTestCaseRefs:
+    - '#result/testCases/WI-0026-10000000_TC-CLAUDE-INVOCATION'
+    - '#result/testCases/WI-0026-10000000_TC-STRUCTURED-OUTPUT'
+    - '#result/testCases/WI-0026-10000000_TC-TOOL-CALLING'
+    - '#result/testCases/WI-0026-10000000_TC-PROVIDER-RESOLUTION'
+    - '#result/testCases/WI-0026-10000000_TC-DEFAULT-PROVIDER'
+    - '#result/testCases/WI-0026-10000000_TC-DOCUMENTATION-AND-ISOLATION'
+    recommendedTestCaseRefs: []
+    evidenceLimitations:
+    - This strategy defines evidence but does not claim execution or pass status.
+    - REQ-005 AC-002 (PATH-shim suite run and full gate) is evidenced by the validation task in addition to the documentation case.
+    - A fake claude executable does not establish real Claude Code, authentication, model quality, cost, or production behavior.

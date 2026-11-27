@@ -1,0 +1,164 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0026
+taskUid: WI-0026-20000000
+orderKey: '20000000'
+parentTaskUid: WI-0026-10000000
+taskType: implementation
+processingStatus: unprocessed
+title: Implement the claude provider
+objective: Implement the claude provider, structured-output tool calling, the provider registry, and the claude/sonnet default.
+references:
+  required:
+  - .docs/work-items/WI-0026/work-item.json
+  - .docs/work-items/WI-0026/README.md
+  - .docs/work-items/WI-0026/work-item-request.md
+  - src/provider.ts
+  - src/openrouter-projection.ts
+  - src/complete.ts
+  - src/normalize.ts
+  - src/request.ts
+  - src/types.ts
+  - schemas/tool-definition/v1/tool-definition.schema.json
+  - schemas/tool-call/v1/tool-call.schema.json
+  - schemas/tool-calls/v1/tool-calls.schema.json
+  - requests/summarize/summarize.defaults.json
+  - package.json
+  - .docs/work-items/WI-0026/steps/WI-0026-10000000-test-strategy.yaml
+  informational:
+  - README.md
+  - SKILL.md
+dependsOn:
+- WI-0026-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+  - .docs/work-items/WI-0026/steps/WI-0026-20000000-implementation.yaml
+  - src/claude-provider.ts
+  - src/providers.ts
+  - src/normalize.ts
+  - src/complete.ts
+  - src/request.ts
+  - src/index.ts
+  - schemas/request/v1/request.schema.json
+  - requests/summarize/summarize.defaults.json
+  - tests/claude-provider.test.ts
+  - tests/fixtures/fake-claude.mjs
+  - tests/summarize.test.ts
+  - tests/llm.test.ts
+  - tests/request-directory.test.ts
+  - tests/request.test.ts
+  - tests/request-cli.test.ts
+  - tests/cli.test.ts
+  - README.md
+  - SKILL.md
+  - requests/README.md
+  - requests/decisions.md
+  commitSubject: 'WI-0026: feat(llm): add claude provider'
+  commitBody:
+    requiredSections: [Why, What, How, Decisions, Validation, Evidence, Refs, Next]
+  validationProcedures:
+  - id: typecheck
+    executable: npm
+    arguments: [run, typecheck]
+    expectedExitCode: 0
+  - id: build
+    executable: npm
+    arguments: [run, build]
+    expectedExitCode: 0
+  - id: focused-tests
+    executable: npm
+    arguments: [test]
+    expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement the claude provider. Implement only the declared contract and focused tests.
+    changeTypes: [production-code, test-code, schema, documentation]
+    changeIntent: feature
+    inputs:
+    - id: WI-0026-20000000_INPUT-STRATEGY
+      kind: testStrategy
+      ref: WI-0026-10000000#result/R-001
+      purpose: Provide the required test matrix and evidence boundary.
+      required: true
+    - id: WI-0026-20000000_INPUT-REQ-001
+      kind: requirement
+      ref: WI-0026#work-item.json#requirement/WI-0026_REQ_001
+      purpose: Define the claude provider.
+      required: true
+    - id: WI-0026-20000000_INPUT-REQ-002
+      kind: requirement
+      ref: WI-0026#work-item.json#requirement/WI-0026_REQ_002
+      purpose: Define structured output and tool calling.
+      required: true
+    - id: WI-0026-20000000_INPUT-REQ-003
+      kind: requirement
+      ref: WI-0026#work-item.json#requirement/WI-0026_REQ_003
+      purpose: Define provider resolution.
+      required: true
+    - id: WI-0026-20000000_INPUT-REQ-004
+      kind: requirement
+      ref: WI-0026#work-item.json#requirement/WI-0026_REQ_004
+      purpose: Define the default provider.
+      required: true
+    - id: WI-0026-20000000_INPUT-REQ-005
+      kind: requirement
+      ref: WI-0026#work-item.json#requirement/WI-0026_REQ_005
+      purpose: Define documentation and isolation.
+      required: true
+    objectives:
+    - id: WI-0026-20000000_OBJ-001
+      statement: Implement ClaudeProvider with the documented efficient invocation and bounded result parsing.
+      inputRefs: [WI-0026-20000000_INPUT-STRATEGY, WI-0026-20000000_INPUT-REQ-001]
+      testCaseRefs: ['WI-0026-10000000#test-case/WI-0026-10000000_TC-CLAUDE-INVOCATION']
+    - id: WI-0026-20000000_OBJ-002
+      statement: Map outputSchema to --json-schema and implement tool calling through the structured stop/continue envelope.
+      inputRefs: [WI-0026-20000000_INPUT-STRATEGY, WI-0026-20000000_INPUT-REQ-002]
+      testCaseRefs: ['WI-0026-10000000#test-case/WI-0026-10000000_TC-STRUCTURED-OUTPUT', 'WI-0026-10000000#test-case/WI-0026-10000000_TC-TOOL-CALLING']
+    - id: WI-0026-20000000_OBJ-003
+      statement: Add the provider registry and route every provider-selection mechanism through it.
+      inputRefs: [WI-0026-20000000_INPUT-STRATEGY, WI-0026-20000000_INPUT-REQ-003]
+      testCaseRefs: ['WI-0026-10000000#test-case/WI-0026-10000000_TC-PROVIDER-RESOLUTION']
+    - id: WI-0026-20000000_OBJ-004
+      statement: Make claude/sonnet the default, keep the openrouter default model, and move summarize to claude.
+      inputRefs: [WI-0026-20000000_INPUT-STRATEGY, WI-0026-20000000_INPUT-REQ-004]
+      testCaseRefs: ['WI-0026-10000000#test-case/WI-0026-10000000_TC-DEFAULT-PROVIDER']
+    - id: WI-0026-20000000_OBJ-005
+      statement: Document the provider in SKILL.md, README.md, and requests/README.md and keep every test provider-free.
+      inputRefs: [WI-0026-20000000_INPUT-STRATEGY, WI-0026-20000000_INPUT-REQ-005]
+      testCaseRefs: ['WI-0026-10000000#test-case/WI-0026-10000000_TC-DOCUMENTATION-AND-ISOLATION']
+    ownedPaths:
+    - src/claude-provider.ts
+    - src/providers.ts
+    - src/normalize.ts
+    - src/complete.ts
+    - src/request.ts
+    - src/index.ts
+    - schemas/request/v1/request.schema.json
+    - requests/summarize/summarize.defaults.json
+    - tests/claude-provider.test.ts
+    - tests/fixtures/fake-claude.mjs
+    - tests/summarize.test.ts
+    - tests/llm.test.ts
+    - tests/request-directory.test.ts
+    - tests/request.test.ts
+    - tests/request-cli.test.ts
+    - tests/cli.test.ts
+    - README.md
+    - SKILL.md
+    - requests/README.md
+    - requests/decisions.md
+    nonGoals:
+    - Apply only the WI-0026 documentation surfaces (README.md, SKILL.md, and the provider statements in requests/README.md).
+    - Do not support image attachments or stream-json input, and do not change OpenRouter projection or credentials.
+    - Do not invoke the real claude CLI or any authenticated provider from automated tests, and do not claim production readiness.
+    steps:
+    - Add src/claude-provider.ts with the invocation, stdin prompt projection, structured output, and tool-call envelope.
+    - Add src/providers.ts with the registry and per-provider default models, and route complete, completeRequest, and normalization through it.
+    - Change the defaults, the request schema documentation, and the summarize defaults.
+    - Add a fake claude executable fixture and trace-marked tests, and make existing tests that relied on the default provider explicit.
+    - Update SKILL.md, README.md, requests/README.md, and requests/decisions.md.

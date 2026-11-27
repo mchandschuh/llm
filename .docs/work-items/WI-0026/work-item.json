@@ -1,0 +1,180 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0026",
+  "status": "planned",
+  "title": "Add claude provider",
+  "type": "feature",
+  "objective": "Add a 'claude' LlmProvider that runs the Claude Code CLI non-interactively and efficiently. Support text, structured-output, and tool-calling completions, the last through structured output built from the existing tool schemas. Make claude resolvable through every provider-selection mechanism, and make it the default provider with the 'sonnet' model.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "WI-0026-claude-provider",
+      "created": false,
+      "rationale": "Each work item is processed on its own branch."
+    }
+  },
+  "baseline": "0b866b38dcfe46340a925b909daa8d0af0a71017",
+  "request": {
+    "source": "conversation",
+    "text": "Add a new provider, make it the default, called 'claude' that invokes 'claude' in an efficient way to process llm requests. This will need to implement the LlmProvider interface and be resolvable via the various mechanisms for selecting a provider. It's very important that it is set as the default moving forward as well. Operator decisions: the claude default model is 'sonnet'; the bundled summarize request switches to claude; tool calling incorporates the existing tool schemas into the prompt/task side and tool calls into the output schema, and this must be documented in SKILL.md.",
+    "sha256": "dcfcaa787cdd70527f92a6ae4db1a69899b8bfa22ab9bee23c6070397e24a490"
+  },
+  "scope": [
+    {
+      "name": "claude-provider",
+      "description": "Implement ClaudeProvider (LlmProvider) that runs claude -p with JSON output, a replaced system prompt, no built-in tools, no MCP servers, and no session persistence. The prompt goes on stdin. Responses are parsed as bounded JSON envelopes, the executable is validated, and the request signal can abort the run.",
+      "reason": "The request requires an efficient claude-backed provider."
+    },
+    {
+      "name": "structured-output-and-tools",
+      "description": "Map outputSchema to --json-schema. For tool-capable requests, describe tools and turn history in the prompt and constrain the reply to a stop/output or continue/toolCalls envelope whose calls follow the existing tool-call shape and each tool's inputSchema.",
+      "reason": "The operator chose tool calling through the existing tool schemas and structured output."
+    },
+    {
+      "name": "provider-resolution",
+      "description": "Add a provider registry used by complete, completeRequest, chat sessions, and CLI provider overrides. It resolves claude and openrouter, and unknown names fail with a bounded configuration error.",
+      "reason": "The provider must be selectable through every existing mechanism."
+    },
+    {
+      "name": "default-provider",
+      "description": "Make claude the default provider with default model 'sonnet', keep openrouter's default model, move the summarize request to claude, and update the request schema's documented defaults.",
+      "reason": "The operator requires claude to be the default."
+    },
+    {
+      "name": "documentation-and-isolation",
+      "description": "Document the provider, defaults, and tool calling through structured output in SKILL.md, README.md, and requests/README.md. Keep every test provider-free with a fake claude executable, and keep the full gate green.",
+      "reason": "Behavior changes must be documented and verifiable without authenticated calls."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "image-attachments",
+      "description": "Do not send base64 image attachments to claude; such requests fail with a bounded configuration error.",
+      "reason": "Text stdin cannot carry image parts; stream-json input is a separate feature.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "openrouter-redesign",
+      "description": "Do not change OpenRouter request projection, credentials, or tool-calling behavior beyond provider resolution.",
+      "reason": "Keep the existing provider stable.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "authenticated-calls-in-tests",
+      "description": "Do not invoke the real claude CLI or any authenticated provider from automated tests.",
+      "reason": "Evidence must stay local and provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "release",
+      "description": "Do not publish, deploy, tag, or claim production readiness.",
+      "reason": "The work item is local delivery.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0026_REQ_001",
+        "name": "claude-provider",
+        "description": "ClaudeProvider implements LlmProvider by running claude -p efficiently and parsing its JSON result envelope.",
+        "reason": "The provider is the core deliverable.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0026_REQ_001_AC_001",
+            "description": "The process receives the documented flags, model, effort, and system prompt, gets the prompt on stdin, and returns the result text."
+          },
+          {
+            "id": "WI-0026_REQ_001_AC_002",
+            "description": "Missing executables, non-zero exits, error envelopes, invalid JSON, aborts, and image attachments fail with bounded errors."
+          }
+        ]
+      },
+      {
+        "id": "WI-0026_REQ_002",
+        "name": "structured-output-and-tools",
+        "description": "outputSchema maps to --json-schema, and tool-capable requests use a structured stop/continue envelope built from the existing tool schemas.",
+        "reason": "Structured output and tool calling must work through claude.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0026_REQ_002_AC_001",
+            "description": "Structured output is returned as JSON content satisfying the outputSchema."
+          },
+          {
+            "id": "WI-0026_REQ_002_AC_002",
+            "description": "Tool definitions, prior tool calls, and tool results reach the prompt. Continue replies become ToolCalls and stop replies become final content. The complete tool loop runs end to end."
+          }
+        ]
+      },
+      {
+        "id": "WI-0026_REQ_003",
+        "name": "provider-resolution",
+        "description": "A provider registry resolves claude and openrouter for complete, completeRequest, chat, and CLI provider overrides; unknown names fail boundedly.",
+        "reason": "Every selection mechanism must reach the provider.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0026_REQ_003_AC_001",
+            "description": "request.provider, request defaults, completion settings, and llm summarize --provider select the registered adapter."
+          },
+          {
+            "id": "WI-0026_REQ_003_AC_002",
+            "description": "Injected providers still take precedence, and unregistered names yield a configuration error listing available providers."
+          }
+        ]
+      },
+      {
+        "id": "WI-0026_REQ_004",
+        "name": "default-provider",
+        "description": "claude is the default provider with default model 'sonnet'; openrouter keeps its own default model; summarize uses claude; the request schema documents the defaults.",
+        "reason": "The operator requires claude as the default.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0026_REQ_004_AC_001",
+            "description": "Requests without provider normalize to claude/sonnet, while provider openrouter without a model normalizes to openai/gpt-5.6-luna."
+          },
+          {
+            "id": "WI-0026_REQ_004_AC_002",
+            "description": "summarize.defaults.json no longer pins openrouter, and the request schema defaults and descriptions name claude and sonnet."
+          }
+        ]
+      },
+      {
+        "id": "WI-0026_REQ_005",
+        "name": "documentation-and-isolation",
+        "description": "SKILL.md, README.md, and requests/README.md document the claude provider, defaults, and tool calling through structured output; no automated test runs the real claude CLI; the full gate passes.",
+        "reason": "Changes must be documented and provider-free.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0026_REQ_005_AC_001",
+            "description": "SKILL.md documents claude selection, defaults, flags, limitations, and the tool-calling schema mapping."
+          },
+          {
+            "id": "WI-0026_REQ_005_AC_002",
+            "description": "The full suite passes with a fake claude first on PATH that records zero real invocations, and the full gate passes."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0026/steps/"
+}
