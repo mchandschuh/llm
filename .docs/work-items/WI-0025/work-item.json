@@ -51,12 +51,16 @@
     {
       "name": "aggregate-across-validators",
       "description": "Do not change the rule that the first failing validator stops validation; one validator may report several issues.",
-      "reason": "Keep the WI-0023 ordering contract."
+      "reason": "Keep the WI-0023 ordering contract.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
     },
     {
       "name": "response-envelope",
       "description": "Do not change the llm/response/v1 schema, error codes, or non-request commands.",
-      "reason": "The change is limited to request parameter validation."
+      "reason": "The change is limited to request parameter validation.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
     },
     {
       "name": "provider-and-release",
