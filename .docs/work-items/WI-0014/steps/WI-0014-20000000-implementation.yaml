@@ -29,7 +29,7 @@ governance:
   ownedPaths:
   - .docs/work-items/WI-0014/steps/WI-0014-20000000-implementation.yaml
   - requests/README.md
-  - tests/wi-0014-contract.test.ts
+  - tests/request-integration.test.ts
   commitSubject: 'WI-0014: feat(llm): implement request feature slice'
   commitBody:
     requiredSections:
@@ -133,7 +133,7 @@ task:
       - WI-0014-10000000#test-case/WI-0014-10000000_TC-EVIDENCE-BOUNDARY
     ownedPaths:
     - requests/README.md
-    - tests/wi-0014-contract.test.ts
+    - tests/request-integration.test.ts
     nonGoals:
     - Do not make authenticated provider calls, publish, deploy, or claim production
       readiness.
@@ -178,22 +178,22 @@ task:
         - WI-0014-20000000_OBJ-003
         - WI-0014-20000000_OBJ-004
         paths:
-        - tests/wi-0014-contract.test.ts
+        - tests/request-integration.test.ts
       testImplementations:
       - testCaseRef: WI-0014-10000000#test-case/WI-0014-10000000_TC-DOCUMENTATION
-        path: tests/wi-0014-contract.test.ts
+        path: tests/request-integration.test.ts
         selector: WI-0014-10000000_TC-DOCUMENTATION
         traceMarker: WI-0014-10000000_TC-DOCUMENTATION
       - testCaseRef: WI-0014-10000000#test-case/WI-0014-10000000_TC-PROMPT-MAPPING
-        path: tests/wi-0014-contract.test.ts
+        path: tests/request-integration.test.ts
         selector: WI-0014-10000000_TC-PROMPT-MAPPING
         traceMarker: WI-0014-10000000_TC-PROMPT-MAPPING
       - testCaseRef: WI-0014-10000000#test-case/WI-0014-10000000_TC-PARAMETER-CONTRACT
-        path: tests/wi-0014-contract.test.ts
+        path: tests/request-integration.test.ts
         selector: WI-0014-10000000_TC-PARAMETER-CONTRACT
         traceMarker: WI-0014-10000000_TC-PARAMETER-CONTRACT
       - testCaseRef: WI-0014-10000000#test-case/WI-0014-10000000_TC-EVIDENCE-BOUNDARY
-        path: tests/wi-0014-contract.test.ts
+        path: tests/request-integration.test.ts
         selector: WI-0014-10000000_TC-EVIDENCE-BOUNDARY
         traceMarker: WI-0014-10000000_TC-EVIDENCE-BOUNDARY
     verification:

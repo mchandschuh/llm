@@ -44,7 +44,7 @@ Define the request-directory layout, asset mapping, parameter syntax, placeholde
 
 ## Test strategy expectation
 
-The strategy includes one required executable provider-free test case per requirement and explicit mappings for every acceptance criterion. The implementation maps all four cases to trace-marked tests in `tests/wi-0014-contract.test.ts`. Validation executed the focused audit, full package gates, and changed-path checks; review independently inspected scope, non-goals, and evidence limitations.
+The strategy includes one required executable provider-free test case per requirement and explicit mappings for every acceptance criterion. The implementation maps all four cases to trace-marked tests in `tests/request-integration.test.ts`. The tests were originally recorded at `tests/wi-0014-contract.test.ts`, which was never committed. WI-0022 implemented them in `tests/request-integration.test.ts` under the same trace markers, and this record was corrected with operator approval (WI-0022-90000000_FIND-001). Validation executed the focused audit, full package gates, and changed-path checks; review independently inspected scope, non-goals, and evidence limitations.
 
 ## Evidence boundary
 

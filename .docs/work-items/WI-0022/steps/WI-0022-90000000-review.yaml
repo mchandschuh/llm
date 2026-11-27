@@ -146,9 +146,9 @@ task:
     findings:
     - id: WI-0022-90000000_FIND-001
       severity: advisory
-      status: open
+      status: resolved
       message: The WI-0014-20000000 implementation result lists tests/wi-0014-contract.test.ts as the location of its four trace-marked cases, but that file was never committed. The cases now execute in tests/request-integration.test.ts under the same trace markers. WI-0022 did not modify the completed WI-0014 evidence record.
-      requestedChange: With operator approval, update the WI-0014-20000000 testImplementations paths (and the WI-0014-80000000 focused command) to tests/request-integration.test.ts.
+      requestedChange: With operator approval, update the WI-0014-20000000 testImplementations paths (and the WI-0014-80000000 focused command) to tests/request-integration.test.ts. Resolved with operator approval on branch WI-0014-test-record-path.
       criterionRefs:
       - '#criterion/CRIT-002'
       affectedRefs:
