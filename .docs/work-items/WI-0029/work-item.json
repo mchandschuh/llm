@@ -15,7 +15,7 @@
     },
     "branch": {
       "name": "WI-0029-multiple-request-directories",
-      "created": false,
+      "created": true,
       "rationale": "Each work item is processed on its own branch."
     }
   },
