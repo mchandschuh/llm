@@ -23,11 +23,13 @@ request-asset content that is executed.
 
 ## Request bundle layout
 
-`requestsDirectory` is the configured root. Each request is one direct child
-directory whose name is the request name:
+Each configured request directory is a root: `requestsDirectory` (one path),
+each entry of `requestDirectories` (an array of paths), or both. Each request is
+one direct child directory of a root whose name is the request name, and a name
+must exist in only one root:
 
 ```text
-requestsDirectory/
+<request directory>/   # requestsDirectory or a requestDirectories entry
 └── <request-name>/
     ├── <request-name>.defaults.json
     ├── <request-name>.prompt.md            # exactly one task source
@@ -385,16 +387,22 @@ under `node:test` or with `AsyncLocalStorage`), Node 24 may abort the process
 instead of reporting the timeout. The `llm` CLI is not affected. This isolation prevents
 accidental use of Node APIs; it is not a security boundary. Treat request
 bundles as trusted code with the same privileges as the `llm` process, and
-only configure a `requestsDirectory` whose contents you trust.
+only configure a `requestsDirectory` or `requestDirectories` entry whose
+contents you trust.
 
 ## Processing order
 
 Implementations must use this order and fail closed at each boundary:
 
-1. Resolve the configured `requestsDirectory` through the existing shared
-   configuration convention.
+1. Resolve the configured request directories through the existing shared
+   configuration convention: `requestsDirectory` first, then each
+   `requestDirectories` entry in order, keeping entries that resolve to the same
+   directory once. Each must be an existing absolute directory; a malformed
+   entry fails, naming its key or index.
 2. Validate `<request-name>` and resolve exactly one direct child directory
-   beneath `requestsDirectory`.
+   beneath one configured request directory. A name present in more than one
+   directory fails as ambiguous, naming every matching directory. Parameter
+   schemas resolve only within that directory.
 3. Discover the exact assets in [Request bundle layout](#request-bundle-layout)
    and enforce the task-source, optionality, and schema rules in
    [Asset mapping and optionality](#asset-mapping-and-optionality).
@@ -582,7 +590,8 @@ implementation. The adapter owns only the legacy command spelling:
 | `--format=raw\|full`, `--debug` | the same `llm req` output and debug flags |
 
 Exactly one of `--path` and `--content` is required, and each option may appear
-once. The adapter resolves the configured `requestsDirectory` and delegates to
+once. The adapter resolves `summarize` from the configured `requestsDirectory`
+and `requestDirectories` and delegates to
 the same request command and `completeRequest` boundary as
 `llm req summarize`. Request loading, parameter validation, recursive directory
 and symlink handling, file materialization, prompt composition, provider

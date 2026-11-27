@@ -167,8 +167,15 @@ defaults and constraints, and annotations such as file bindings, before invoking
 it. Help is provider-free and exits 1 with a `configuration_error` entry for an
 unknown or invalid request.
 
-`llm req` loads `<request-name>/` from the absolute `requestsDirectory` set in
-the layered `config.json`. Parameters come from `--parameters` and
+`llm req` loads `<request-name>/` from the configured request directories in the
+layered `config.json`: `requestsDirectory` (one absolute path) and
+`requestDirectories` (an array of absolute paths), either or both. It searches
+`requestsDirectory` first, then `requestDirectories` in array order, and searches
+entries that resolve to the same directory once. A name that exists in more than
+one directory is ambiguous: `llm req <request-name>` exits 1 with a
+`configuration_error` naming every matching directory, and `llm req -h` lists it
+under "Duplicate requests". A malformed entry is reported by key or index, such
+as `requestDirectories[1]`. Parameters come from `--parameters` and
 `--p-<path> <value>` assignments and are validated against
 `<request-name>.parameters.schema.json`. A parameter whose schema declares
 `x-llm-req-parameter.file` becomes a file under `<files>`. For example,
@@ -186,6 +193,17 @@ resolved parameters and read-only `fs` helpers. Request bundles that declare
 validators are trusted code. `llm summarize` is a compatibility form for
 `llm req summarize`. See `requests/README.md` for the full request-bundle
 contract.
+
+#### Naming requests
+
+All configured request directories share one namespace, and a name in two
+directories is an error. When you add a request to a repository's request
+directory, prefix its name with the owning repository name, followed by a
+hyphen. For example, the sdlc repository's request that expands a work item is
+`sdlc-work-item-expand`, not `work-item-expand`. Leave a name unprefixed only
+when the request's purpose is truly general and not tied to one repository,
+such as `summarize`. If a repository cannot use its own name, choose another
+unique prefix and use it for all of that repository's requests.
 
 ### Chat-session store configuration
 

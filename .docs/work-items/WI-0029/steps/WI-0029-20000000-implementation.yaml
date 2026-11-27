@@ -4,7 +4,7 @@ taskUid: WI-0029-20000000
 orderKey: "20000000"
 parentTaskUid: WI-0029-10000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement multiple request directories
 objective: Resolve request directories from requestsDirectory and requestDirectories, locate requests across them without shadowing, extend request help, document the change in the confirmed contract passages, and implement every WI-0029 test case with trace markers.
 references:
@@ -79,7 +79,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -187,4 +187,177 @@ task:
       - Extend the request listing with the configured directories and a duplicate section while keeping the single-directory output unchanged.
       - Update README.md, SKILL.md (including request-naming guidance), the confirmed requests/README.md passages, and add D20 to requests/decisions.md, as confirmed by the operator.
       - Adapt the existing tests that call resolveRequestsDirectory, and the WI-0028 documentation test that pinned requests/README.md to its baseline, to the confirmed contract change.
-  result: null
+  result:
+    status: implemented
+    implementation:
+      summary: "`requestsDirectory` and `requestDirectories` resolve to one ordered, de-duplicated, validated list of request directories. `llm req`, request help, `llm summarize`, and `completeRequest` locate each request in the one directory that contains it and fail with a configuration error naming every matching directory when a name is duplicated. `llm req -h` lists every directory and a duplicate section. README.md, SKILL.md (with request-naming guidance), the confirmed requests/README.md passages, and D20 document the change."
+      changes:
+        - id: WI-0029-20000000_CHANGE-001
+          type: production-code
+          summary: Replaced resolveRequestsDirectory with resolveRequestDirectories (both keys, key- or index-named failures, guidance naming both keys, realpath de-duplication) and added locateRequest and AmbiguousRequestFailure to the request loader.
+          objectiveRefs:
+            - WI-0029-20000000_OBJ-001
+            - WI-0029-20000000_OBJ-002
+          paths:
+            - src/requests-config.ts
+            - src/request-directory.ts
+        - id: WI-0029-20000000_CHANGE-002
+          type: production-code
+          summary: completeRequest, llm req argument parsing, llm summarize, and request help locate the request across the configured directories; completeRequest keeps schemaRoots at the owning directory; llm req parsing reports configuration failures and ambiguous names as configuration_error with exit 1; the request listing prints every directory and a duplicate section while the single-directory output is unchanged.
+          objectiveRefs:
+            - WI-0029-20000000_OBJ-002
+            - WI-0029-20000000_OBJ-003
+          paths:
+            - src/request.ts
+            - src/cli/arguments.ts
+            - src/cli.ts
+            - src/cli/summarize-command.ts
+            - src/cli/request-help.ts
+        - id: WI-0029-20000000_CHANGE-003
+          type: documentation
+          summary: Documented both keys, the search order, de-duplication, and the duplicate-name error in README.md and SKILL.md; added the repository-prefix request-naming guidance to SKILL.md; updated the operator-confirmed requests/README.md passages; added D20 to requests/decisions.md.
+          objectiveRefs:
+            - WI-0029-20000000_OBJ-004
+          paths:
+            - README.md
+            - SKILL.md
+            - requests/README.md
+            - requests/decisions.md
+        - id: WI-0029-20000000_CHANGE-004
+          type: test-code
+          summary: Added tests/request-directories.test.ts with one SDLC-TEST-CASE-marked test per WI-0029 test case, isolated through temporary HOME and LLM_CONFIG roots; adapted two tests to resolveRequestDirectories; changed the WI-0028 documentation test to compare requests/README.md at the WI-0028 merge commit with its baseline, since D20 now changes the contract.
+          objectiveRefs: &a1
+            - WI-0029-20000000_OBJ-001
+            - WI-0029-20000000_OBJ-002
+            - WI-0029-20000000_OBJ-003
+            - WI-0029-20000000_OBJ-004
+            - WI-0029-20000000_OBJ-005
+          paths:
+            - tests/request-directories.test.ts
+            - tests/request-help.test.ts
+            - tests/request-directory.test.ts
+            - tests/summarize.test.ts
+      testImplementations:
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-STRING-ONLY-REGRESSION
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-STRING-ONLY-REGRESSION
+          traceMarker: WI-0029-10000000_TC-STRING-ONLY-REGRESSION
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-ARRAY-ONLY
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-ARRAY-ONLY
+          traceMarker: WI-0029-10000000_TC-ARRAY-ONLY
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-BOTH-KEYS-ORDER-AND-LAYERS
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-BOTH-KEYS-ORDER-AND-LAYERS
+          traceMarker: WI-0029-10000000_TC-BOTH-KEYS-ORDER-AND-LAYERS
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-SAME-DIRECTORY-DEDUPLICATED
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-SAME-DIRECTORY-DEDUPLICATED
+          traceMarker: WI-0029-10000000_TC-SAME-DIRECTORY-DEDUPLICATED
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-LATER-DIRECTORIES-RESOLVE
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-LATER-DIRECTORIES-RESOLVE
+          traceMarker: WI-0029-10000000_TC-LATER-DIRECTORIES-RESOLVE
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-DUPLICATE-AMBIGUOUS
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-DUPLICATE-AMBIGUOUS
+          traceMarker: WI-0029-10000000_TC-DUPLICATE-AMBIGUOUS
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-UNKNOWN-AND-UNSAFE-NAMES
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-UNKNOWN-AND-UNSAFE-NAMES
+          traceMarker: WI-0029-10000000_TC-UNKNOWN-AND-UNSAFE-NAMES
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-CLI-CONFIGURATION-ERROR-PROVIDER-FREE
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-CLI-CONFIGURATION-ERROR-PROVIDER-FREE
+          traceMarker: WI-0029-10000000_TC-CLI-CONFIGURATION-ERROR-PROVIDER-FREE
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-INVALID-ARRAY-SHAPE
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-INVALID-ARRAY-SHAPE
+          traceMarker: WI-0029-10000000_TC-INVALID-ARRAY-SHAPE
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-INVALID-ARRAY-ENTRIES
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-INVALID-ARRAY-ENTRIES
+          traceMarker: WI-0029-10000000_TC-INVALID-ARRAY-ENTRIES
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-NEITHER-KEY
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-NEITHER-KEY
+          traceMarker: WI-0029-10000000_TC-NEITHER-KEY
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-SCHEMA-ROOTS-OWN-DIRECTORY
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-SCHEMA-ROOTS-OWN-DIRECTORY
+          traceMarker: WI-0029-10000000_TC-SCHEMA-ROOTS-OWN-DIRECTORY
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-HELP-LISTING-MULTI
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-HELP-LISTING-MULTI
+          traceMarker: WI-0029-10000000_TC-HELP-LISTING-MULTI
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-REQUEST-HELP-MULTI
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-REQUEST-HELP-MULTI
+          traceMarker: WI-0029-10000000_TC-REQUEST-HELP-MULTI
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-DOCUMENTATION-AND-CONTRACT
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-DOCUMENTATION-AND-CONTRACT
+          traceMarker: WI-0029-10000000_TC-DOCUMENTATION-AND-CONTRACT
+        - testCaseRef: WI-0029-10000000#test-case/WI-0029-10000000_TC-QUALITY-GATES
+          path: tests/request-directories.test.ts
+          selector: WI-0029-10000000_TC-QUALITY-GATES
+          traceMarker: WI-0029-10000000_TC-QUALITY-GATES
+    verification:
+      status: passed
+      objectiveRefs: *a1
+      tests:
+        - id: WI-0029-20000000_EXEC-RED
+          type: cli-audit
+          testCaseRefs:
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-STRING-ONLY-REGRESSION
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-ARRAY-ONLY
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-BOTH-KEYS-ORDER-AND-LAYERS
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-SAME-DIRECTORY-DEDUPLICATED
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-LATER-DIRECTORIES-RESOLVE
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-DUPLICATE-AMBIGUOUS
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-UNKNOWN-AND-UNSAFE-NAMES
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-CLI-CONFIGURATION-ERROR-PROVIDER-FREE
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-INVALID-ARRAY-SHAPE
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-INVALID-ARRAY-ENTRIES
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-NEITHER-KEY
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-SCHEMA-ROOTS-OWN-DIRECTORY
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-HELP-LISTING-MULTI
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-REQUEST-HELP-MULTI
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-DOCUMENTATION-AND-CONTRACT
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-QUALITY-GATES
+          command: tsx --import ./tests/support/claude-guard.ts --test tests/request-directories.test.ts
+          status: passed
+          result: Written before the production change and run against the baseline implementation, 15 of the 16 new tests failed; only the trace-marker case passed. The string-only regression case failed there only because resolveRequestDirectories did not exist yet.
+        - id: WI-0029-20000000_EXEC-FOCUSED
+          type: cli-audit
+          testCaseRefs:
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-STRING-ONLY-REGRESSION
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-ARRAY-ONLY
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-BOTH-KEYS-ORDER-AND-LAYERS
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-SAME-DIRECTORY-DEDUPLICATED
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-LATER-DIRECTORIES-RESOLVE
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-DUPLICATE-AMBIGUOUS
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-UNKNOWN-AND-UNSAFE-NAMES
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-CLI-CONFIGURATION-ERROR-PROVIDER-FREE
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-INVALID-ARRAY-SHAPE
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-INVALID-ARRAY-ENTRIES
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-NEITHER-KEY
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-SCHEMA-ROOTS-OWN-DIRECTORY
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-HELP-LISTING-MULTI
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-REQUEST-HELP-MULTI
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-DOCUMENTATION-AND-CONTRACT
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-QUALITY-GATES
+          command: tsx --import ./tests/support/claude-guard.ts --test tests/request-directories.test.ts
+          status: passed
+          result: All 16 WI-0029 cases passed after the change.
+        - id: WI-0029-20000000_EXEC-PACKAGE
+          type: cli-audit
+          testCaseRefs:
+            - WI-0029-10000000#test-case/WI-0029-10000000_TC-QUALITY-GATES
+          command: npm run typecheck && npm run build && npm test && git diff --check
+          status: passed
+          result: Typecheck, build, the full 204-test suite, and the diff check passed.
+    limitations:
+      - The loader compiles each request schema standalone, so references to other schema files are rejected in every directory before resolution; scoping schemaRoots to the owning directory is proven for local `$defs` references and a same-`$id` schema elsewhere, not for cross-file references.
+      - When locating a request across several directories, a child directory or symlink counts as a match even if its bundle is broken; a regular file with the request's name is not a request and is ignored there, as in the listing.
+      - With one configured directory an unknown request keeps the loader's existing message; with several, the message names the searched directories.

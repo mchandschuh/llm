@@ -1,4 +1,5 @@
-import { resolveRequestsDirectory, type RequestsDirectoryResolutionOptions } from '../requests-config.js';
+import { resolveRequestDirectories, type RequestsDirectoryResolutionOptions } from '../requests-config.js';
+import { locateRequest } from '../request-directory.js';
 import { boundedMessage } from '../errors.js';
 import type { LlmProvider, RequestSettingsOverrides, Thinking } from '../types.js';
 import { runRequestCommand } from './request-command.js';
@@ -45,7 +46,7 @@ function parameters(options: SummarizeCommandOptions): string {
 export async function runSummarizeCommand(options: SummarizeCommandOptions): Promise<number> {
   const writeError = options.writeError ?? ((text: string) => process.stderr.write(`${text}\n`));
   try {
-    const requestsDirectory = options.requestDirectory ?? await resolveRequestsDirectory(options);
+    const requestsDirectory = options.requestDirectory ?? await locateRequest(await resolveRequestDirectories(options), 'summarize');
     return await runRequestCommand({
       requestName: 'summarize',
       requestsDirectory,

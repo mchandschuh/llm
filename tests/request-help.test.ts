@@ -10,6 +10,7 @@ import { parseCliArgumentsAsync } from '../src/cli/arguments.js';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BASELINE_COMMIT = 'a62c17ee60df7d3356fab185a4cb6a11cb17029a';
+const WI_0028_MERGE_COMMIT = '6238e10a9ab272d383bf65898c5c3e6333f325de';
 
 interface Captured {
   readonly exitCode: number;
@@ -327,8 +328,11 @@ test('WI-0028-10000000_TC-HELP-DOCUMENTATION documents both help forms and keeps
     assert.ok(surface.includes('llm req -h'), 'mentions llm req -h');
     assert.ok(surface.includes('llm req <request-name> -h'), 'mentions llm req <request-name> -h');
   }
+  // WI-0028 left the contract unchanged: compare its merge commit with its baseline. Later
+  // operator-confirmed contract edits (D20, WI-0029) are outside this WI-0028 claim.
   const baseline = execFileSync('git', ['-C', repositoryRoot, 'show', `${BASELINE_COMMIT}:requests/README.md`], { encoding: 'utf8' });
-  assert.equal(await readFile(join(repositoryRoot, 'requests', 'README.md'), 'utf8'), baseline);
+  const merged = execFileSync('git', ['-C', repositoryRoot, 'show', `${WI_0028_MERGE_COMMIT}:requests/README.md`], { encoding: 'utf8' });
+  assert.equal(merged, baseline);
 });
 
 const WI_0028_TEST_CASES = [

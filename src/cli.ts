@@ -7,6 +7,7 @@ import { runRequestCommand } from './cli/request-command.js';
 import { runRequestHelpCommand } from './cli/request-help.js';
 import { printHelp, packageVersion } from './cli/help.js';
 import { printUsageError } from './cli/output.js';
+import { boundedMessage } from './errors.js';
 
 export async function main(args: readonly string[] = process.argv.slice(2)): Promise<number> {
   const parsed = await parseCliArgumentsAsync(args);
@@ -16,6 +17,11 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
     return 0;
   }
   if (parsed.command === 'req-help') return runRequestHelpCommand({ requestName: parsed.requestName });
+  if (parsed.command === 'req' && parsed.configurationError !== undefined) {
+    // The same configuration_error envelope that `llm req` prints for failures after parsing.
+    process.stderr.write(`${JSON.stringify({ status: 'configuration_error', errors: [{ code: 'CONFIGURATION_INVALID', phase: 'configuration', message: boundedMessage(parsed.configurationError) }] })}\n`);
+    return 1;
+  }
   if (parsed.exitCode !== undefined) return printUsageError(parsed.usageError);
   if (parsed.command === 'prompt') return runPromptCommand({ prompt: parsed.prompt!, debug: parsed.debug, format: parsed.format });
   if (parsed.command === 'chat') return runChatCommand({ prompt: parsed.prompt!, chatId: parsed.chatId, continuation: false, debug: parsed.debug, format: parsed.format, printChatId: parsed.printChatId });

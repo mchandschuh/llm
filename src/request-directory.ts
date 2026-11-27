@@ -81,6 +81,46 @@ async function inspectRequestDirectory(requestsDirectory: string, requestName: s
   return requestDirectory;
 }
 
+/** A request name that exists in more than one configured request directory. */
+export class AmbiguousRequestFailure extends LlmFailure {
+  readonly directories: readonly string[];
+
+  constructor(requestName: string, directories: readonly string[]) {
+    super('CONFIGURATION_INVALID', 'configuration', `Request '${requestName}' is ambiguous: it exists in more than one configured request directory: ${directories.join(', ')}. Rename or remove all but one copy, or remove a directory from ~/.llm/config.json:requestsDirectory or requestDirectories.`);
+    this.name = 'AmbiguousRequestFailure';
+    this.directories = directories;
+  }
+}
+
+/**
+ * Select the one configured request directory that contains `requestName`.
+ *
+ * The name is validated before any directory is probed. A child directory or
+ * symlink counts as a match even when its bundle is broken, so a broken copy in
+ * one directory never lets another directory's copy shadow it; a name in more than one directory throws
+ * `AmbiguousRequestFailure` naming every matching directory. With a single
+ * configured directory the loader keeps reporting a missing request itself.
+ */
+export async function locateRequest(requestsDirectories: readonly string[], requestName: string): Promise<string> {
+  assertRequestName(requestName);
+  if (requestsDirectories.length === 1) return requestsDirectories[0]!;
+  const matches: string[] = [];
+  for (const directory of requestsDirectories) {
+    try {
+      const info = await lstat(resolve(directory, requestName));
+      // The same candidates the request listing considers: directories and symlinks, loadable or not.
+      if (info.isDirectory() || info.isSymbolicLink()) matches.push(directory);
+    } catch {
+      // Absent from this directory.
+    }
+  }
+  if (matches.length > 1) throw new AmbiguousRequestFailure(requestName, matches);
+  if (matches.length === 0) {
+    throw configurationFailure(requestName, `the request directory does not exist in any configured request directory: ${requestsDirectories.join(', ')}.`);
+  }
+  return matches[0]!;
+}
+
 function assetName(requestName: string, suffix: string): string {
   return `${requestName}.${suffix}`;
 }

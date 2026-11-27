@@ -173,10 +173,30 @@ from `defaults.json`. Help is read-only and never starts a provider. It is
 recognized only immediately after `req` or after the request name; an unknown
 or invalid request prints a `configuration_error` JSON entry and exits 1.
 
-The request directory is the `requestsDirectory` value in the layered
-`config.json` (`.config` in the current directory, then `~/.llm`, then the
-directory named by `LLM_CONFIG`). It must be an absolute directory path. Each
-direct child directory is one request whose assets
+Request directories come from the layered `config.json` (`.config` in the
+current directory, then `~/.llm`, then the directory named by `LLM_CONFIG`):
+`requestsDirectory` names one directory and `requestDirectories` names an array
+of them. Either key, or both, may be set:
+
+```json
+{
+  "requestsDirectory": "/home/me/src/github/llm/requests",
+  "requestDirectories": ["/home/me/src/github/sdlc/.llm/requests"]
+}
+```
+
+Every entry must be an existing absolute directory path without `..`;
+`requestDirectories` must be a non-empty array. A malformed value fails with a
+`configuration_error` that names the key or the index, such as
+`requestDirectories[1]`. Directories are searched with `requestsDirectory` first,
+then `requestDirectories` in array order; entries that resolve to the same
+directory are searched once. Layers combine per key, and a later layer's
+`requestDirectories` array replaces an earlier one. A request name must exist in
+exactly one directory: when it exists in more than one directory,
+`llm req <request-name>` fails with a `configuration_error` naming every
+matching directory, and `llm req -h` lists it under "Duplicate requests" rather
+than letting one copy shadow another. A request's parameter schemas resolve
+only within its own directory. Each direct child directory is one request whose assets
 (`<name>.prompt.md`, `<name>.parameters.schema.json`, `<name>.defaults.json`,
 and others) become the request task, settings, and schemas.
 
