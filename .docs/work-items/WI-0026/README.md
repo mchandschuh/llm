@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 workItemId: WI-0026
 recordType: work-item-summary
 ---
@@ -8,9 +8,16 @@ recordType: work-item-summary
 
 ## Status
 
-`planned`. This record defines a bounded planning slice. It does not claim
-implementation, test execution, provider availability, production readiness,
-release, or commit.
+`complete` for the default `claude` provider, structured-output tool calling,
+the provider registry, and the claude/sonnet defaults. The provider-free
+validation and an accepted review are recorded in the ordered task files; the
+independent review findings were fixed in rework commit 65c9f21.
+
+Open advisory finding WI-0026-90000000_FIND-009: no live claude run has
+verified that the real Claude Code CLI accepts the generated `--json-schema`
+envelopes or that the result parsing matches its output. All evidence uses a
+fake CLI. This status does not claim authentication, model quality, cost,
+release, deployment, or production readiness.
 
 ## Authority
 

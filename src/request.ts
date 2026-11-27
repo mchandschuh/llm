@@ -8,7 +8,7 @@ import { substituteRequestVariables } from './request-variables.js';
 import { complete } from './complete.js';
 import { normalizeRequest } from './normalize.js';
 import { composeRequestPrompt } from './prompt.js';
-import { OpenRouterProvider } from './provider.js';
+import { createProvider } from './providers.js';
 import { parseSchema, assertMatchesSchema } from './schema.js';
 import { boundedMessage, LlmFailure } from './errors.js';
 import type {
@@ -82,8 +82,8 @@ function taskAndSchemas(assets: RequestDirectoryAssets, parameters: JsonObject):
   };
 }
 
-async function providerFor(options: CompleteRequestOptions): Promise<LlmProvider> {
-  return options.provider ?? new OpenRouterProvider();
+function providerFor(options: CompleteRequestOptions, providerName: string): LlmProvider {
+  return options.provider ?? createProvider(providerName);
 }
 
 /**
@@ -118,7 +118,7 @@ export async function completeRequest(options: CompleteRequestOptions): Promise<
       configurationRoot: loaded.requestDirectory,
       files: [...declaredFiles.files, ...(options.files ?? [])],
     });
-    const provider = await providerFor(options);
+    const provider = providerFor(options, normalized.provider);
     if (provider.validate) {
       const validation = await provider.validate({ provider: normalized.provider, credentials: normalized.credentials });
       if (!validation.success) throw requestFailure(validation.errors[0]?.message ?? 'Provider configuration validation failed.');

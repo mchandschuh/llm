@@ -162,3 +162,23 @@ raises the exported `ParameterValidationFailure` with normalized `issues`.
 `llm req` writes one error entry per issue with `parameterPath` and
 `remediation`. The first failing validator still stops validation, and the
 response schema and error codes are unchanged.
+
+## D19 — claude is the default provider
+
+Requested for WI-0026. A built-in `claude` provider runs the Claude Code CLI
+non-interactively (`claude -p --output-format json --safe-mode`, no built-in or
+MCP tools, no session persistence, with the request on stdin). It is the
+default provider, with default model `sonnet`, while `openrouter` keeps
+`openai/gpt-5.6-luna`. Provider names resolve through one registry, and the
+bundled summarize request no longer pins openrouter. Tool calling through
+claude uses the existing tool schemas: definitions are listed in the prompt,
+and `--json-schema` constrains replies to a stop/output or continue/toolCalls
+envelope. The test suite always points the provider at a fake CLI.
+
+WI-0026 review follow-up: generated `--json-schema` envelopes keep a flat
+object root and hoist embedded caller schemas into `$defs`, rewriting their
+local refs. Each completion has a 10-minute default timeout
+(`LLM_CLAUDE_TIMEOUT_MS`) with SIGKILL escalation. Removing the summarize
+openrouter pins changes `llm summarize --provider openrouter` from
+`openai/gpt-5-nano` to `openai/gpt-5.6-luna`; pass `--model` to keep the old
+model.

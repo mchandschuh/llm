@@ -4,7 +4,7 @@ taskUid: WI-0026-80000000
 orderKey: '80000000'
 parentTaskUid: WI-0026-20000000
 taskType: validation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Validate the claude provider
 objective: Validate the claude provider against every required strategy case and scope boundary.
 references:
@@ -49,7 +49,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
@@ -134,3 +134,57 @@ task:
     - Apply only the WI-0026 documentation surfaces (README.md, SKILL.md, and the provider statements in requests/README.md).
     - Do not support image attachments or stream-json input, and do not change OpenRouter projection or credentials.
     - Do not invoke the real claude CLI or any authenticated provider from automated tests, and do not claim production readiness.
+  result:
+    status: passed
+    summary: "All six WI-0026 strategy cases, the guarded suite run, schema compilation checks, the compiled-CLI smoke run, the changed-path scope audit, and the complete provider-free package gate passed locally at 65c9f21."
+    executions:
+    - id: WI-0026-80000000_EXEC-ALL
+      procedureRef: '#procedure/WI-0026-80000000_VAL-ALL'
+      status: passed
+      observed:
+        outcome: passed
+        exitCode: 0
+        summary: "Six focused cases passed; the complete package gate passed 172 tests, typecheck, build, and whitespace checks; the guarded run recorded zero claude invocations."
+        assertions:
+        - "The six strategy cases passed and carry SDLC-TEST-CASE trace markers; the WI-0022 matrix finds exactly one trace-named test per case."
+        - "The suite ran with a fake claude first on PATH and FAKE_CLAUDE_GUARD_LOG set, and recorded zero real and zero unconfigured claude invocations."
+        - "Every emitted --json-schema compiles with strict Ajv 2020, including embedded $defs, definitions, and $id-scoped schemas, and accepts and rejects sample replies as intended."
+        - "The default provider is claude with model sonnet; openrouter keeps openai/gpt-5.6-luna; summarize no longer pins openrouter."
+        - "complete, completeRequest, and llm summarize --provider resolve claude and openrouter, unknown names fail with the registered list, and injected providers win."
+        - "The compiled CLI summarize smoke run defaulted to claude/sonnet with --safe-mode, --effort low, --json-schema, and the content on stdin."
+        - "The changed paths versus master are WI-0026 records, the claude provider, registry, and defaults modules, complete/request/normalize/index, the request schema, the summarize defaults, the fake CLI, the test guard and its package.json wiring, the adjusted and new tests, and the docs, all owned by WI-0026-20000000."
+        - "npm run typecheck exited zero."
+        - "npm test passed 172 of 172 tests."
+        - "npm run build exited zero."
+        - "git diff --check exited zero."
+        - "sdlc work-item validate --work-item WI-0026 reported valid."
+        - "No live claude call, authenticated provider call, or production claim is part of this evidence."
+      evidenceTier: cli-audit
+      evidence:
+      - kind: test
+        source: "tests/claude-provider.test.ts"
+        claim: "All six focused WI-0026 tests passed."
+        command: "tsx --import ./tests/support/claude-guard.ts --test tests/claude-provider.test.ts"
+      - kind: command
+        source: "repository package gate"
+        claim: "The complete provider-free package gate passed."
+        command: "npm run typecheck && npm test && npm run build && git diff --check"
+      - kind: command
+        source: "PATH-shimmed suite run"
+        claim: "No test reached a real or unconfigured claude executable."
+        command: "PATH=<shim>:$PATH FAKE_CLAUDE_GUARD_LOG=<log> npm test"
+      - kind: command
+        source: "bin/cli.js"
+        claim: "The compiled CLI defaults to the claude provider."
+        command: "LLM_CLAUDE_EXECUTABLE=tests/fixtures/fake-claude.mjs node ./bin/cli.js summarize --content <text>"
+      - kind: command
+        source: ".docs/work-items/WI-0026/work-item.json"
+        claim: "The work item, its references, and its tasks validated."
+        command: "sdlc work-item validate --work-item WI-0026 --json"
+    findings: []
+    evidenceTier: cli-audit
+    limitations:
+    - "A fake claude CLI was used throughout. This does not establish real Claude Code behavior, authentication, acceptance of the generated --json-schema envelopes by Claude structured output, model quality, cost, or production readiness."
+    - "An earlier unguarded local suite run, before the test guard existed, started the real claude CLI once; it is recorded in the implementation limitations."
+    nonClaims:
+    - This validation does not authorize deployment, publication, or release.

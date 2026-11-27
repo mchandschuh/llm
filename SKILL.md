@@ -13,6 +13,7 @@ metadata:
     - completion
     - structured-output
     - openrouter
+    - claude
     - typescript
     - cli
   triggers:
@@ -22,6 +23,7 @@ metadata:
     - "structured completion"
     - "schema-aware completion"
     - "OpenRouter completion"
+    - "claude provider"
   file_patterns:
     - "**/llm/**"
     - "**/request.schema.json"
@@ -236,8 +238,9 @@ properties are rejected.
 - `systemPrompt` is a required non-empty string. If it names an existing
   permitted regular file under the configuration root, its UTF-8 contents are
   loaded; otherwise it is treated as literal text.
-- `provider` defaults to `openrouter`.
-- `model` defaults to `openai/gpt-5.6-luna`.
+- `provider` defaults to `claude` (see [Provider and credentials](#provider-and-credentials)).
+- `model` defaults to the provider's default model: `sonnet` for `claude` and
+  `openai/gpt-5.6-luna` for `openrouter`.
 - `thinking` accepts `minimal`, `low`, `medium`, `high`, or `xhigh`, and defaults
   to `high`.
 - `maxFailedAttempts` defaults to `3` and must be an integer from `0` through
@@ -277,8 +280,125 @@ content.
 
 ## Provider and credentials
 
-The built-in `OpenRouterProvider` sends a request to OpenRouter’s chat
-completion endpoint. It uses, in order:
+Two provider adapters are built in, selected by the request `provider` field,
+by request defaults, by completion settings, or by `llm summarize --provider`:
+
+| `provider` | Adapter | Default `model` |
+| --- | --- | --- |
+| `claude` (default) | `ClaudeProvider`: the Claude Code CLI | `sonnet` |
+| `openrouter` | `OpenRouterProvider`: OpenRouter chat completions | `openai/gpt-5.6-luna` |
+
+An explicit `model` always wins, for example `"model": "opus"` for claude. A
+provider name that is not registered returns `configuration_error`, naming the
+registered providers, unless the caller injects its own `LlmProvider`. An
+injected provider always takes precedence over the registry.
+
+### The `claude` provider
+
+`ClaudeProvider` runs one non-interactive Claude Code process per completion:
+
+```text
+claude -p "<fixed instruction>" --output-format json --model <model> \
+  --effort <thinking> --system-prompt <system prompt> --safe-mode \
+  --tools "" --strict-mcp-config --disallowedTools "mcp__*" \
+  --no-session-persistence [--json-schema <schema>]
+```
+
+How the invocation is put together:
+
+- The request is written to stdin, so use the documented
+  `cat request | claude -p "<instruction>"` pattern. Stdin is capped at 10 MB.
+  The stdin document is the normal `llmPrompt` XML, followed by any later chat
+  turns in `<conversation>`, then `<tools>`, `<toolResults>`, and
+  `<responseInstructions>` for tool-capable requests.
+- `--safe-mode` skips CLAUDE.md, hooks, plugins, skills, MCP servers, and auto
+  memory. Project hooks in whatever directory `llm` runs from therefore never
+  execute, and start-up stays fast. Authentication and model selection still
+  work. `--bare` is not used because it breaks subscription logins.
+- Built-in tools and MCP tools are disabled, and sessions are not saved.
+- `--system-prompt` replaces the default Claude Code system prompt. It uses the
+  chat or request system prompt, falling back to
+  `You are a helpful assistant.`
+- `thinking` maps to `--effort`, with `minimal` becoming `low`.
+
+Credentials come from the installed CLI's own sign-in; `llm` passes none.
+`LLM_CLAUDE_EXECUTABLE` overrides the executable, which otherwise is `claude`
+on `PATH`. If the executable cannot be found, the completion returns a bounded
+`configuration_error`.
+
+The JSON result envelope is checked together with the exit code. A non-zero
+exit, `is_error: true`, an `error_*` subtype, or invalid JSON is a bounded
+`PROVIDER_REQUEST_FAILED`.
+
+Each completion has a timeout: 10 minutes by default, changed with
+`LLM_CLAUDE_TIMEOUT_MS` or the `timeoutMs` option. When the timeout expires,
+cancellation fires through the `AbortSignal`, or output exceeds 32 MiB, the
+process gets SIGTERM, then SIGKILL after 5 seconds.
+
+On Windows, a bare `claude` is found through `PATHEXT` (`claude.exe`). `.cmd`
+and `.bat` shims are not run, because that would need a shell; point
+`LLM_CLAUDE_EXECUTABLE` at `claude.exe` instead.
+
+Structured output uses `--json-schema`. With an `outputSchema`, the validated
+`structured_output` is returned as JSON content and then validated by the
+runtime as usual. A schema whose root is not an object is wrapped as
+`{ value }` for the CLI and unwrapped again. A reply without `structured_output`
+is a provider failure.
+
+When a caller schema (an `outputSchema` or a tool `inputSchema`) is embedded in
+a generated envelope, it moves to `#/$defs/<key>` of that envelope. Its local
+`$ref`s, such as `#/$defs/item`, are rewritten so they keep resolving. A schema
+with its own `$id` is embedded unchanged and resolves its refs itself.
+Schemas reached only through an external `$ref` must be resolvable by Claude
+Code.
+
+Limitations: image attachments are not supported, because text stdin cannot
+carry image parts; use `provider: "openrouter"` for base64 image files.
+
+### Tool calling with the `claude` provider
+
+The Claude Code CLI only runs its own tools, so caller-defined tools travel
+through the existing tool schemas and structured output:
+
+- The task side carries the tool definitions. Each `toolOptions.tools` entry
+  (`name`, `description`, `inputSchema`, as in `llm/tool-definition/v1`) is
+  listed in the `<tools>` section of the stdin prompt.
+- The output side carries the tool calls. `--json-schema` constrains every reply
+  to a flat object, `{ decision, output?, toolCalls? }`, with `decision` either
+  `"stop"` or `"continue"`. The root has no `oneOf`/`anyOf`, and the adapter
+  checks the combination rules when it reads the reply. In practice a reply is
+  one of two envelopes:
+
+```json
+{ "decision": "continue", "toolCalls": [{ "id": "call-1", "name": "lookup", "arguments": { "key": "a" } }] }
+```
+
+```json
+{ "decision": "stop", "output": "a is 42" }
+```
+
+- Each `toolCalls` entry has the `llm/tool-call/v1` shape `{ id, name, arguments }`.
+  `name` is constrained to a declared tool, and `arguments` to that tool's
+  `inputSchema`, through an `anyOf` of one call schema per tool.
+- A `"continue"` reply without at least one complete tool call, a call naming an
+  undeclared tool, or a `"stop"` reply without `output` is a bounded error.
+- `"decision": "continue"` becomes one parallel tool-call batch
+  (`decision: "continue"`). The runtime invokes the tools and calls claude again
+  with the assistant tool calls and the tool results replayed in
+  `<conversation>`. Without message history, the results are replayed in
+  `<toolResults>`.
+- `"decision": "stop"` ends the loop. `output` follows the request
+  `outputSchema` when one is set; otherwise it is text.
+
+Write the request exactly as for any other provider: put the tool definitions
+in `toolOptions.tools` and the final answer's shape in `outputSchema`. The
+`maxRounds`, `maxCalls`, `autoInvoke`, cancellation, and `toolResults` history
+semantics below are the same for both providers.
+
+### The `openrouter` provider
+
+The built-in `OpenRouterProvider` sends a request to OpenRouter's chat
+completion endpoint. Select it with `provider: "openrouter"`. It uses, in order:
 
 1. `request.credentials.apiKey`;
 2. `request.credentials.accessToken`;
@@ -296,6 +416,7 @@ OpenAI-compatible `image_url` content parts. For example:
 ```json
 {
   "schema": "https://schemas.handschuh.dev/llm/request/v1",
+  "provider": "openrouter",
   "model": "openai/gpt-5.6-luna",
   "task": "Describe the supplied image.",
   "systemPrompt": "Return a concise description.",
@@ -315,11 +436,7 @@ OpenRouter request contains a `data:image/png;base64,...` image URL. The image
 must have a matching signature; a file renamed to `.png` but containing other
 content is rejected.
 
-Only the `openrouter` adapter is built in. A non-OpenRouter provider name
-requires an injected `LlmProvider`; otherwise the completion returns
-`configuration_error` without making a provider request.
-
-For tool-capable tool-capable completions, OpenRouter's Chat Completions response includes
+For tool-capable completions, OpenRouter's Chat Completions response includes
 the provider-specific `choices[0].finish_reason`. The adapter normalizes this
 intermediate provider response to `ProviderCompletionResponse.decision`:
 
@@ -427,7 +544,8 @@ The public exports also include:
   the raw provider result;
 - `normalizeRequest` for request preparation and source resolution;
 - `composePrompt`, `composeRequestPrompt`, and `composeCorrectionPrompt`;
-- `OpenRouterProvider`;
+- `ClaudeProvider` (the default `claude` adapter) and `OpenRouterProvider`;
+- `createProvider`, `REGISTERED_PROVIDERS`, `DEFAULT_PROVIDER`, and `DEFAULT_MODELS` for provider selection;
 - `OpenRouterHttpProjection` for deterministic OpenRouter request-body mapping;
 - `chatFactory`, which creates independent `LlmChatSession` instances with
   append-only provider-neutral history;

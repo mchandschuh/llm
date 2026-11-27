@@ -123,6 +123,20 @@ REPL, interactive chat loop, long-lived process, TTY/readline requirement,
 stdin-driven message loop, slash-command exit interface, or promptless chat
 start.
 
+## Providers
+
+Completions use the `claude` provider by default. It runs the installed Claude
+Code CLI (`claude -p`) non-interactively with the `sonnet` model, using the
+CLI's own sign-in. Select OpenRouter with `"provider": "openrouter"`, which
+needs `OPENROUTER_API_KEY`. Set `LLM_CLAUDE_EXECUTABLE` to use a different
+`claude` executable and `LLM_CLAUDE_TIMEOUT_MS` to change the 10-minute
+per-completion timeout. See `SKILL.md` for the exact invocation, structured
+output, and tool calling through the claude provider.
+
+`npm test` loads `tests/support/claude-guard.ts`, which points the claude
+provider at a fake CLI. The suite therefore never starts the real `claude`,
+even on machines where it is installed.
+
 ## Dynamic requests
 
 `llm req` runs a named request bundle from the configured request directory:

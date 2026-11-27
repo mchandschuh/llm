@@ -1,5 +1,5 @@
 import { composeCorrectionPrompt, composeRequestPrompt } from './prompt.js';
-import { OpenRouterProvider } from './provider.js';
+import { createProvider } from './providers.js';
 import { assertMatchesSchema, parseSchema, validateResponse } from './schema.js';
 import { boundedMessage, errorFromFailure, LlmFailure } from './errors.js';
 import { normalizeRequest } from './normalize.js';
@@ -182,7 +182,13 @@ async function completeToolInternalImpl(request: LlmRequest | unknown, options: 
     const failure = error instanceof Failure ? error : new Failure('REQUEST_INVALID', 'request', 'Request preparation failed.');
     return toolResponse(failureStatus(failure), null, 0, 0, 0, 0, [], [errorFromFailure(failure)]);
   }
-  const provider = options.provider ?? new OpenRouterProvider();
+  let provider: LlmProvider;
+  try {
+    provider = options.provider ?? createProvider(normalized.provider);
+  } catch (error) {
+    const failure = error instanceof Failure ? error : new Failure('CONFIGURATION_INVALID', 'configuration', 'The provider could not be created.');
+    return toolResponse('configuration_error', null, 0, 0, 0, 0, [], [errorFromFailure(failure)]);
+  }
   if (!normalized.toolOptions) return response('configuration_error', null, 0, 0, [toolFailure('CONFIGURATION_INVALID', 'toolOptions is required for tool completion.', 'configuration')]);
   if (normalized.toolOptions.autoInvoke && !options.toolInvoker) return toolResponse('configuration_error', null, 0, 0, 0, 0, [], [toolFailure('CONFIGURATION_INVALID', 'autoInvoke requires an injected ToolInvoker.', 'configuration')]);
   const validation = await validateProvider(provider, { provider: normalized.provider, credentials: normalized.credentials }, options);
@@ -205,7 +211,7 @@ async function completeToolInternalImpl(request: LlmRequest | unknown, options: 
     }
     let providerResult: ProviderCompletionResponse;
     try {
-      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, ...(normalized.systemPrompt.value !== null ? { systemPrompt: normalized.systemPrompt.value } : {}), llmPrompt: prompt, task: normalized.task, taskSchema: normalized.taskSchema, messages: messages.slice(), files: normalized.files, credentials: normalized.credentials, signal: options.signal, toolOptions: normalized.toolOptions, toolResults };
+      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, ...(normalized.systemPrompt.value !== null ? { systemPrompt: normalized.systemPrompt.value } : {}), llmPrompt: prompt, task: normalized.task, taskSchema: normalized.taskSchema, ...(normalized.outputSchema === undefined ? {} : { outputSchema: normalized.outputSchema }), messages: messages.slice(), files: normalized.files, credentials: normalized.credentials, signal: options.signal, toolOptions: normalized.toolOptions, toolResults };
       emitDebug(options.debug, 'llm.request', request);
       emitDebug(options.debug, 'llm.provider.request', providerRequest);
       providerResult = await provider.complete(providerRequest);
@@ -327,9 +333,12 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
     return result;
   }
 
-  const provider: LlmProvider = options.provider ?? new OpenRouterProvider();
-  if (!options.provider && normalized.provider !== 'openrouter') {
-    const result = response('configuration_error', null, 0, 0, [errorFromFailure(new LlmFailure('CONFIGURATION_INVALID', 'configuration', `No provider adapter is registered for ${normalized.provider}.`))]);
+  let provider: LlmProvider;
+  try {
+    provider = options.provider ?? createProvider(normalized.provider);
+  } catch (error) {
+    const failure = error instanceof LlmFailure ? error : new LlmFailure('CONFIGURATION_INVALID', 'configuration', 'The provider could not be created.');
+    const result = response('configuration_error', null, 0, 0, [errorFromFailure(failure)]);
     emitDebug(options.debug, 'llm.response', result);
     return result;
   }
@@ -344,7 +353,7 @@ async function completeV1Internal(request: LlmRequest | unknown, options: Comple
   while (iterations < normalized.maxIterations) {
     let raw: string;
     try {
-      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, ...(normalized.systemPrompt.value !== null ? { systemPrompt: normalized.systemPrompt.value } : {}), llmPrompt: prompt, task: normalized.task, taskSchema: normalized.taskSchema, messages: conversationMessages(normalized, prompt, options.conversationHistory), files: normalized.files, credentials: normalized.credentials, signal: options.signal };
+      const providerRequest = { provider: normalized.provider, model: normalized.model, thinking: normalized.thinking, ...(normalized.systemPrompt.value !== null ? { systemPrompt: normalized.systemPrompt.value } : {}), llmPrompt: prompt, task: normalized.task, taskSchema: normalized.taskSchema, ...(normalized.outputSchema === undefined ? {} : { outputSchema: normalized.outputSchema }), messages: conversationMessages(normalized, prompt, options.conversationHistory), files: normalized.files, credentials: normalized.credentials, signal: options.signal };
       emitDebug(options.debug, 'llm.request', request);
       emitDebug(options.debug, 'llm.provider.request', providerRequest);
       raw = (await provider.complete(providerRequest)).content ?? '';

@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0026",
-  "status": "planned",
+  "status": "complete",
   "title": "Add claude provider",
   "type": "feature",
   "objective": "Add a 'claude' LlmProvider that runs the Claude Code CLI non-interactively and efficiently. Support text, structured-output, and tool-calling completions, the last through structured output built from the existing tool schemas. Make claude resolvable through every provider-selection mechanism, and make it the default provider with the 'sonnet' model.",
@@ -15,7 +15,7 @@
     },
     "branch": {
       "name": "WI-0026-claude-provider",
-      "created": false,
+      "created": true,
       "rationale": "Each work item is processed on its own branch."
     }
   },
