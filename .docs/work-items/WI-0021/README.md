@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 workItemId: WI-0021
 recordType: work-item-summary
 ---
@@ -8,7 +8,7 @@ recordType: work-item-summary
 
 ## Status
 
-`planned`. This record defines a bounded planning slice. It does not claim implementation, test execution, provider availability, production readiness, release, or commit.
+`complete` for the summarize compatibility adapter, the generic summarize request example, the corrected contract sections, and the provider-free validation and review evidence recorded in the ordered task files. Review finding WI-0021-90000000_FIND-001 (a stale contract-table anchor outside WI-0021's sections) is deferred to WI-0022. It does not claim authenticated provider availability, production readiness, release, deployment, or publication.
 
 ## Authority
 
