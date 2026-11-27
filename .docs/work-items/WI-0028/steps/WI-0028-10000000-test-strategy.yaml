@@ -1,0 +1,568 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0028
+taskUid: WI-0028-10000000
+orderKey: "10000000"
+parentTaskUid: null
+taskType: test-strategy
+processingStatus: processing_completed
+title: Define llm req help test strategy
+objective: Define provider-free positive and negative evidence for request listing help, request parameter help, help safety, and documentation.
+references:
+  required:
+    - .docs/work-items/WI-0028/work-item.json
+    - .docs/work-items/WI-0028/work-item-request.md
+    - src/cli/arguments.ts
+    - src/cli/help.ts
+    - src/cli.ts
+    - src/request-directory.ts
+    - src/requests-config.ts
+    - requests/README.md
+    - requests/summarize/summarize.parameters.schema.json
+    - tests/request-cli.test.ts
+  informational:
+    - README.md
+    - SKILL.md
+dependsOn: []
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0028/steps/WI-0028-10000000-test-strategy.yaml
+  commitSubject: "WI-0028: plan: qualify llm req help"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: schema-audit
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-test-strategy/v2#/properties/result
+  intent:
+    summary: Define provider-free positive and negative evidence that request listing and request parameter help are complete, safe, and documented.
+    inputs:
+      - id: WI-0028-10000000_INPUT-REQ-001
+        kind: requirement
+        ref: WI-0028#work-item.json#requirement/WI-0028_REQ_001
+        purpose: Define evidence for WI-0028_REQ_001.
+        required: true
+      - id: WI-0028-10000000_INPUT-REQ-002
+        kind: requirement
+        ref: WI-0028#work-item.json#requirement/WI-0028_REQ_002
+        purpose: Define evidence for WI-0028_REQ_002.
+        required: true
+      - id: WI-0028-10000000_INPUT-REQ-003
+        kind: requirement
+        ref: WI-0028#work-item.json#requirement/WI-0028_REQ_003
+        purpose: Define evidence for WI-0028_REQ_003.
+        required: true
+      - id: WI-0028-10000000_INPUT-REQ-004
+        kind: requirement
+        ref: WI-0028#work-item.json#requirement/WI-0028_REQ_004
+        purpose: Define evidence for WI-0028_REQ_004.
+        required: true
+      - id: WI-0028-10000000_INPUT-REQ-005
+        kind: requirement
+        ref: WI-0028#work-item.json#requirement/WI-0028_REQ_005
+        purpose: Define evidence for WI-0028_REQ_005.
+        required: true
+    requirements:
+      - id: REQ-001
+        kind: requirement
+        statement: "`llm req -h` and `--help` print req usage and every resolvable request."
+        inputRefs:
+          - WI-0028-10000000_INPUT-REQ-001
+        required: true
+      - id: REQ-002
+        kind: requirement
+        statement: "`llm req <request-name> -h` prints the request parameters and how to set them from the command line."
+        inputRefs:
+          - WI-0028-10000000_INPUT-REQ-002
+        required: true
+      - id: REQ-003
+        kind: requirement
+        statement: Help is read-only, provider-free, fails closed for invalid requests, and leaves non-help invocations unchanged.
+        inputRefs:
+          - WI-0028-10000000_INPUT-REQ-003
+        required: true
+      - id: REQ-004
+        kind: requirement
+        statement: Top-level help, README.md, and SKILL.md document both help forms; requests/README.md is unchanged.
+        inputRefs:
+          - WI-0028-10000000_INPUT-REQ-004
+        required: true
+      - id: REQ-005
+        kind: requirement
+        statement: Quality gates pass and every test case is traceable.
+        inputRefs:
+          - WI-0028-10000000_INPUT-REQ-005
+        required: true
+    invariants:
+      - id: WI-0028-10000000_INV-001
+        statement: Help never creates a provider, reads a parameter file, or writes to the filesystem.
+        inputRefs:
+          - WI-0028-10000000_INPUT-REQ-003
+        required: true
+      - id: WI-0028-10000000_INV-002
+        statement: Invocations without a help token at a help position behave exactly as before.
+        inputRefs:
+          - WI-0028-10000000_INPUT-REQ-003
+        required: true
+      - id: WI-0028-10000000_INV-003
+        statement: Help output is derived only from the request bundle assets the loader already reads.
+        inputRefs:
+          - WI-0028-10000000_INPUT-REQ-001
+          - WI-0028-10000000_INPUT-REQ-002
+        required: true
+    objectives:
+      - id: WI-0028-10000000_OBJ-001
+        statement: Verify WI-0028_REQ_001.
+        inputRefs:
+          - WI-0028-10000000_INPUT-REQ-001
+        requirementRefs:
+          - WI-0028_REQ_001
+        invariantRefs:
+          - "#intent/invariants/WI-0028-10000000_INV-003"
+        acceptanceCriterionRefs:
+          - WI-0028_REQ_001_AC_001
+          - WI-0028_REQ_001_AC_002
+          - WI-0028_REQ_001_AC_003
+          - WI-0028_REQ_001_AC_004
+      - id: WI-0028-10000000_OBJ-002
+        statement: Verify WI-0028_REQ_002.
+        inputRefs:
+          - WI-0028-10000000_INPUT-REQ-002
+        requirementRefs:
+          - WI-0028_REQ_002
+        invariantRefs:
+          - "#intent/invariants/WI-0028-10000000_INV-003"
+        acceptanceCriterionRefs:
+          - WI-0028_REQ_002_AC_001
+          - WI-0028_REQ_002_AC_002
+          - WI-0028_REQ_002_AC_003
+          - WI-0028_REQ_002_AC_004
+          - WI-0028_REQ_002_AC_005
+      - id: WI-0028-10000000_OBJ-003
+        statement: Verify WI-0028_REQ_003.
+        inputRefs:
+          - WI-0028-10000000_INPUT-REQ-003
+        requirementRefs:
+          - WI-0028_REQ_003
+        invariantRefs:
+          - "#intent/invariants/WI-0028-10000000_INV-001"
+        acceptanceCriterionRefs:
+          - WI-0028_REQ_003_AC_001
+          - WI-0028_REQ_003_AC_002
+          - WI-0028_REQ_003_AC_003
+      - id: WI-0028-10000000_OBJ-004
+        statement: Verify WI-0028_REQ_004.
+        inputRefs:
+          - WI-0028-10000000_INPUT-REQ-004
+        requirementRefs:
+          - WI-0028_REQ_004
+        invariantRefs:
+          - "#intent/invariants/WI-0028-10000000_INV-003"
+        acceptanceCriterionRefs:
+          - WI-0028_REQ_004_AC_001
+      - id: WI-0028-10000000_OBJ-005
+        statement: Verify WI-0028_REQ_005.
+        inputRefs:
+          - WI-0028-10000000_INPUT-REQ-005
+        requirementRefs:
+          - WI-0028_REQ_005
+        invariantRefs:
+          - "#intent/invariants/WI-0028-10000000_INV-003"
+        acceptanceCriterionRefs:
+          - WI-0028_REQ_005_AC_001
+    nonGoals:
+      - Do not change request loading, validation, execution, or provider behavior.
+      - Do not edit requests/README.md, requests/decisions.md, or the bundled request assets.
+      - Do not invoke a provider or add live checks to npm test.
+  result:
+    status: defined
+    testCases:
+      - id: WI-0028-10000000_TC-LISTING-OUTPUT
+        title: List resolvable requests with descriptions
+        type: cli
+        requirementLevel: required
+        purpose: "Positive: prove `llm req -h` and `llm req --help` print req usage, the requests directory, and every resolvable request sorted with its description fallback chain."
+        procedure:
+          executionMode: executable
+          target: main() from src/cli.ts with a fixture request directory
+          steps:
+            - Create requests `beta` (parameters-schema description), `alpha` (title only), and `gamma` (no parameters schema).
+            - Run main(['req', '-h']) and main(['req', '--help']) capturing stdout and stderr.
+          command: npm test -- --test-name-pattern=WI-0028-10000000_TC-LISTING-OUTPUT
+        expectedOutcome: Both runs exit 0 with empty stderr; stdout has the usage lines, the directory, and alpha, beta, gamma in that order with description, title, and "No description." respectively.
+        passCriteria: Exit code, ordering, and each description line match exactly for both forms.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUESTS-DIRECTORY"
+        limitations:
+          - Fixture request directories are temporary and selected through LLM_CONFIG; they do not establish behavior of other operator configurations.
+      - id: WI-0028-10000000_TC-LISTING-UNAVAILABLE
+        title: Separate unavailable requests and ignore non-request entries
+        type: cli
+        requirementLevel: required
+        purpose: "Negative: prove broken request directories are reported with their loader reason and that files and dot-directories are not listed."
+        procedure:
+          executionMode: executable
+          target: main() from src/cli.ts with a fixture request directory
+          steps:
+            - Add a valid request, a directory with both prompt.md and task.json, an empty directory, a regular file README.md, and a `.hidden` directory.
+            - Run main(['req', '-h']).
+          command: npm test -- --test-name-pattern=WI-0028-10000000_TC-LISTING-UNAVAILABLE
+        expectedOutcome: The valid request is listed as available; the two broken directories appear under "Unavailable requests" with the loader messages; README.md and .hidden do not appear.
+        passCriteria: Exit 0 and the exact available and unavailable sections.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUESTS-DIRECTORY"
+        limitations:
+          - Fixture request directories are temporary and selected through LLM_CONFIG; they do not establish behavior of other operator configurations.
+      - id: WI-0028-10000000_TC-LISTING-EMPTY
+        title: Report an empty requests directory
+        type: cli
+        requirementLevel: required
+        purpose: "Boundary: prove an empty requests directory is not an error."
+        procedure:
+          executionMode: executable
+          target: main() from src/cli.ts with an empty fixture request directory
+          steps:
+            - Configure an empty requests directory.
+            - Run main(['req', '-h']).
+          command: npm test -- --test-name-pattern=WI-0028-10000000_TC-LISTING-EMPTY
+        expectedOutcome: stdout contains "No requests are available." and exit code is 0.
+        passCriteria: Exit 0, empty stderr, and the exact empty message.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUESTS-DIRECTORY"
+        limitations:
+          - Fixture request directories are temporary and selected through LLM_CONFIG; they do not establish behavior of other operator configurations.
+      - id: WI-0028-10000000_TC-LISTING-CONFIG-ERROR
+        title: Fail closed on missing or invalid configuration
+        type: cli
+        requirementLevel: required
+        purpose: "Negative: prove listing help reports configuration failures as JSON errors."
+        procedure:
+          executionMode: executable
+          target: main() from src/cli.ts with missing, relative, and non-directory requestsDirectory configurations
+          steps:
+            - Point LLM_CONFIG at a directory without config.json; then at a config with a relative requestsDirectory; then at one naming a missing directory.
+            - Run main(['req', '-h']) for each.
+          command: npm test -- --test-name-pattern=WI-0028-10000000_TC-LISTING-CONFIG-ERROR
+        expectedOutcome: Each run writes one configuration_error JSON entry with code CONFIGURATION_INVALID to stderr, nothing to stdout, and exits 1.
+        passCriteria: All three runs match the error contract.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUESTS-DIRECTORY"
+        limitations:
+          - Fixture request directories are temporary and selected through LLM_CONFIG; they do not establish behavior of other operator configurations.
+      - id: WI-0028-10000000_TC-PARAMETER-LINES
+        title: Print each parameter with its command-line form
+        type: cli
+        requirementLevel: required
+        purpose: "Positive: prove request help prints --p- flag, type, required status, description, examples, and defaults."
+        procedure:
+          executionMode: executable
+          target: main() from src/cli.ts with a fixture request that has required, optional, and defaulted parameters
+          steps:
+            - Create request `report` with string, integer, and boolean parameters, one required, one with a defaults.json parameter default, and examples.
+            - Run main(['req', 'report', '-h']).
+          command: npm test -- --test-name-pattern=WI-0028-10000000_TC-PARAMETER-LINES
+        expectedOutcome: Each parameter line shows `--p-<name> <value>`, its type, required or optional (default shown), description, and examples.
+        passCriteria: Exit 0, empty stderr, and each expected line present.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUESTS-DIRECTORY"
+        limitations:
+          - Fixture request directories are temporary and selected through LLM_CONFIG; they do not establish behavior of other operator configurations.
+      - id: WI-0028-10000000_TC-ANNOTATIONS
+        title: Print x-llm-req-parameter file and validation annotations
+        type: cli
+        requirementLevel: required
+        purpose: "Positive: prove file binding and validation metadata are described."
+        procedure:
+          executionMode: executable
+          target: main() from src/cli.ts with a fixture request declaring path and content file bindings and a validation function
+          steps:
+            - Declare `source` as a path file binding, `notes` as a content binding with name and encoding, and `limit` with a validation function.
+            - Run main(['req', 'files', '-h']).
+          command: npm test -- --test-name-pattern=WI-0028-10000000_TC-ANNOTATIONS
+        expectedOutcome: The help shows file mode, MIME type, purpose, and name/encoding for the bindings, and that `limit` is checked by an inline validation function.
+        passCriteria: Exit 0 and every annotation field present.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUESTS-DIRECTORY"
+        limitations:
+          - Fixture request directories are temporary and selected through LLM_CONFIG; they do not establish behavior of other operator configurations.
+      - id: WI-0028-10000000_TC-NESTED-ARRAYS-ENUMS
+        title: Print nested paths, array elements, and allowed values
+        type: cli
+        requirementLevel: required
+        purpose: "Positive: prove nested and collection parameters are shown in their assignment-path form."
+        procedure:
+          executionMode: executable
+          target: main() from src/cli.ts with a fixture request having an object, an array of objects, and an enum
+          steps:
+            - Declare `filters.owner`, `sections[].title`, and `audience` with enum values.
+            - Run main(['req', 'report', '-h']).
+          command: npm test -- --test-name-pattern=WI-0028-10000000_TC-NESTED-ARRAYS-ENUMS
+        expectedOutcome: The help lists `--p-filters.owner <value>`, `--p-sections[<index>].title <value>`, notes that `--p-filters` and `--p-sections` accept JSON values, and lists the enum values.
+        passCriteria: Exit 0 and each path and allowed-values line present.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUESTS-DIRECTORY"
+        limitations:
+          - Fixture request directories are temporary and selected through LLM_CONFIG; they do not establish behavior of other operator configurations.
+      - id: WI-0028-10000000_TC-CONSTRAINTS-AND-SETTINGS
+        title: Print requirement groups, --parameters usage, and request settings
+        type: cli
+        requirementLevel: required
+        purpose: "Positive: prove oneOf/anyOf groups, whole-object usage, and defaults.json settings are shown."
+        procedure:
+          executionMode: executable
+          target: main() from src/cli.ts with fixture requests using top-level oneOf and anyOf required groups
+          steps:
+            - Declare one request with oneOf required [a], [b] and another with anyOf required [a], [b]; add defaults.json settings thinking and maxIterations.
+            - Run request help for both.
+          command: npm test -- --test-name-pattern=WI-0028-10000000_TC-CONSTRAINTS-AND-SETTINGS
+        expectedOutcome: 'The help prints "Exactly one of: --p-a, --p-b" and "At least one of: --p-a, --p-b", `--parameters <json>` usage, and the request settings.'
+        passCriteria: Exit 0 and each constraint and settings line present.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUESTS-DIRECTORY"
+        limitations:
+          - Fixture request directories are temporary and selected through LLM_CONFIG; they do not establish behavior of other operator configurations.
+      - id: WI-0028-10000000_TC-NO-PARAMETERS-AND-SUMMARIZE
+        title: Handle requests without parameters and the bundled summarize request
+        type: cli
+        requirementLevel: required
+        purpose: "Boundary and positive: prove a request without a parameters schema is described, and the shipped summarize request help is correct."
+        procedure:
+          executionMode: executable
+          target: main() from src/cli.ts with a fixture request and with requestsDirectory set to the repository requests/ directory
+          steps:
+            - Run request help for a fixture request without parameters.schema.json.
+            - Configure requestsDirectory as the repository requests/ directory and run main(['req', 'summarize', '-h']).
+          command: npm test -- --test-name-pattern=WI-0028-10000000_TC-NO-PARAMETERS-AND-SUMMARIZE
+        expectedOutcome: 'The first prints that the request accepts no parameters; the second lists --p-path (file, path mode) and --p-content (file, content mode) with "Exactly one of: --p-path, --p-content".'
+        passCriteria: Exit 0 for both and the expected lines present.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUESTS-DIRECTORY"
+        limitations:
+          - Fixture request directories are temporary and selected through LLM_CONFIG; they do not establish behavior of other operator configurations.
+          - The summarize check reads the shipped request bundle, which is versioned product content, not work-item data.
+      - id: WI-0028-10000000_TC-HELP-ERRORS
+        title: Report unknown, unsafe, and invalid requests
+        type: cli
+        requirementLevel: required
+        purpose: "Negative: prove request help fails closed with loader messages."
+        procedure:
+          executionMode: executable
+          target: main() from src/cli.ts with a fixture request directory
+          steps:
+            - Run request help for an unknown name, for `../x`, and for a directory with neither prompt.md nor task.json.
+          command: npm test -- --test-name-pattern=WI-0028-10000000_TC-HELP-ERRORS
+        expectedOutcome: Each run writes one configuration_error JSON entry containing the loader message to stderr, nothing to stdout, and exits 1.
+        passCriteria: All three runs match the error contract and messages.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUESTS-DIRECTORY"
+        limitations:
+          - Fixture request directories are temporary and selected through LLM_CONFIG; they do not establish behavior of other operator configurations.
+      - id: WI-0028-10000000_TC-HELP-POSITIONS-PROVIDER-FREE
+        title: Recognize help only at its positions and stay provider-free
+        type: cli
+        requirementLevel: required
+        purpose: "Negative and invariant: prove help positions are exact, later tokens are not validated, and no provider or parameter file is touched."
+        procedure:
+          executionMode: executable
+          target: parseCliArgumentsAsync and main() from src/cli/arguments.ts and src/cli.ts with a fixture request
+          steps:
+            - Run main(['req', 'report', '-h', '--p-missing', 'x', '--bogus']) with a provider factory spy and a --p-path naming a missing file.
+            - Run main(['req', 'report', '--p-content', '-h']) and parse it.
+          command: npm test -- --test-name-pattern=WI-0028-10000000_TC-HELP-POSITIONS-PROVIDER-FREE
+        expectedOutcome: The first prints request help and exits 0 without creating a provider or reading files; in the second, -h is a parameter value, not help.
+        passCriteria: Help output, exit codes, and zero provider and file accesses as asserted.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUESTS-DIRECTORY"
+        limitations:
+          - Fixture request directories are temporary and selected through LLM_CONFIG; they do not establish behavior of other operator configurations.
+      - id: WI-0028-10000000_TC-NON-HELP-UNCHANGED
+        title: Keep non-help request invocations unchanged
+        type: cli
+        requirementLevel: required
+        purpose: "Regression: prove existing request behavior is unchanged."
+        procedure:
+          executionMode: executable
+          target: existing tests/request-cli.test.ts and main() from src/cli.ts
+          steps:
+            - Run main(['req']) and compare with the previous usage error.
+            - Run the existing request CLI tests.
+          command: npm test -- --test-name-pattern=WI-0028-10000000_TC-NON-HELP-UNCHANGED
+        expectedOutcome: main(['req']) still exits 2 with the usage error, and the existing request CLI tests pass unchanged.
+        passCriteria: Exit code and message match, and the existing suites pass.
+        evidenceTier: cli-audit
+        fixtureRefs:
+          - "#result/fixtures/FIX-REQUESTS-DIRECTORY"
+        limitations:
+          - Fixture request directories are temporary and selected through LLM_CONFIG; they do not establish behavior of other operator configurations.
+      - id: WI-0028-10000000_TC-HELP-DOCUMENTATION
+        title: Document both help forms and keep the request contract unchanged
+        type: unit
+        requirementLevel: required
+        purpose: "Positive: prove the help forms are discoverable and the operator-gated contract is untouched."
+        procedure:
+          executionMode: executable
+          target: printHelp() output, README.md, SKILL.md, and requests/README.md
+          steps:
+            - Capture printHelp() output and read README.md and SKILL.md.
+            - Compare requests/README.md with its content at the baseline commit.
+          command: npm test -- --test-name-pattern=WI-0028-10000000_TC-HELP-DOCUMENTATION
+        expectedOutcome: All three surfaces mention `llm req -h` and `llm req <request-name> -h`, and requests/README.md is unchanged.
+        passCriteria: Every mention present and the contract byte-identical.
+        evidenceTier: unit
+        fixtureRefs: []
+        limitations:
+          - Documentation presence does not establish documentation quality.
+      - id: WI-0028-10000000_TC-QUALITY-GATES
+        title: Pass repository gates with traceable test cases
+        type: cli
+        requirementLevel: required
+        purpose: "Gate: prove typecheck, tests, build, and work-item validation pass and every case has a trace marker."
+        procedure:
+          executionMode: executable
+          target: repository quality commands and test sources
+          steps:
+            - Run npm run typecheck, npm test, npm run build, and sdlc work-item validate --work-item WI-0028 --json.
+            - Assert each WI-0028 test case id appears in a test name and in a `// SDLC-TEST-CASE:` marker.
+          command: npm test -- --test-name-pattern=WI-0028-10000000_TC-QUALITY-GATES
+        expectedOutcome: All commands exit 0 and every case is traceable.
+        passCriteria: All gates pass in one run.
+        evidenceTier: cli-audit
+        fixtureRefs: []
+        limitations:
+          - Local gates do not establish production readiness.
+    fixtures:
+      - id: FIX-REQUESTS-DIRECTORY
+        name: temporary-requests-directory
+        purpose: Provide request bundles and configuration isolated from the operator configuration.
+        setup: Create a temporary directory with config.json naming a temporary requestsDirectory, write request bundles per test, and point LLM_CONFIG at the directory.
+        teardown: Restore LLM_CONFIG and delete the temporary directory.
+        sourceRefs:
+          - WI-0028#work-item.json#requirement/WI-0028_REQ_001
+          - WI-0028#work-item.json#requirement/WI-0028_REQ_002
+          - WI-0028#work-item.json#requirement/WI-0028_REQ_003
+    coverage:
+      - id: COV-001
+        requirementRefs:
+          - WI-0028_REQ_001
+        invariantRefs:
+          - "#intent/invariants/WI-0028-10000000_INV-003"
+        objectiveRefs:
+          - "#objective/WI-0028-10000000_OBJ-001"
+        testCaseRefs:
+          - "#result/testCases/WI-0028-10000000_TC-LISTING-OUTPUT"
+          - "#result/testCases/WI-0028-10000000_TC-LISTING-UNAVAILABLE"
+          - "#result/testCases/WI-0028-10000000_TC-LISTING-EMPTY"
+          - "#result/testCases/WI-0028-10000000_TC-LISTING-CONFIG-ERROR"
+        rationale: These cases prove each acceptance criterion of WI-0028_REQ_001, including the failure paths.
+        acceptanceCriterionRefs:
+          - WI-0028_REQ_001_AC_001
+          - WI-0028_REQ_001_AC_002
+          - WI-0028_REQ_001_AC_003
+          - WI-0028_REQ_001_AC_004
+      - id: COV-002
+        requirementRefs:
+          - WI-0028_REQ_002
+        invariantRefs:
+          - "#intent/invariants/WI-0028-10000000_INV-003"
+        objectiveRefs:
+          - "#objective/WI-0028-10000000_OBJ-002"
+        testCaseRefs:
+          - "#result/testCases/WI-0028-10000000_TC-PARAMETER-LINES"
+          - "#result/testCases/WI-0028-10000000_TC-ANNOTATIONS"
+          - "#result/testCases/WI-0028-10000000_TC-NESTED-ARRAYS-ENUMS"
+          - "#result/testCases/WI-0028-10000000_TC-CONSTRAINTS-AND-SETTINGS"
+          - "#result/testCases/WI-0028-10000000_TC-NO-PARAMETERS-AND-SUMMARIZE"
+        rationale: These cases prove each acceptance criterion of WI-0028_REQ_002, including the failure paths.
+        acceptanceCriterionRefs:
+          - WI-0028_REQ_002_AC_001
+          - WI-0028_REQ_002_AC_002
+          - WI-0028_REQ_002_AC_003
+          - WI-0028_REQ_002_AC_004
+          - WI-0028_REQ_002_AC_005
+      - id: COV-003
+        requirementRefs:
+          - WI-0028_REQ_003
+        invariantRefs:
+          - "#intent/invariants/WI-0028-10000000_INV-001"
+        objectiveRefs:
+          - "#objective/WI-0028-10000000_OBJ-003"
+        testCaseRefs:
+          - "#result/testCases/WI-0028-10000000_TC-HELP-ERRORS"
+          - "#result/testCases/WI-0028-10000000_TC-HELP-POSITIONS-PROVIDER-FREE"
+          - "#result/testCases/WI-0028-10000000_TC-NON-HELP-UNCHANGED"
+        rationale: These cases prove each acceptance criterion of WI-0028_REQ_003, including the failure paths.
+        acceptanceCriterionRefs:
+          - WI-0028_REQ_003_AC_001
+          - WI-0028_REQ_003_AC_002
+          - WI-0028_REQ_003_AC_003
+      - id: COV-004
+        requirementRefs:
+          - WI-0028_REQ_004
+        invariantRefs:
+          - "#intent/invariants/WI-0028-10000000_INV-003"
+        objectiveRefs:
+          - "#objective/WI-0028-10000000_OBJ-004"
+        testCaseRefs:
+          - "#result/testCases/WI-0028-10000000_TC-HELP-DOCUMENTATION"
+        rationale: These cases prove each acceptance criterion of WI-0028_REQ_004, including the failure paths.
+        acceptanceCriterionRefs:
+          - WI-0028_REQ_004_AC_001
+      - id: COV-005
+        requirementRefs:
+          - WI-0028_REQ_005
+        invariantRefs:
+          - "#intent/invariants/WI-0028-10000000_INV-003"
+        objectiveRefs:
+          - "#objective/WI-0028-10000000_OBJ-005"
+        testCaseRefs:
+          - "#result/testCases/WI-0028-10000000_TC-QUALITY-GATES"
+        rationale: These cases prove each acceptance criterion of WI-0028_REQ_005, including the failure paths.
+        acceptanceCriterionRefs:
+          - WI-0028_REQ_005_AC_001
+    minimumRequiredTestCaseRefs:
+      - "#result/testCases/WI-0028-10000000_TC-LISTING-OUTPUT"
+      - "#result/testCases/WI-0028-10000000_TC-LISTING-UNAVAILABLE"
+      - "#result/testCases/WI-0028-10000000_TC-LISTING-EMPTY"
+      - "#result/testCases/WI-0028-10000000_TC-LISTING-CONFIG-ERROR"
+      - "#result/testCases/WI-0028-10000000_TC-PARAMETER-LINES"
+      - "#result/testCases/WI-0028-10000000_TC-ANNOTATIONS"
+      - "#result/testCases/WI-0028-10000000_TC-NESTED-ARRAYS-ENUMS"
+      - "#result/testCases/WI-0028-10000000_TC-CONSTRAINTS-AND-SETTINGS"
+      - "#result/testCases/WI-0028-10000000_TC-NO-PARAMETERS-AND-SUMMARIZE"
+      - "#result/testCases/WI-0028-10000000_TC-HELP-ERRORS"
+      - "#result/testCases/WI-0028-10000000_TC-HELP-POSITIONS-PROVIDER-FREE"
+      - "#result/testCases/WI-0028-10000000_TC-NON-HELP-UNCHANGED"
+      - "#result/testCases/WI-0028-10000000_TC-HELP-DOCUMENTATION"
+      - "#result/testCases/WI-0028-10000000_TC-QUALITY-GATES"
+    recommendedTestCaseRefs: []
+    evidenceLimitations:
+      - This strategy defines evidence but does not claim execution or pass status.
+      - All cases are provider-free; they do not establish provider behavior or production readiness.

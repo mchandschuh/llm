@@ -1,0 +1,164 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0028
+taskUid: WI-0028-20000000
+orderKey: "20000000"
+parentTaskUid: WI-0028-10000000
+taskType: implementation
+processingStatus: unprocessed
+title: Implement llm req help
+objective: Add request listing and request parameter help to llm req, document both forms, and implement every WI-0028 test case with trace markers.
+references:
+  required:
+    - .docs/work-items/WI-0028/work-item.json
+    - .docs/work-items/WI-0028/work-item-request.md
+    - .docs/work-items/WI-0028/steps/WI-0028-10000000-test-strategy.yaml
+    - src/cli/arguments.ts
+    - src/cli/help.ts
+    - src/cli.ts
+    - src/request-directory.ts
+    - src/requests-config.ts
+    - requests/README.md
+  informational:
+    - README.md
+    - SKILL.md
+    - tests/request-cli.test.ts
+dependsOn:
+  - WI-0028-10000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0028/steps/WI-0028-20000000-implementation.yaml
+    - src/cli/arguments.ts
+    - src/cli/help.ts
+    - src/cli/request-help.ts
+    - src/cli.ts
+    - tests/request-help.test.ts
+    - README.md
+    - SKILL.md
+  commitSubject: "WI-0028: feat(cli): add llm req help"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: typecheck
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: build
+      executable: npm
+      arguments:
+        - run
+        - build
+      expectedExitCode: 0
+    - id: tests
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: planned
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
+  intent:
+    summary: Implement request listing and request parameter help for llm req with documentation and trace-marked tests.
+    changeTypes:
+      - production-code
+      - test-code
+      - documentation
+    changeIntent: feature
+    inputs:
+      - id: WI-0028-20000000_INPUT-REQ-001
+        kind: requirement
+        ref: WI-0028#work-item.json#requirement/WI-0028_REQ_001
+        purpose: Implement WI-0028_REQ_001.
+        required: true
+      - id: WI-0028-20000000_INPUT-REQ-002
+        kind: requirement
+        ref: WI-0028#work-item.json#requirement/WI-0028_REQ_002
+        purpose: Implement WI-0028_REQ_002.
+        required: true
+      - id: WI-0028-20000000_INPUT-REQ-003
+        kind: requirement
+        ref: WI-0028#work-item.json#requirement/WI-0028_REQ_003
+        purpose: Implement WI-0028_REQ_003.
+        required: true
+      - id: WI-0028-20000000_INPUT-REQ-004
+        kind: requirement
+        ref: WI-0028#work-item.json#requirement/WI-0028_REQ_004
+        purpose: Implement WI-0028_REQ_004.
+        required: true
+      - id: WI-0028-20000000_INPUT-REQ-005
+        kind: requirement
+        ref: WI-0028#work-item.json#requirement/WI-0028_REQ_005
+        purpose: Implement WI-0028_REQ_005.
+        required: true
+    objectives:
+      - id: WI-0028-20000000_OBJ-001
+        statement: Print req usage and the resolvable and unavailable request listing for `llm req -h|--help`.
+        inputRefs:
+          - WI-0028-20000000_INPUT-REQ-001
+        testCaseRefs:
+          - WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-OUTPUT
+          - WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-UNAVAILABLE
+          - WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-EMPTY
+          - WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-CONFIG-ERROR
+      - id: WI-0028-20000000_OBJ-002
+        statement: Print request parameters, command-line forms, constraints, settings, and annotations for `llm req <request-name> -h|--help`.
+        inputRefs:
+          - WI-0028-20000000_INPUT-REQ-002
+        testCaseRefs:
+          - WI-0028-10000000#test-case/WI-0028-10000000_TC-PARAMETER-LINES
+          - WI-0028-10000000#test-case/WI-0028-10000000_TC-ANNOTATIONS
+          - WI-0028-10000000#test-case/WI-0028-10000000_TC-NESTED-ARRAYS-ENUMS
+          - WI-0028-10000000#test-case/WI-0028-10000000_TC-CONSTRAINTS-AND-SETTINGS
+          - WI-0028-10000000#test-case/WI-0028-10000000_TC-NO-PARAMETERS-AND-SUMMARIZE
+      - id: WI-0028-20000000_OBJ-003
+        statement: Keep help read-only and provider-free, fail closed for invalid requests, and leave non-help invocations unchanged.
+        inputRefs:
+          - WI-0028-20000000_INPUT-REQ-003
+        testCaseRefs:
+          - WI-0028-10000000#test-case/WI-0028-10000000_TC-HELP-ERRORS
+          - WI-0028-10000000#test-case/WI-0028-10000000_TC-HELP-POSITIONS-PROVIDER-FREE
+          - WI-0028-10000000#test-case/WI-0028-10000000_TC-NON-HELP-UNCHANGED
+      - id: WI-0028-20000000_OBJ-004
+        statement: Document both help forms in `llm --help`, README.md, and SKILL.md.
+        inputRefs:
+          - WI-0028-20000000_INPUT-REQ-004
+        testCaseRefs:
+          - WI-0028-10000000#test-case/WI-0028-10000000_TC-HELP-DOCUMENTATION
+      - id: WI-0028-20000000_OBJ-005
+        statement: Pass the gates with every test case trace-marked.
+        inputRefs:
+          - WI-0028-20000000_INPUT-REQ-005
+        testCaseRefs:
+          - WI-0028-10000000#test-case/WI-0028-10000000_TC-QUALITY-GATES
+    ownedPaths:
+      - src/cli/arguments.ts
+      - src/cli/help.ts
+      - src/cli/request-help.ts
+      - src/cli.ts
+      - tests/request-help.test.ts
+      - README.md
+      - SKILL.md
+    nonGoals:
+      - Do not change request loading, validation, execution, or provider behavior.
+      - Do not edit requests/README.md, requests/decisions.md, or the bundled request assets.
+      - Do not invoke a provider or add live checks to npm test.
+    steps:
+      - Recognize -h/--help immediately after `req` and immediately after the request name in parseRequestArguments.
+      - Add src/cli/request-help.ts to render the request listing and request parameter help from loadRequestDirectory results.
+      - Dispatch the help commands from src/cli.ts, writing failures as configuration_error JSON on stderr with exit 1.
+      - Document both forms in printHelp, README.md, and SKILL.md.
+      - Implement every WI-0028 test case in tests/request-help.test.ts with a `// SDLC-TEST-CASE:` marker and the id in the test name.
+  result: null

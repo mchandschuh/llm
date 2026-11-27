@@ -1,0 +1,183 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0028",
+  "status": "planned",
+  "title": "Improve llm req -h response",
+  "type": "feature",
+  "objective": "Make `llm req -h` print usage and a listing of every resolvable request in the configured request directory, and make `llm req <request-name> -h` print that request's parameters with their --p- command-line form, types, defaults, constraints, and x-llm-req-parameter annotations such as file bindings, without initializing a provider.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "WI-0028-request-help",
+      "created": false,
+      "rationale": "Each work item is processed on its own branch."
+    }
+  },
+  "baseline": "a62c17ee60df7d3356fab185a4cb6a11cb17029a",
+  "request": {
+    "source": "conversation",
+    "text": "We require a command to list available llm req <request-name>\nas well as support for llm req <request-name> -h to list parameters\nrequired to invoke an llm request.\n\nThe goal for this work item is to have great help documentation\nfor llm req -h [includes resolvable request listing] and\nllm req <request-name> -h [includes parameters and how to\nset them via the command line along w/ annotations, such as file.",
+    "sha256": "d3ba74248073810f128b8c2a07e501dc9aa62b00bb1fafef409b8a9a28e11ad0"
+  },
+  "scope": [
+    {
+      "name": "request-listing-help",
+      "description": "Recognize `llm req -h` and `llm req --help` and print req usage, the resolved requests directory, every resolvable request with its description, and every unavailable request directory with its loader reason.",
+      "reason": "The request asks for a command that lists available `llm req <request-name>` requests."
+    },
+    {
+      "name": "request-parameter-help",
+      "description": "Recognize `llm req <request-name> -h|--help` and print the request usage, description, every parameter path as `--p-<path> <value>`, type or allowed values, required/optional status, defaults.json parameter defaults, examples, oneOf/anyOf requirement groups, `--parameters` usage, request settings, and x-llm-req-parameter file and validation annotations.",
+      "reason": "The request asks for parameters, how to set them from the command line, and annotations such as file."
+    },
+    {
+      "name": "help-entry-points-and-docs",
+      "description": "Add both help forms to `llm --help`, README.md, and SKILL.md.",
+      "reason": "Users and agents discover commands from top-level help and the documentation."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "request-execution-behavior",
+      "description": "Do not change how `llm req` loads, validates, or executes requests, parameter parsing outside the help positions, or provider behavior.",
+      "reason": "This work item only adds help output.",
+      "forbiddenFileWrites": [
+        "src/request.ts",
+        "src/request-parameters.ts",
+        "src/request-parameter-files.ts",
+        "src/request-parameter-validation.ts",
+        "src/providers.ts"
+      ],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "request-contract-edit-gate",
+      "description": "Do not edit requests/README.md, requests/decisions.md, or the bundled request assets.",
+      "reason": "requests/README.md changes require explicit operator confirmation, and help reads the existing contract.",
+      "forbiddenFileWrites": [
+        "requests/"
+      ],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "live-provider-checks",
+      "description": "Do not invoke a provider or add live checks; help is provider-free.",
+      "reason": "Help must not initialize a provider, and npm test stays provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*"
+      ]
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0028_REQ_001",
+        "name": "request-listing",
+        "description": "`llm req -h` and `llm req --help` print req usage and every resolvable request in the configured request directory.",
+        "reason": "Users need to discover which requests exist before running one.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0028_REQ_001_AC_001",
+            "description": "Both forms exit 0, write nothing to stderr, and print the req usage lines, the resolved requests directory, and every resolvable request in sorted order with its parameters-schema description (falling back to title, then \"No description.\")."
+          },
+          {
+            "id": "WI-0028_REQ_001_AC_002",
+            "description": "Child directories that fail to load are listed separately under \"Unavailable requests\" with the loader reason; regular files and dot-directories in the requests directory are not listed."
+          },
+          {
+            "id": "WI-0028_REQ_001_AC_003",
+            "description": "An empty requests directory prints \"No requests are available.\" and exits 0."
+          },
+          {
+            "id": "WI-0028_REQ_001_AC_004",
+            "description": "A missing or invalid request-directory configuration writes one configuration_error JSON entry to stderr, writes nothing to stdout, and exits 1."
+          }
+        ]
+      },
+      {
+        "id": "WI-0028_REQ_002",
+        "name": "request-parameter-help",
+        "description": "`llm req <request-name> -h` and `--help` print the parameters required to invoke that request and how to set each one from the command line.",
+        "reason": "The request asks for parameters, command-line usage, and annotations such as file.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0028_REQ_002_AC_001",
+            "description": "Each top-level parameter is printed as `--p-<name> <value>` with its type, required or optional status, description, examples, and defaults.json parameter default when present."
+          },
+          {
+            "id": "WI-0028_REQ_002_AC_002",
+            "description": "x-llm-req-parameter file bindings print mode, MIME type, purpose, and name or encoding when declared; validation metadata prints that an inline validation function checks the value."
+          },
+          {
+            "id": "WI-0028_REQ_002_AC_003",
+            "description": "Nested object properties are printed as dotted paths, arrays show the `[<index>]` element form and that a JSON array is accepted, and enum values are listed as allowed values."
+          },
+          {
+            "id": "WI-0028_REQ_002_AC_004",
+            "description": "Top-level oneOf and anyOf required groups are printed as \"Exactly one of\" and \"At least one of\" constraint lines, and `--parameters <json>` usage and defaults.json request settings are printed."
+          },
+          {
+            "id": "WI-0028_REQ_002_AC_005",
+            "description": "A request without a parameters schema prints that it accepts no parameters, and the bundled summarize request help lists `--p-path` (file, path mode) and `--p-content` (file, content mode) with an exactly-one constraint."
+          }
+        ]
+      },
+      {
+        "id": "WI-0028_REQ_003",
+        "name": "help-safety-and-errors",
+        "description": "Help is read-only and provider-free, reports unknown or invalid requests as configuration errors, and leaves non-help invocations unchanged.",
+        "reason": "Help must be safe to run anywhere and must not change existing request behavior.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0028_REQ_003_AC_001",
+            "description": "An unknown request name, an unsafe request name such as `../x`, and an invalid request bundle with -h each write one configuration_error JSON entry with the loader message to stderr, write nothing to stdout, and exit 1."
+          },
+          {
+            "id": "WI-0028_REQ_003_AC_002",
+            "description": "Help is recognized only as the token immediately after `req` (listing) or immediately after the request name (request help); later tokens are not validated, no provider is created, and no parameter file is read."
+          },
+          {
+            "id": "WI-0028_REQ_003_AC_003",
+            "description": "Invocations without a help token behave as before: existing request CLI tests pass and `llm req` with no request name still exits 2 with a usage error."
+          }
+        ]
+      },
+      {
+        "id": "WI-0028_REQ_004",
+        "name": "help-documentation",
+        "description": "`llm --help`, README.md, and SKILL.md document `llm req -h` and `llm req <request-name> -h`, and requests/README.md is unchanged.",
+        "reason": "Help forms must be discoverable, and the request contract is operator-gated.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0028_REQ_004_AC_001",
+            "description": "`llm --help` output, README.md, and SKILL.md each mention both help forms, and requests/README.md is byte-identical to the baseline."
+          }
+        ]
+      },
+      {
+        "id": "WI-0028_REQ_005",
+        "name": "quality-gates",
+        "description": "Repository quality gates pass and every WI-0028 test case is implemented with an SDLC-TEST-CASE trace marker.",
+        "reason": "The work item is complete only when all test cases pass and are traceable.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0028_REQ_005_AC_001",
+            "description": "`npm run typecheck`, `npm test`, `npm run build`, and `sdlc work-item validate --work-item WI-0028 --json` all exit 0, and each WI-0028 test case has a test whose name and `// SDLC-TEST-CASE:` marker carry its canonical identifier."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0028/steps/"
+}
