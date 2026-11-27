@@ -451,9 +451,9 @@ cite the exact section(s) it implements. The authoritative section mapping is:
 | WI-0015 | [Request bundle layout](#request-bundle-layout), [Asset mapping and optionality](#asset-mapping-and-optionality), [Processing order](#processing-order), [Request-name and filesystem safety](#request-name-and-filesystem-safety) |
 | WI-0016 | [Request defaults and parameter defaults](#request-defaults-and-parameter-defaults), [Parameter contract](#parameter-contract), [x-llm-req-parameter metadata](#x-llm-req-parameter-metadata) |
 | WI-0017 | [Placeholder substitution](#placeholder-substitution), [Processing order](#processing-order) |
-| WI-0018 | [Library and CLI boundaries](#library-and-cli-boundaries), [Prompt, schema, and summarize compatibility](#prompt-schema-and-summarize-compatibility), [Additional input files](#additional-input-files) |
-| WI-0019 | [Library and CLI boundaries](#library-and-cli-boundaries), [Parameter contract](#parameter-contract) |
-| WI-0020 | [Additional input files](#additional-input-files), [Library and CLI boundaries](#library-and-cli-boundaries), [Request-name and filesystem safety](#request-name-and-filesystem-safety) |
+| WI-0018 | [Schema-declared files and library/CLI boundaries](#schema-declared-files-and-librarycli-boundaries), [Prompt, schema, and summarize compatibility](#prompt-schema-and-summarize-compatibility), [Additional input files](#additional-input-files) |
+| WI-0019 | [Schema-declared files and library/CLI boundaries](#schema-declared-files-and-librarycli-boundaries), [Parameter contract](#parameter-contract) |
+| WI-0020 | [Additional input files](#additional-input-files), [Schema-declared files and library/CLI boundaries](#schema-declared-files-and-librarycli-boundaries), [Request-name and filesystem safety](#request-name-and-filesystem-safety) |
 | WI-0021 | [Prompt, schema, and summarize compatibility](#prompt-schema-and-summarize-compatibility), [Additional input files](#additional-input-files) |
 | WI-0022 | [Work-item validation gates](#work-item-validation-gates), [Evidence boundary](#evidence-boundary) |
 | WI-0024 | [x-llm-req-parameter metadata](#x-llm-req-parameter-metadata), [Schema-declared files and library/CLI boundaries](#schema-declared-files-and-librarycli-boundaries), [Additional input files](#additional-input-files), [Prompt, schema, and summarize compatibility](#prompt-schema-and-summarize-compatibility), [Request-name and filesystem safety](#request-name-and-filesystem-safety) |

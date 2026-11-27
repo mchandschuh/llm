@@ -123,6 +123,57 @@ REPL, interactive chat loop, long-lived process, TTY/readline requirement,
 stdin-driven message loop, slash-command exit interface, or promptless chat
 start.
 
+## Dynamic requests
+
+`llm req` runs a named request bundle from the configured request directory:
+
+```text
+llm req <request-name> [--parameters <json>] [--p-<path> <value>] [--format=full|raw] [--debug]
+```
+
+The request directory is the `requestsDirectory` value in the layered
+`config.json` (`.config` in the current directory, then `~/.llm`, then the
+directory named by `LLM_CONFIG`). It must be an absolute directory path. Each
+direct child directory is one request whose assets
+(`<name>.prompt.md`, `<name>.parameters.schema.json`, `<name>.defaults.json`,
+and others) become the request task, settings, and schemas.
+
+Request parameters come from `--parameters` (one complete JSON object) and
+`--p-<path> <value>` assignments, validated against the request's parameter
+schema. Assignment paths support nested (`--p-filters.owner`) and indexed
+(`--p-sections[0].title`) forms. A parameter whose schema declares
+`x-llm-req-parameter.file` is resolved into a file under the request's
+`<files>`. Unprefixed options that name a schema parameter are rejected with a
+`--p-` suggestion.
+
+The bundled `summarize` request declares `path` and `content` file parameters:
+
+```text
+llm req summarize --p-path notes.md
+llm req summarize --p-content 'Inline text to summarize.' --format=full
+```
+
+`llm summarize --path <path> | --content <text>` remains as a compatibility
+form. It maps `--path`/`--content` to those parameters and
+`--provider`/`--model`/`--thinking` to request settings, then runs the same
+`summarize` request.
+
+Library callers use `completeRequest`, which applies the same loading,
+parameter validation, file materialization, and single provider delegation:
+
+```ts
+import { completeRequest } from 'llm';
+
+const result = await completeRequest({
+  requestName: 'summarize',
+  parameters: { path: 'notes.md' },
+});
+console.log(result.content);
+```
+
+[`requests/README.md`](requests/README.md) is the authoritative contract for
+request bundles, parameters, placeholder substitution, and file bindings.
+
 ## Chat-session store API
 
 The package exposes the complete session-store boundary through

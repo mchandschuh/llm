@@ -125,3 +125,11 @@ declares them. Explicit additional files remain a library-only
 `completeRequest({ files })` option. `llm summarize` is a compatibility adapter
 that maps `--path`/`--content` to the generic `path`/`content` parameters and
 maps `--provider`/`--model`/`--thinking` to explicit request settings.
+
+## D16 — Contract-reference anchors
+
+During WI-0022 documentation validation, the work-item contract-reference
+table's stale `#library-and-cli-boundaries` links were retargeted to the
+current [Schema-declared files and library/CLI boundaries] section. The cited
+behavior is unchanged. Every in-document anchor in `requests/README.md` is now
+checked by `WI-0022-10000000_TC-DOCUMENTATION-CONSISTENCY`.

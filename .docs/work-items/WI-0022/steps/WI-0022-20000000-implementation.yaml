@@ -4,7 +4,7 @@ taskUid: WI-0022-20000000
 orderKey: '20000000'
 parentTaskUid: WI-0022-10000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement final request-feature integration evidence
 objective: Implement final request-feature integration evidence
 references:
@@ -67,7 +67,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -156,3 +156,107 @@ task:
     - Add or update local traceability/scope checks without introducing runtime feature
       scope.
     - Run the complete provider-free package and documentation evidence matrix.
+  result:
+    status: implemented
+    implementation:
+      summary: Added the provider-free request-lookup integration matrix. It checks every earlier required strategy case for a trace-named test and executes the WI-0014 contract cases that had no committed test. It also adds declaration, scope, and documentation-consistency checks, aligns README.md, SKILL.md, and the requests/README.md anchors with the implemented llm req, llm summarize, and completeRequest behavior, and records decision D16.
+      changes:
+      - id: WI-0022-20000000_CHANGE-001
+        type: test-code
+        summary: 'Added tests/request-integration.test.ts. It covers the strategy-to-test matrix across WI-0014 to WI-0022 and WI-0024, plus a combined CLI/library run: placeholders, defaults, nested and indexed parameters, schema-declared and explicit files, negative cases with zero provider calls, and summarize adapter parity. It also covers declaration emission, scope and claim checks, and help/docs/anchor consistency.'
+        objectiveRefs:
+        - WI-0022-20000000_OBJ-001
+        - WI-0022-20000000_OBJ-002
+        - WI-0022-20000000_OBJ-003
+        - WI-0022-20000000_OBJ-004
+        paths:
+        - tests/request-integration.test.ts
+      - id: WI-0022-20000000_CHANGE-002
+        type: test-code
+        summary: Implemented the four WI-0014 strategy cases under their WI-0014 trace markers. The WI-0014 implementation record cites tests/wi-0014-contract.test.ts, which was never committed.
+        objectiveRefs:
+        - WI-0022-20000000_OBJ-001
+        paths:
+        - tests/request-integration.test.ts
+      - id: WI-0022-20000000_CHANGE-003
+        type: documentation
+        summary: Documented llm req, the summarize --p-path/--p-content example, the llm summarize compatibility form, and completeRequest in README.md and SKILL.md. Retargeted the stale requests/README.md anchors (WI-0021-90000000_FIND-001) and recorded decision D16.
+        objectiveRefs:
+        - WI-0022-20000000_OBJ-004
+        paths:
+        - README.md
+        - SKILL.md
+        - requests/README.md
+        - requests/decisions.md
+      testImplementations:
+      - testCaseRef: WI-0022-10000000#test-case/WI-0022-10000000_TC-MATRIX-COVERAGE
+        path: tests/request-integration.test.ts
+        selector: WI-0022-10000000_TC-MATRIX-COVERAGE
+        traceMarker: WI-0022-10000000_TC-MATRIX-COVERAGE
+      - testCaseRef: WI-0022-10000000#test-case/WI-0022-10000000_TC-PACKAGE-GATES
+        path: tests/request-integration.test.ts
+        selector: WI-0022-10000000_TC-PACKAGE-GATES
+        traceMarker: WI-0022-10000000_TC-PACKAGE-GATES
+      - testCaseRef: WI-0022-10000000#test-case/WI-0022-10000000_TC-SCOPE-REVIEW
+        path: tests/request-integration.test.ts
+        selector: WI-0022-10000000_TC-SCOPE-REVIEW
+        traceMarker: WI-0022-10000000_TC-SCOPE-REVIEW
+      - testCaseRef: WI-0022-10000000#test-case/WI-0022-10000000_TC-DOCUMENTATION-CONSISTENCY
+        path: tests/request-integration.test.ts
+        selector: WI-0022-10000000_TC-DOCUMENTATION-CONSISTENCY
+        traceMarker: WI-0022-10000000_TC-DOCUMENTATION-CONSISTENCY
+      - testCaseRef: WI-0014-10000000#test-case/WI-0014-10000000_TC-DOCUMENTATION
+        path: tests/request-integration.test.ts
+        selector: WI-0014-10000000_TC-DOCUMENTATION
+        traceMarker: WI-0014-10000000_TC-DOCUMENTATION
+      - testCaseRef: WI-0014-10000000#test-case/WI-0014-10000000_TC-PROMPT-MAPPING
+        path: tests/request-integration.test.ts
+        selector: WI-0014-10000000_TC-PROMPT-MAPPING
+        traceMarker: WI-0014-10000000_TC-PROMPT-MAPPING
+      - testCaseRef: WI-0014-10000000#test-case/WI-0014-10000000_TC-PARAMETER-CONTRACT
+        path: tests/request-integration.test.ts
+        selector: WI-0014-10000000_TC-PARAMETER-CONTRACT
+        traceMarker: WI-0014-10000000_TC-PARAMETER-CONTRACT
+      - testCaseRef: WI-0014-10000000#test-case/WI-0014-10000000_TC-EVIDENCE-BOUNDARY
+        path: tests/request-integration.test.ts
+        selector: WI-0014-10000000_TC-EVIDENCE-BOUNDARY
+        traceMarker: WI-0014-10000000_TC-EVIDENCE-BOUNDARY
+    verification:
+      status: passed
+      objectiveRefs:
+      - WI-0022-20000000_OBJ-001
+      - WI-0022-20000000_OBJ-002
+      - WI-0022-20000000_OBJ-003
+      - WI-0022-20000000_OBJ-004
+      tests:
+      - id: WI-0022-20000000_EXEC-FOCUSED
+        type: integration
+        testCaseRefs:
+        - WI-0022-10000000#test-case/WI-0022-10000000_TC-MATRIX-COVERAGE
+        - WI-0022-10000000#test-case/WI-0022-10000000_TC-PACKAGE-GATES
+        - WI-0022-10000000#test-case/WI-0022-10000000_TC-SCOPE-REVIEW
+        - WI-0022-10000000#test-case/WI-0022-10000000_TC-DOCUMENTATION-CONSISTENCY
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-DOCUMENTATION
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-PROMPT-MAPPING
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-PARAMETER-CONTRACT
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-EVIDENCE-BOUNDARY
+        command: node --import tsx --test tests/request-integration.test.ts
+        status: passed
+        result: All eight provider-free integration cases passed.
+      - id: WI-0022-20000000_EXEC-PACKAGE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0022-10000000#test-case/WI-0022-10000000_TC-MATRIX-COVERAGE
+        - WI-0022-10000000#test-case/WI-0022-10000000_TC-PACKAGE-GATES
+        - WI-0022-10000000#test-case/WI-0022-10000000_TC-SCOPE-REVIEW
+        - WI-0022-10000000#test-case/WI-0022-10000000_TC-DOCUMENTATION-CONSISTENCY
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-DOCUMENTATION
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-PROMPT-MAPPING
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-PARAMETER-CONTRACT
+        - WI-0014-10000000#test-case/WI-0014-10000000_TC-EVIDENCE-BOUNDARY
+        command: npm run typecheck && npm test && npm run build && git diff --check
+        status: passed
+        result: Typecheck passed, the full 156-test provider-free suite passed, build passed, and the diff check passed.
+    limitations:
+    - Provider-free local evidence does not establish authenticated provider behavior, network transport, deployment, publication, downstream integration, or production readiness.
+    - The WI-0014 implementation record still names tests/wi-0014-contract.test.ts. WI-0022 does not modify another work item's evidence, so the matrix locates trace markers by test name rather than by recorded path.
