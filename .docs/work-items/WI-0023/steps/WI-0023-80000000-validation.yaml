@@ -136,6 +136,7 @@ task:
         summary: Six focused cases passed; the complete package gate passed 162 tests, typecheck, build, and whitespace checks.
         assertions:
         - The six strategy cases passed and carry SDLC-TEST-CASE trace markers; the WI-0022 matrix now includes WI-0023 and finds exactly one trace-named test per case.
+        - Re-run after rework commit 1913817 (independent review findings). Stray and async promise rejections are bounded failures and the process keeps running. Validation in contains, propertyNames, unevaluated*, tuple items, additionalItems, and dependencies positions fails closed. Class expressions are rejected. Getter-bearing results and throws stay bounded.
         - Malformed metadata, failing validators, invalid results, and timeouts made zero provider calls, and failing validators created no materialized content files.
         - dist/index.d.ts exports the ParameterValidationContext type after npm run build.
         - The compiled CLI rejected an invalid --p-path through a validation function before provider use.
@@ -169,6 +170,7 @@ task:
     evidenceTier: cli-audit
     limitations:
     - The node:vm isolation is not a security sandbox and this validation does not establish sandbox security.
+    - The promise-job timeout case is verified in a plain child process because Node v24.21.0 aborts natively when that timeout fires under active async-context tracking (node:test); see requests/README.md.
     - Provider-free local validation does not establish authenticated provider behavior, network transport, deployment, publication, downstream integration, or production readiness.
     nonClaims:
     - This validation does not authorize deployment, publication, or release.
