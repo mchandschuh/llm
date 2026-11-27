@@ -15,7 +15,7 @@
     },
     "branch": {
       "name": "WI-0026-claude-provider",
-      "created": false,
+      "created": true,
       "rationale": "Each work item is processed on its own branch."
     }
   },
