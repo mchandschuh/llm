@@ -1,0 +1,3 @@
+# Fix claude provider schema dialect handling and add live claude tests
+
+Live testing of the claude provider found that the real Claude Code CLI rejects --json-schema documents that declare $schema https://json-schema.org/draft/2020-12/schema (for example requests/summarize/summarize.outputSchema.json), so llm summarize and llm req summarize fail with the default claude provider. Fix the schema passed to the CLI, and add opt-in live tests, outside npm test, that confirm the claude provider works, including a chat session that uses read_file and write_file tools.
