@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { chmodSync, existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -274,7 +274,7 @@ test('WI-0029-10000000_TC-DUPLICATE-AMBIGUOUS fails closed for a request name in
       const message = configurationError(result);
       assert.match(message, /ambiguous/u);
       for (const directory of matches) assert.ok(message.includes(directory), `${name} names ${directory}: ${message}`);
-      assert.ok(!message.includes(`${other},`) && !message.endsWith(other), `${name} does not name ${other}`);
+      assert.ok(!message.includes(other), `${name} does not name ${other}`);
       const failure = await rejection(() => completeRequest({ requestName: name, provider: provider(calls) }));
       assert.equal(failure.code, 'CONFIGURATION_INVALID');
       for (const directory of matches) assert.ok(failure.message.includes(directory));
@@ -302,6 +302,11 @@ test('WI-0029-10000000_TC-UNKNOWN-AND-UNSAFE-NAMES reports searched directories 
 test('WI-0029-10000000_TC-CLI-CONFIGURATION-ERROR-PROVIDER-FREE surfaces configuration errors from llm req without a provider', async () => {
   const log = join(await mkdtemp(join(tmpdir(), 'llm-request-directories-guard-')), 'claude.log');
   const previousLog = process.env.FAKE_CLAUDE_LOG;
+  const previousExecutable = process.env.LLM_CLAUDE_EXECUTABLE;
+  // Pin the fake CLI here too, so this test never reaches a real claude even without the suite's guard preload.
+  const fake = join(repositoryRoot, 'tests', 'fixtures', 'fake-claude.mjs');
+  chmodSync(fake, 0o755);
+  process.env.LLM_CLAUDE_EXECUTABLE = fake;
   process.env.FAKE_CLAUDE_LOG = log;
   try {
     await withDirectories({
@@ -330,6 +335,8 @@ test('WI-0029-10000000_TC-CLI-CONFIGURATION-ERROR-PROVIDER-FREE surfaces configu
   } finally {
     if (previousLog === undefined) delete process.env.FAKE_CLAUDE_LOG;
     else process.env.FAKE_CLAUDE_LOG = previousLog;
+    if (previousExecutable === undefined) delete process.env.LLM_CLAUDE_EXECUTABLE;
+    else process.env.LLM_CLAUDE_EXECUTABLE = previousExecutable;
     await rm(dirname(log), { recursive: true, force: true });
   }
 });
