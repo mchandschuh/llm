@@ -96,7 +96,10 @@ the request and asset kind without exposing secrets.
 ```
 
 The supported request-setting keys are `provider`, `model`, `thinking`,
-`maxFailedAttempts`, and `maxIterations`. The only parameter-default key is
+`maxFailedAttempts`, and `maxIterations`. Without a `provider` setting, a
+request uses the default `claude` provider. Without a `model` setting, it uses
+that provider's default model: `sonnet` for claude and `openai/gpt-5.6-luna`
+for openrouter. The bundled `summarize` request sets only `thinking`. The only parameter-default key is
 `parameters`; its value must be an object. Unknown top-level settings and
 credentials are rejected. Parameter defaults are validated against
 `parameters.schema.json` together with caller-supplied values.

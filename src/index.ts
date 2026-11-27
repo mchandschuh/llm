@@ -3,6 +3,9 @@ export { completeRequest } from './request.js';
 export { composePrompt, composeCorrectionPrompt, composeRequestPrompt } from './prompt.js';
 export { normalizeRequest } from './normalize.js';
 export { OpenRouterProvider } from './provider.js';
+export { ClaudeProvider, CLAUDE_EXECUTABLE_ENV } from './claude-provider.js';
+export { createProvider, REGISTERED_PROVIDERS } from './providers.js';
+export { DEFAULT_PROVIDER, DEFAULT_MODELS } from './provider-defaults.js';
 export { OpenRouterHttpProjection } from './openrouter-projection.js';
 export { chatFactory } from './chat.js';
 export { ChatSessionStoreFactory, DEFAULT_CHAT_SESSION_ROOT, DEFAULT_CHAT_SESSION_STORE_TYPE } from './chat-session-store.js';
@@ -76,3 +79,4 @@ export type {
   ParameterValidationResult,
   ParameterValidationResultError,
 } from './request-parameter-validation.js';
+export type { ClaudeProviderOptions } from './claude-provider.js';

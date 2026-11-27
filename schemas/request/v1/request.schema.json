@@ -20,21 +20,22 @@
     "provider": {
       "type": "string",
       "pattern": "^[A-Za-z][A-Za-z0-9._-]*$",
-      "default": "openrouter",
-      "description": "Provider adapter identity. The runtime defaults this field to openrouter when it is omitted.",
+      "default": "claude",
+      "description": "Provider adapter identity. Registered adapters are claude (the Claude Code CLI) and openrouter. The runtime defaults this field to claude when it is omitted.",
       "examples": [
-        "openrouter",
-        "anthropic"
+        "claude",
+        "openrouter"
       ]
     },
     "model": {
       "type": "string",
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$",
-      "default": "openai/gpt-5.6-luna",
-      "description": "Provider-specific model identifier. The runtime defaults this field to openai/gpt-5.6-luna when it is omitted.",
+      "default": "sonnet",
+      "description": "Provider-specific model identifier. When omitted, the runtime uses the provider's default model: sonnet for claude and openai/gpt-5.6-luna for openrouter.",
       "examples": [
-        "openai/gpt-5.6-luna",
-        "anthropic/claude-sonnet-4"
+        "sonnet",
+        "opus",
+        "openai/gpt-5.6-luna"
       ]
     },
     "thinking": {

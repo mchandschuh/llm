@@ -2,11 +2,10 @@ import { resolve } from 'node:path';
 import { assertRequestShape, parseSchema } from './schema.js';
 import { resolveRequiredFile, resolveSource } from './source.js';
 import { LlmFailure } from './errors.js';
+import { DEFAULT_PROVIDER, defaultModelFor } from './provider-defaults.js';
 import type { LlmChatMessage, LlmRequest, NormalizedRequest, NormalizedToolOptions, ReferenceFile, Thinking } from './types.js';
 
 const DEFAULTS = {
-  provider: 'openrouter',
-  model: 'openai/gpt-5.6-luna',
   thinking: 'high' as Thinking,
   maxFailedAttempts: 3,
   maxIterations: 3,
@@ -62,8 +61,8 @@ export async function normalizeRequest(value: unknown, options: { readonly confi
   }
   return {
     schema: request.schema,
-    provider: request.provider ?? DEFAULTS.provider,
-    model: request.model ?? DEFAULTS.model,
+    provider: request.provider ?? DEFAULT_PROVIDER,
+    model: request.model ?? defaultModelFor(request.provider ?? DEFAULT_PROVIDER),
     thinking: request.thinking ?? DEFAULTS.thinking,
     maxFailedAttempts: request.maxFailedAttempts === undefined ? DEFAULTS.maxFailedAttempts : ensureBounds(request.maxFailedAttempts, 'maxFailedAttempts', 0, 10),
     maxIterations: request.maxIterations === undefined ? DEFAULTS.maxIterations : ensureBounds(request.maxIterations, 'maxIterations', 1, 10),

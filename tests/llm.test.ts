@@ -58,8 +58,9 @@ function request(overrides: Record<string, unknown> = {}) {
 
 test('normalizes closed request defaults', async () => {
   const normalized = await normalizeRequest({ schema, task: 'task', systemPrompt: 'system' }, { configurationRoot: process.cwd() });
-  assert.equal(normalized.provider, 'openrouter');
-  assert.equal(normalized.model, 'openai/gpt-5.6-luna');
+  // WI-0026: claude with the sonnet model is the default provider.
+  assert.equal(normalized.provider, 'claude');
+  assert.equal(normalized.model, 'sonnet');
   assert.equal(normalized.thinking, 'high');
   assert.equal(normalized.maxFailedAttempts, 3);
   assert.equal(normalized.maxIterations, 3);
@@ -790,7 +791,8 @@ test('debug preserves wrapped provider transport exceptions', async () => {
     throw new Error('socket secret=hidden');
   };
   try {
-    const result = await complete({ ...request(), credentials: { apiKey: 'test-key' }, maxFailedAttempts: 1 }, { debug: (event) => events.push(event) });
+    // This exercises the OpenRouter fetch transport, so it selects openrouter explicitly (claude is the default).
+    const result = await complete({ ...request(), provider: 'openrouter', credentials: { apiKey: 'test-key' }, maxFailedAttempts: 1 }, { debug: (event) => events.push(event) });
     assert.equal(result.status, 'attempts_exhausted');
     const errorEvent = events.find((event) => event.event === 'llm.error');
     assert.ok(errorEvent);

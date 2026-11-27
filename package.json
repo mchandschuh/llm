@@ -27,8 +27,8 @@
     "prepare": "npm run build",
     "start": "node ./bin/cli.js",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts",
-    "test:pattern": "tsx --test tests/*.test.ts --test-name-pattern"
+    "test": "tsx --import ./tests/support/claude-guard.ts --test tests/*.test.ts",
+    "test:pattern": "tsx --import ./tests/support/claude-guard.ts --test tests/*.test.ts --test-name-pattern"
   },
   "dependencies": {
     "ajv": "^8.17.1",

@@ -58,8 +58,9 @@ test('WI-0021-10000000_TC-GENERIC-EXAMPLE executes summarize assets through the 
   assert.equal(calls.length, 1);
   assert.equal(calls[0]?.task, prompt);
   assert.equal(calls[0]?.systemPrompt, undefined);
-  assert.equal(calls[0]?.provider, 'openrouter');
-  assert.equal(calls[0]?.model, 'openai/gpt-5-nano');
+  // WI-0026: summarize no longer pins openrouter, so it uses the claude/sonnet default.
+  assert.equal(calls[0]?.provider, 'claude');
+  assert.equal(calls[0]?.model, 'sonnet');
   assert.equal(calls[0]?.thinking, 'low');
   assert.deepEqual(calls[0]?.outputSchema, outputSchema);
   assert.deepEqual(calls[0]?.files.map((file) => ({ name: file.name, content: file.content, purpose: file.purpose })), [{
