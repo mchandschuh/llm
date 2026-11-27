@@ -329,8 +329,13 @@ users and agents what is wrong with a parameter and how to fix it:
   - `path` (optional): the parameter path the error refers to. It defaults to
     the validator's `context.path`, and `''` names the root.
   - `remediation` (optional): a non-empty string saying how to fix it.
-- No other members are accepted. Messages, remediations, and paths are
-  sanitized and truncated to 500 characters.
+- No other members are accepted on the result, the `errors` array, or its
+  entries.
+- Text must contain visible characters. Whitespace-only text is a
+  configuration error.
+- Messages, remediations, and paths are sanitized: control characters are
+  removed, recognizable secrets are redacted, and text is truncated to 500
+  characters.
 - The object is read through own data properties only. An accessor, an
   unknown member, or a wrong type is a configuration error naming the
   validator, and validator getters never run outside the timeout.
@@ -340,7 +345,8 @@ from the package entry point. This covers result objects, `false`, strings,
 thrown errors, and rejected promises. It extends `LlmFailure`, keeps code
 `CONFIGURATION_INVALID` and phase `configuration`, and carries
 `issues: { path, message, remediation? }[]`. Its `message` summarizes the first
-issue and counts the rest. Malformed metadata or results raise a plain
+issue, truncated to 500 characters, and always ends with the count of
+remaining issues. Malformed metadata or results raise a plain
 `LlmFailure` instead.
 
 `llm req` writes one JSON error entry per issue:

@@ -54,17 +54,23 @@ export class ParameterValidationFailure extends LlmFailure {
 
   constructor(issues: readonly ParameterValidationIssue[]) {
     if (issues.length === 0) throw new TypeError('ParameterValidationFailure requires at least one issue.');
-    const [first] = issues;
-    const more = issues.length > 1 ? ` (${issues.length - 1} more issue${issues.length > 2 ? 's' : ''})` : '';
-    super('CONFIGURATION_INVALID', 'configuration', boundedMessage(`${parameterIssueMessage(first!)}${more}`));
+    const normalized = issues.map((entry) => Object.freeze(issue(entry.path, entry.message, entry.remediation)));
+    const more = normalized.length > 1 ? ` (${normalized.length - 1} more issue${normalized.length > 2 ? 's' : ''})` : '';
+    // Truncate the first issue, not the count, so the summary always says how many issues follow.
+    super('CONFIGURATION_INVALID', 'configuration', `${parameterIssueMessage(normalized[0]!).slice(0, SUMMARY_LENGTH - more.length)}${more}`);
     this.name = 'ParameterValidationFailure';
-    this.issues = Object.freeze(issues.map((issue) => Object.freeze({ ...issue })));
+    this.issues = Object.freeze(normalized);
   }
 }
 
-/** The user-facing message for one issue, as used in llm req error output. */
+const SUMMARY_LENGTH = 500;
+
+/**
+ * The user-facing message for one issue, as used in llm req error output. Issue
+ * fields are already sanitized, so the full bounded message is kept.
+ */
 export function parameterIssueMessage(issue: ParameterValidationIssue): string {
-  return boundedMessage(`Request parameters are invalid. Validation of '${issue.path || '<root>'}' failed: ${issue.message}`);
+  return `Request parameters are invalid. Validation of '${issue.path || '<root>'}' failed: ${issue.message}`;
 }
 
 /** Read-only filesystem helpers exposed to validation functions. Relative paths resolve from `workingDirectory`. */
@@ -113,13 +119,19 @@ function metadataFailure(location: string, message: string): LlmFailure {
   return new LlmFailure('CONFIGURATION_INVALID', 'configuration', boundedMessage(`Custom validation metadata at '${location}' is invalid. ${message}`));
 }
 
+/** True when text still has visible characters after control characters are removed. */
+function hasText(value: unknown): value is string {
+  return typeof value === 'string' && value.replace(/[\u0000-\u001f\u007f]/gu, '').trim().length > 0;
+}
+
+/** Sanitize and redact through boundedMessage, then apply the per-field length bound. */
 function boundedText(text: string): string {
   return boundedMessage(text).slice(0, PARAMETER_VALIDATION_MAX_TEXT_LENGTH);
 }
 
-/** Paths may be empty (the root), so they are sanitized without boundedMessage's empty-text fallback. */
+/** The root path is `''`; any other path is sanitized and redacted like other issue text. */
 function boundedPath(path: string): string {
-  return path.replace(/[\u0000-\u001f\u007f]/gu, ' ').slice(0, PARAMETER_VALIDATION_MAX_TEXT_LENGTH);
+  return hasText(path) ? boundedText(path) : '';
 }
 
 function issue(path: string, message: string, remediation?: string): ParameterValidationIssue {
@@ -220,7 +232,7 @@ function parseValidation(node: Record<string, unknown>, segments: readonly Valid
     if (!VALIDATION_KEYS.has(key)) throw metadataFailure(location, `validation contains unsupported member '${key}'.`);
   }
   for (const key of ['message', 'remediation'] as const) {
-    if (validation[key] !== undefined && (typeof validation[key] !== 'string' || validation[key].length === 0)) {
+    if (validation[key] !== undefined && !hasText(validation[key])) {
       throw metadataFailure(location, `validation.${key} must be a non-empty string.`);
     }
   }
@@ -379,10 +391,10 @@ const INVALID_RESULT = 'validation.function must synchronously return true, fals
  * Read an own data property without running accessors. Returns `undefined`
  * when the property is absent; an accessor is a malformed result.
  */
-function ownData(target: object, key: string, location: string, label: string): unknown {
+function ownData(target: object, key: string, location: string, label: string, propertyLabel = `${label}.${key}`): unknown {
   const descriptor = Object.getOwnPropertyDescriptor(target, key);
   if (descriptor === undefined) return undefined;
-  if (!('value' in descriptor)) throw metadataFailure(location, `${label}.${key} must be a data property, not an accessor.`);
+  if (!('value' in descriptor)) throw metadataFailure(location, `${propertyLabel} must be a data property, not an accessor.`);
   return descriptor.value;
 }
 
@@ -392,10 +404,10 @@ function assertOwnKeys(target: object, allowed: ReadonlySet<string>, location: s
   }
 }
 
-function resultText(value: unknown, location: string, label: string, allowEmpty = false): string {
-  if (typeof value !== 'string' || (!allowEmpty && value.length === 0)) {
-    throw metadataFailure(location, `${label} must be a ${allowEmpty ? '' : 'non-empty '}string.`);
-  }
+/** Require visible text; paths may also be exactly `''` for the root. */
+function resultText(value: unknown, location: string, label: string, allowRoot = false): string {
+  if (allowRoot && value === '') return value;
+  if (!hasText(value)) throw metadataFailure(location, `${label} must be a non-empty string${allowRoot ? " or '' for the root" : ''}.`);
   return value;
 }
 
@@ -415,10 +427,12 @@ function resultIssues(result: object, validator: ParameterValidator, path: strin
   if (length === 0 || length > PARAMETER_VALIDATION_MAX_ERRORS) {
     throw metadataFailure(location, `A validation result with valid: false must contain 1 to ${PARAMETER_VALIDATION_MAX_ERRORS} errors.`);
   }
+  const indexes = new Set(['length', ...Array.from({ length }, (_, index) => String(index))]);
+  assertOwnKeys(errors as object, indexes, location, 'The validation result errors');
   const issues: ParameterValidationIssue[] = [];
   for (let index = 0; index < length; index += 1) {
     const label = `The validation result errors[${index}]`;
-    const entry = ownData(errors as object, String(index), location, 'The validation result errors');
+    const entry = ownData(errors as object, String(index), location, 'The validation result errors', label);
     if (!isRecord(entry)) throw metadataFailure(location, `${label} must be an object.`);
     assertOwnKeys(entry, RESULT_ERROR_KEYS, location, label);
     const message = resultText(ownData(entry, 'message', location, label), location, `${label}.message`);
@@ -436,7 +450,7 @@ function resultIssues(result: object, validator: ParameterValidator, path: strin
 function outcome(result: unknown, validator: ParameterValidator, path: string): LlmFailure | undefined {
   if (result === true || result === undefined) return undefined;
   if (result === false) return validationFailure(path, validator.message ?? 'the value was rejected by its validation function.', validator.remediation);
-  if (typeof result === 'string' && result.length > 0) return validationFailure(path, result, validator.remediation);
+  if (hasText(result)) return validationFailure(path, result, validator.remediation);
   // Promises and other objects without an own `valid` member are not result objects.
   if (isRecord(result) && Object.getOwnPropertyDescriptor(result, 'valid') !== undefined) {
     const issues = resultIssues(result, validator, path);

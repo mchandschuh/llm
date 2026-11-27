@@ -426,12 +426,17 @@ test('WI-0025-10000000_TC-RESULT-OBJECT-CONTRACT accepts well-defined result obj
     ['() => ({ valid: false, errors: [{}] })', /errors\[0\]\.message must be a non-empty string/u],
     ["() => ({ valid: false, errors: [{ message: '' }] })", /errors\[0\]\.message must be a non-empty string/u],
     ["() => ({ valid: false, errors: [{ message: 'x', remediation: 1 }] })", /errors\[0\]\.remediation must be a non-empty string/u],
-    ["() => ({ valid: false, errors: [{ message: 'x', path: 3 }] })", /errors\[0\]\.path must be a string/u],
+    ["() => ({ valid: false, errors: [{ message: 'x', path: 3 }] })", /errors\[0\]\.path must be a non-empty string or '' for the root/u],
+    ["() => ({ valid: false, errors: [{ message: 'x', path: '   ' }] })", /errors\[0\]\.path must be a non-empty string or '' for the root/u],
+    ["() => ({ valid: false, errors: [{ message: '   ' }] })", /errors\[0\]\.message must be a non-empty string/u],
+    ["() => ({ valid: false, errors: [{ message: 'x', remediation: '\\n\\u0001' }] })", /errors\[0\]\.remediation must be a non-empty string/u],
+    ["() => { const errors = [{ message: 'x' }]; errors.extra = 1; return { valid: false, errors }; }", /errors contains unsupported member 'extra'/u],
+    ["() => { const errors = []; Object.defineProperty(errors, '0', { get() { throw new Error('GETTER RAN'); }, enumerable: true }); return { valid: false, errors }; }", /errors\[0\] must be a data property, not an accessor/u],
     ["() => ({ valid: false, errors: [{ message: 'x', hint: 'y' }] })", /errors\[0\] contains unsupported member 'hint'/u],
     ["() => ({ valid: false, errors: [{ message: 'x' }], extra: 1 })", /contains unsupported member 'extra'/u],
-    ['() => ({ get valid() { for (;;) {} } })', /valid must be a data property, not an accessor/u],
-    ['() => ({ valid: false, get errors() { for (;;) {} } })', /errors must be a data property, not an accessor/u],
-    ['() => ({ valid: false, errors: [{ get message() { for (;;) {} } }] })', /message must be a data property, not an accessor/u],
+    ["() => ({ get valid() { throw new Error('GETTER RAN'); } })", /valid must be a data property, not an accessor/u],
+    ["() => ({ valid: false, get errors() { throw new Error('GETTER RAN'); } })", /errors must be a data property, not an accessor/u],
+    ["() => ({ valid: false, errors: [{ get message() { throw new Error('GETTER RAN'); } }] })", /message must be a data property, not an accessor/u],
     ["() => ({ message: 'no valid member' })", /or a validation result object; asynchronous validators are not supported/u],
   ];
   const started = Date.now();
@@ -439,8 +444,15 @@ test('WI-0025-10000000_TC-RESULT-OBJECT-CONTRACT accepts well-defined result obj
     const message = await failureMessage(() => runParameterValidators(objectSchema({ name: { type: 'string', ...validation(source) } }), { name: 'Ada' }, REQUEST));
     assert.match(message, /^Custom validation metadata at 'name' is invalid\./u, source);
     assert.match(message, pattern, source);
+    assert.doesNotMatch(message, /GETTER RAN/u, `${source} must not run validator getters on the host`);
   }
-  assert.ok(Date.now() - started < PARAMETER_VALIDATION_TIMEOUT_MS, 'accessor results must not run validator getters');
+  assert.ok(Date.now() - started < PARAMETER_VALIDATION_TIMEOUT_MS);
+
+  // Paths are redacted like messages and remediations, and truncated to the same bound.
+  const redacted = (await issuesOf("() => ({ valid: false, errors: [{ message: 'x', path: 'api_key=sk-SECRET123', remediation: 'password=hunter2' }] })"))[0]!;
+  assert.doesNotMatch(JSON.stringify(redacted), /SECRET123|hunter2/u);
+  assert.equal((await issuesOf(`() => ({ valid: false, errors: [{ message: 'x', path: 'p'.repeat(5000) }] })`))[0]!.path.length, PARAMETER_VALIDATION_MAX_TEXT_LENGTH);
+  assert.match(await failureMessage(() => runParameterValidators(objectSchema({ name: { type: 'string', ...validation("() => '   '") } }), { name: 'Ada' }, REQUEST)), /or a validation result object/u);
 });
 
 // SDLC-TEST-CASE: WI-0025-10000000_TC-STRUCTURED-FAILURE
@@ -455,7 +467,11 @@ test('WI-0025-10000000_TC-STRUCTURED-FAILURE raises ParameterValidationFailure w
   ]);
   assert.deepEqual(await issuesOf("() => { throw new Error('lookup failed'); }"), [{ path: 'name', message: 'lookup failed' }]);
   assert.deepEqual(await issuesOf("() => { Promise.reject(new Error('late')); }"), [{ path: 'name', message: 'the validation function left a rejected promise: late' }]);
-  assert.match(await failureMessage(() => runParameterValidators(objectSchema({ name: { type: 'string', ...validation('() => true') } }, { 'x-llm-req-parameter': { validation: { function: '() => true', remediation: '' } } }), {}, REQUEST)), /validation\.remediation must be a non-empty string/u);
+  for (const blank of ['', '   ', '\n']) {
+    for (const key of ['message', 'remediation']) {
+      assert.match(await failureMessage(() => runParameterValidators(objectSchema({ name: { type: 'string', 'x-llm-req-parameter': { validation: { function: '() => true', [key]: blank } } } }), { name: 'Ada' }, REQUEST)), new RegExp(`validation\\.${key} must be a non-empty string`, 'u'), `${key}=${JSON.stringify(blank)}`);
+    }
+  }
 
   const failure = new ParameterValidationFailure([
     { path: 'name', message: 'first' },
@@ -469,6 +485,13 @@ test('WI-0025-10000000_TC-STRUCTURED-FAILURE raises ParameterValidationFailure w
   assert.equal(Object.isFrozen(failure.issues), true);
   assert.equal(Object.isFrozen(failure.issues[1]), true);
   assert.throws(() => new ParameterValidationFailure([]), TypeError);
+
+  // The issue count survives a long first message, and directly constructed issues are normalized too.
+  const long = new ParameterValidationFailure([{ path: 'name', message: 'm'.repeat(5000) }, { path: 'owner', message: 'second' }]);
+  assert.ok(long.message.length <= 500);
+  assert.match(long.message, / \(1 more issue\)$/u);
+  assert.equal(long.issues[0]!.message.length, PARAMETER_VALIDATION_MAX_TEXT_LENGTH);
+  assert.equal(new ParameterValidationFailure([{ path: 'password=abc123', message: 'secret=xyz' }]).issues[0]!.path, '[redacted]');
 
   const schema = objectSchema({
     name: { type: 'string', ...validation("(value) => ({ valid: false, errors: [{ message: `bad ${value}`, remediation: 'Pass --p-name Grace.' }] })") },
