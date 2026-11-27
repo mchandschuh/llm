@@ -4,7 +4,7 @@ taskUid: WI-0027-20000000
 orderKey: '20000000'
 parentTaskUid: WI-0027-10000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement schema dialect handling and live claude tests
 objective: Strip $schema from emitted --json-schema documents and add the opt-in live claude suite.
 references:
@@ -50,7 +50,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -99,3 +99,79 @@ task:
     - Add provider-free tests for the emitted schemas and the summarize outputSchema.
     - Add tests/live/claude-live.mjs and the npm run test:live:claude script, outside the npm test glob.
     - Document the live suite in README.md and SKILL.md.
+  result:
+    status: implemented
+    implementation:
+      summary: "Every schema passed as --json-schema is stripped of $schema dialect declarations while keeping property names and instance data, so the real CLI accepts the bundled summarize outputSchema. An opt-in live suite (npm run test:live:claude) confirms the provider against the real CLI, including a read_file/write_file chat session."
+      changes:
+      - id: WI-0027-20000000_CHANGE-001
+        type: production-code
+        summary: "Added withoutSchemaDialect and applied it in claudeArguments, the single place --json-schema is serialized. It skips data keywords and keeps keys inside name maps."
+        objectiveRefs:
+        - WI-0027-20000000_OBJ-001
+        paths:
+        - src/claude-provider.ts
+      - id: WI-0027-20000000_CHANGE-002
+        type: test-code
+        summary: "Added the WI-0027 schema-dialect test (the summarize schema, a property named $schema, data containing $schema, wrapped roots, tool envelopes, $id-scoped tool schemas, and strict Ajv 2020 compilation) and the live-suite wiring test."
+        objectiveRefs:
+        - WI-0027-20000000_OBJ-001
+        - WI-0027-20000000_OBJ-002
+        paths:
+        - tests/claude-provider.test.ts
+      - id: WI-0027-20000000_CHANGE-003
+        type: test-code
+        summary: "Added the opt-in live suite tests/live/claude-live.mjs (text completion, structured output with $defs, compiled-CLI summarize, and a sandboxed read_file/write_file chat session) and the test:live:claude script."
+        objectiveRefs:
+        - WI-0027-20000000_OBJ-002
+        paths:
+        - tests/live/claude-live.mjs
+        - package.json
+      - id: WI-0027-20000000_CHANGE-004
+        type: documentation
+        summary: "Documented the dialect stripping and the live suite in SKILL.md and README.md."
+        objectiveRefs:
+        - WI-0027-20000000_OBJ-002
+        paths:
+        - SKILL.md
+        - README.md
+      testImplementations:
+      - testCaseRef: WI-0027-10000000#test-case/WI-0027-10000000_TC-SCHEMA-DIALECT
+        path: tests/claude-provider.test.ts
+        selector: WI-0027-10000000_TC-SCHEMA-DIALECT
+        traceMarker: WI-0027-10000000_TC-SCHEMA-DIALECT
+      - testCaseRef: WI-0027-10000000#test-case/WI-0027-10000000_TC-LIVE-SUITE-WIRING
+        path: tests/claude-provider.test.ts
+        selector: WI-0027-10000000_TC-LIVE-SUITE-WIRING
+        traceMarker: WI-0027-10000000_TC-LIVE-SUITE-WIRING
+    verification:
+      status: passed
+      objectiveRefs:
+      - WI-0027-20000000_OBJ-001
+      - WI-0027-20000000_OBJ-002
+      tests:
+      - id: WI-0027-20000000_EXEC-FOCUSED
+        type: component
+        testCaseRefs:
+        - WI-0027-10000000#test-case/WI-0027-10000000_TC-SCHEMA-DIALECT
+        - WI-0027-10000000#test-case/WI-0027-10000000_TC-LIVE-SUITE-WIRING
+        command: tsx --import ./tests/support/claude-guard.ts --test --test-name-pattern WI-0027 tests/claude-provider.test.ts
+        status: passed
+        result: Both provider-free WI-0027 strategy cases passed.
+      - id: WI-0027-20000000_EXEC-PACKAGE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0027-10000000#test-case/WI-0027-10000000_TC-SCHEMA-DIALECT
+        - WI-0027-10000000#test-case/WI-0027-10000000_TC-LIVE-SUITE-WIRING
+        command: npm run typecheck && npm test && npm run build && git diff --check
+        status: passed
+        result: "Typecheck, the full 174-test suite, build, and the diff check passed; the PATH-shimmed run recorded zero claude invocations."
+      - id: WI-0027-20000000_EXEC-LIVE
+        type: operational
+        testCaseRefs:
+        - WI-0027-10000000#test-case/WI-0027-10000000_TC-LIVE-SUITE-WIRING
+        command: npm run test:live:claude
+        status: passed
+        result: "npm run test:live:claude against the real Claude Code CLI 2.1.332 passed all four checks: text-completion, structured-output-defs (2020-12 $schema with $defs), cli-summarize, and chat-read-write-file-tools (read_file then write_file rounds, out.txt correct, follow-up answered from history). llm summarize --content and llm req summarize --p-path also succeeded live through the compiled CLI."
+    limitations:
+    - "Live results cover one run of Claude Code CLI 2.1.332 with the sonnet model on this machine. They do not establish behavior of other CLI versions, models, accounts, cost, or production readiness."

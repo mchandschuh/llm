@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 workItemId: WI-0027
 recordType: work-item-summary
 ---
@@ -8,9 +8,11 @@ recordType: work-item-summary
 
 ## Status
 
-`planned`. This record defines a bounded planning slice. It does not claim
-implementation, test execution, provider availability, production readiness,
-release, or commit.
+`complete`. The `$schema` dialect fix and the opt-in live suite are
+implemented and validated: provider-free tests pass, and
+`npm run test:live:claude` passed all four checks against Claude Code CLI
+2.1.332. The review was accepted. This status does not claim behavior of other
+CLI versions, cost, or production readiness.
 
 ## Authority
 

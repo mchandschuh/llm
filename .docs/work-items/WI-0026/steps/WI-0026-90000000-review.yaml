@@ -224,9 +224,9 @@ task:
       - WI-0026-80000000#result/R-001
     - id: WI-0026-90000000_FIND-009
       severity: advisory
-      status: open
+      status: resolved
       message: "Acceptance of the generated --json-schema envelopes and the JSON result parsing by the real Claude Code CLI has not been verified; all evidence uses a fake CLI."
-      requestedChange: "With operator approval, run one live llm summarize and one tool-calling completion through the compiled CLI and record the result."
+      requestedChange: "With operator approval, run one live llm summarize and one tool-calling completion through the compiled CLI and record the result. Resolved by WI-0027: the operator-approved live run found and fixed a $schema dialect defect (the CLI rejected the 2020-12 summarize outputSchema), after which npm run test:live:claude passed all four checks, including a read_file/write_file chat session (WI-0027-80000000#result/R-001)."
       criterionRefs:
       - '#criterion/CRIT-002'
       affectedRefs:

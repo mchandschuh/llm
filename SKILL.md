@@ -355,6 +355,16 @@ Code.
 Limitations: image attachments are not supported, because text stdin cannot
 carry image parts; use `provider: "openrouter"` for base64 image files.
 
+`$schema` dialect declarations are removed from every `--json-schema` the
+provider sends, because the CLI rejects dialect URIs it does not bundle, such
+as `https://json-schema.org/draft/2020-12/schema`. Property names and instance
+data named `$schema` are kept.
+
+To confirm the provider against the real CLI, run `npm run test:live:claude`.
+It checks a text completion, structured output, `llm summarize`, and a chat
+session with sandboxed `read_file`/`write_file` tools. It uses the CLI's
+sign-in, costs money, and is not part of `npm test`.
+
 ### Tool calling with the `claude` provider
 
 The Claude Code CLI only runs its own tools, so caller-defined tools travel

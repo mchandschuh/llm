@@ -4,7 +4,7 @@ taskUid: WI-0027-80000000
 orderKey: '80000000'
 parentTaskUid: WI-0027-20000000
 taskType: validation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Validate schema dialect handling and live claude tests
 objective: Validate WI-0027 against every required strategy case and scope boundary.
 references:
@@ -42,7 +42,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
@@ -114,3 +114,46 @@ task:
     - Apply only the WI-0027 documentation surfaces (SKILL.md and README.md provider documentation).
     - Do not change provider selection, defaults, tool-calling semantics, or OpenRouter behavior.
     - Do not add live or authenticated checks to npm test, and do not claim production readiness.
+  result:
+    status: passed
+    summary: "The provider-free gate, the guarded suite run, and the operator-approved live suite passed at b079d57."
+    executions:
+    - id: WI-0027-80000000_EXEC-ALL
+      procedureRef: '#procedure/WI-0027-80000000_VAL-ALL'
+      status: passed
+      observed:
+        outcome: passed
+        exitCode: 0
+        summary: "174 provider-free tests passed, and all four live checks passed against the real claude CLI."
+        assertions:
+        - "Both strategy cases passed and carry SDLC-TEST-CASE trace markers; the WI-0022 matrix finds exactly one trace-named test per case."
+        - "No emitted --json-schema contains a $schema dialect, property names and instance data named $schema are preserved, and emitted schemas compile with strict Ajv 2020 and accept and reject the same values."
+        - "The PATH-shimmed npm test run recorded zero real and zero unconfigured claude invocations; the live suite is outside the npm test glob."
+        - "npm run test:live:claude against the real Claude Code CLI 2.1.332 passed all four checks: text-completion, structured-output-defs (2020-12 $schema with $defs), cli-summarize, and chat-read-write-file-tools (read_file then write_file rounds, out.txt correct, follow-up answered from history). llm summarize --content and llm req summarize --p-path also succeeded live through the compiled CLI."
+        - "The changed paths versus master are WI-0027 records, src/claude-provider.ts, tests/claude-provider.test.ts, tests/live/claude-live.mjs, package.json, README.md, and SKILL.md, all owned by WI-0027-20000000."
+        - "npm run typecheck exited zero; npm test passed 174 of 174 tests; npm run build exited zero; git diff --check exited zero."
+        - "sdlc work-item validate --work-item WI-0027 reported valid."
+      evidenceTier: operational
+      evidence:
+      - kind: test
+        source: "tests/claude-provider.test.ts"
+        claim: "Both focused WI-0027 tests passed."
+        command: "tsx --import ./tests/support/claude-guard.ts --test --test-name-pattern WI-0027 tests/claude-provider.test.ts"
+      - kind: command
+        source: "repository package gate"
+        claim: "The complete provider-free package gate passed."
+        command: "npm run typecheck && npm test && npm run build && git diff --check"
+      - kind: command
+        source: "tests/live/claude-live.mjs"
+        claim: "All four live checks passed against the real claude CLI."
+        command: "npm run test:live:claude"
+      - kind: command
+        source: "bin/cli.js"
+        claim: "llm summarize and llm req summarize succeed live with the claude default."
+        command: "node ./bin/cli.js summarize --content <text>; node ./bin/cli.js req summarize --p-path requests/decisions.md --format=full"
+    findings: []
+    evidenceTier: operational
+    limitations:
+    - "Live evidence covers one run of Claude Code CLI 2.1.332 with the sonnet model on this machine; it does not establish other CLI versions, models, accounts, cost, or production readiness."
+    nonClaims:
+    - This validation does not authorize deployment, publication, or release.

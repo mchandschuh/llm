@@ -13,10 +13,11 @@ the provider registry, and the claude/sonnet defaults. The provider-free
 validation and an accepted review are recorded in the ordered task files; the
 independent review findings were fixed in rework commit 65c9f21.
 
-Open advisory finding WI-0026-90000000_FIND-009: no live claude run has
-verified that the real Claude Code CLI accepts the generated `--json-schema`
-envelopes or that the result parsing matches its output. All evidence uses a
-fake CLI. This status does not claim authentication, model quality, cost,
+Advisory finding WI-0026-90000000_FIND-009, that no live claude run had been
+done, was resolved by WI-0027. The operator-approved live run found that the
+real CLI rejected the 2020-12 `$schema` dialect in the summarize
+`outputSchema`. WI-0027 fixed that, and `npm run test:live:claude` then passed
+all four live checks. This status does not claim authentication, model quality, cost,
 release, deployment, or production readiness.
 
 ## Authority

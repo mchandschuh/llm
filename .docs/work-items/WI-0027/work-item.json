@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0027",
-  "status": "planned",
+  "status": "complete",
   "title": "Fix claude provider schema dialect handling and add live claude tests",
   "type": "bugfix",
   "objective": "Make the claude provider pass --json-schema documents the real Claude Code CLI accepts by removing $schema dialect declarations, and add an opt-in live test suite (outside npm test) that confirms the provider end to end, including a read_file/write_file chat session.",
@@ -15,7 +15,7 @@
     },
     "branch": {
       "name": "WI-0027-claude-schema-dialect-live-tests",
-      "created": false,
+      "created": true,
       "rationale": "Each work item is processed on its own branch."
     }
   },
