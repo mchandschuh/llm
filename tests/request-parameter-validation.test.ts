@@ -7,13 +7,17 @@ import { test } from 'node:test';
 import { promisify } from 'node:util';
 import { runRequestCommand } from '../src/cli/request-command.js';
 import { LlmFailure } from '../src/errors.js';
-import { completeRequest } from '../src/index.js';
+import { completeRequest, ParameterValidationFailure as ExportedParameterValidationFailure } from '../src/index.js';
 import { constructRequestParameters } from '../src/request-parameters.js';
 import {
   discoverParameterValidators,
+  PARAMETER_VALIDATION_MAX_ERRORS,
+  PARAMETER_VALIDATION_MAX_TEXT_LENGTH,
   PARAMETER_VALIDATION_READ_LIMIT_BYTES,
   PARAMETER_VALIDATION_TIMEOUT_MS,
+  ParameterValidationFailure,
   runParameterValidators,
+  type ParameterValidationIssue,
 } from '../src/request-parameter-validation.js';
 import type { InlineJsonSchema, LlmProvider, ProviderCompletionRequest } from '../src/types.js';
 
@@ -233,7 +237,8 @@ test('WI-0023-10000000_TC-FILESYSTEM-HELPERS resolves from the working directory
 // SDLC-TEST-CASE: WI-0023-10000000_TC-RESULT-SEMANTICS
 test('WI-0023-10000000_TC-RESULT-SEMANTICS maps results, errors, and timeouts to bounded outcomes in an isolated context', async () => {
   const run = (source: string, message?: string) => () => runParameterValidators(objectSchema({ name: { type: 'string', ...validation(source, message) } }), { name: 'Ada' }, REQUEST);
-  const invalidResult = /must synchronously return true, false, undefined, or a non-empty failure message; asynchronous validators are not supported/u;
+  // WI-0025 extended the accepted returns with validation result objects.
+  const invalidResult = /must synchronously return true, false, undefined, a non-empty failure message, or a validation result object; asynchronous validators are not supported/u;
 
   await run('() => true')();
   await run('() => undefined')();
@@ -372,4 +377,238 @@ test('WI-0023-10000000_TC-CONTRACT-DOCUMENTATION documents the validation functi
   assert.match(decisions, /## D17 — Inline parameter validation functions/u);
   assert.match(readme, /x-llm-req-parameter\.validation\.function/u);
   assert.match(skill, /x-llm-req-parameter\.validation\.function/u);
+});
+
+/** Run one validator over `{ name: 'Ada' }` and return its ParameterValidationFailure issues, or `[]` when it passes. */
+async function issuesOf(source: string, metadata: Record<string, string> = {}): Promise<readonly ParameterValidationIssue[]> {
+  const schema = objectSchema({ name: { type: 'string', 'x-llm-req-parameter': { validation: { function: source, ...metadata } } } });
+  try {
+    await runParameterValidators(schema, { name: 'Ada' }, REQUEST);
+    return [];
+  } catch (error) {
+    assert.ok(error instanceof ParameterValidationFailure, String(error));
+    return error.issues;
+  }
+}
+
+// SDLC-TEST-CASE: WI-0025-10000000_TC-RESULT-OBJECT-CONTRACT
+test('WI-0025-10000000_TC-RESULT-OBJECT-CONTRACT accepts well-defined result objects and rejects malformed ones', async () => {
+  assert.deepEqual(await issuesOf('() => ({ valid: true })'), []);
+  assert.deepEqual(await issuesOf('() => ({ valid: true, errors: [] })'), []);
+  assert.deepEqual(await issuesOf("() => ({ valid: false, errors: [{ message: 'unknown name' }] })"), [{ path: 'name', message: 'unknown name' }]);
+  assert.deepEqual(await issuesOf([
+    '(value, context) => ({ valid: false, errors: [',
+    "  { message: `unknown name: ${value}`, remediation: 'Use a registered name such as Grace.' },",
+    "  { message: 'owner is required with name', path: 'owner', remediation: 'Add --p-owner <id>.' },",
+    "  { message: 'whole request rejected', path: '' },",
+    '] })',
+  ].join('\n')), [
+    { path: 'name', message: 'unknown name: Ada', remediation: 'Use a registered name such as Grace.' },
+    { path: 'owner', message: 'owner is required with name', remediation: 'Add --p-owner <id>.' },
+    { path: '', message: 'whole request rejected' },
+  ]);
+
+  const tooMany = `() => ({ valid: false, errors: Array.from({ length: ${PARAMETER_VALIDATION_MAX_ERRORS + 1} }, (_, i) => ({ message: 'e' + i })) })`;
+  const maximum = `() => ({ valid: false, errors: Array.from({ length: ${PARAMETER_VALIDATION_MAX_ERRORS} }, (_, i) => ({ message: 'e' + i })) })`;
+  assert.equal((await issuesOf(maximum)).length, PARAMETER_VALIDATION_MAX_ERRORS);
+  const long = (await issuesOf(`() => ({ valid: false, errors: [{ message: 'm'.repeat(5000), remediation: 'r'.repeat(5000) }] })`))[0]!;
+  assert.equal(long.message.length, PARAMETER_VALIDATION_MAX_TEXT_LENGTH);
+  assert.equal(long.remediation?.length, PARAMETER_VALIDATION_MAX_TEXT_LENGTH);
+
+  const malformed: readonly [string, RegExp][] = [
+    ["() => ({ valid: 'no' })", /must have a boolean valid member/u],
+    ['() => ({ valid: false })', /must contain 1 to 20 errors/u],
+    ['() => ({ valid: false, errors: [] })', /must contain 1 to 20 errors/u],
+    [tooMany, /must contain 1 to 20 errors/u],
+    ["() => ({ valid: true, errors: [{ message: 'x' }] })", /valid: true must not contain errors/u],
+    ["() => ({ valid: false, errors: 'x' })", /errors member must be an array/u],
+    ["() => ({ valid: false, errors: ['x'] })", /errors\[0\] must be an object/u],
+    ['() => ({ valid: false, errors: [{}] })', /errors\[0\]\.message must be a non-empty string/u],
+    ["() => ({ valid: false, errors: [{ message: '' }] })", /errors\[0\]\.message must be a non-empty string/u],
+    ["() => ({ valid: false, errors: [{ message: 'x', remediation: 1 }] })", /errors\[0\]\.remediation must be a non-empty string/u],
+    ["() => ({ valid: false, errors: [{ message: 'x', path: 3 }] })", /errors\[0\]\.path must be a non-empty string or '' for the root/u],
+    ["() => ({ valid: false, errors: [{ message: 'x', path: '   ' }] })", /errors\[0\]\.path must be a non-empty string or '' for the root/u],
+    ["() => ({ valid: false, errors: [{ message: '   ' }] })", /errors\[0\]\.message must be a non-empty string/u],
+    ["() => ({ valid: false, errors: [{ message: 'x', remediation: '\\n\\u0001' }] })", /errors\[0\]\.remediation must be a non-empty string/u],
+    ["() => { const errors = [{ message: 'x' }]; errors.extra = 1; return { valid: false, errors }; }", /errors contains unsupported member 'extra'/u],
+    ["() => { const errors = []; Object.defineProperty(errors, '0', { get() { throw new Error('GETTER RAN'); }, enumerable: true }); return { valid: false, errors }; }", /errors\[0\] must be a data property, not an accessor/u],
+    ["() => ({ valid: false, errors: [{ message: 'x', hint: 'y' }] })", /errors\[0\] contains unsupported member 'hint'/u],
+    ["() => ({ valid: false, errors: [{ message: 'x' }], extra: 1 })", /contains unsupported member 'extra'/u],
+    ["() => ({ get valid() { throw new Error('GETTER RAN'); } })", /valid must be a data property, not an accessor/u],
+    ["() => ({ valid: false, get errors() { throw new Error('GETTER RAN'); } })", /errors must be a data property, not an accessor/u],
+    ["() => ({ valid: false, errors: [{ get message() { throw new Error('GETTER RAN'); } }] })", /message must be a data property, not an accessor/u],
+    ["() => ({ message: 'no valid member' })", /or a validation result object; asynchronous validators are not supported/u],
+  ];
+  const started = Date.now();
+  for (const [source, pattern] of malformed) {
+    const message = await failureMessage(() => runParameterValidators(objectSchema({ name: { type: 'string', ...validation(source) } }), { name: 'Ada' }, REQUEST));
+    assert.match(message, /^Custom validation metadata at 'name' is invalid\./u, source);
+    assert.match(message, pattern, source);
+    assert.doesNotMatch(message, /GETTER RAN/u, `${source} must not run validator getters on the host`);
+  }
+  assert.ok(Date.now() - started < PARAMETER_VALIDATION_TIMEOUT_MS);
+
+  // Paths are redacted like messages and remediations, and truncated to the same bound.
+  const redacted = (await issuesOf("() => ({ valid: false, errors: [{ message: 'x', path: 'api_key=sk-SECRET123', remediation: 'password=hunter2' }] })"))[0]!;
+  assert.doesNotMatch(JSON.stringify(redacted), /SECRET123|hunter2/u);
+  assert.equal((await issuesOf(`() => ({ valid: false, errors: [{ message: 'x', path: 'p'.repeat(5000) }] })`))[0]!.path.length, PARAMETER_VALIDATION_MAX_TEXT_LENGTH);
+  assert.match(await failureMessage(() => runParameterValidators(objectSchema({ name: { type: 'string', ...validation("() => '   '") } }), { name: 'Ada' }, REQUEST)), /or a validation result object/u);
+});
+
+// SDLC-TEST-CASE: WI-0025-10000000_TC-STRUCTURED-FAILURE
+test('WI-0025-10000000_TC-STRUCTURED-FAILURE raises ParameterValidationFailure with normalized issues for every failure form', async () => {
+  assert.equal(ExportedParameterValidationFailure, ParameterValidationFailure);
+  assert.deepEqual(await issuesOf('() => false'), [{ path: 'name', message: 'the value was rejected by its validation function.' }]);
+  assert.deepEqual(await issuesOf('() => false', { message: 'name must be approved', remediation: 'Ask an owner to approve the name.' }), [
+    { path: 'name', message: 'name must be approved', remediation: 'Ask an owner to approve the name.' },
+  ]);
+  assert.deepEqual(await issuesOf("() => 'name is reserved'", { remediation: 'Choose another name.' }), [
+    { path: 'name', message: 'name is reserved', remediation: 'Choose another name.' },
+  ]);
+  assert.deepEqual(await issuesOf("() => { throw new Error('lookup failed'); }"), [{ path: 'name', message: 'lookup failed' }]);
+  assert.deepEqual(await issuesOf("() => { Promise.reject(new Error('late')); }"), [{ path: 'name', message: 'the validation function left a rejected promise: late' }]);
+  for (const blank of ['', '   ', '\n']) {
+    for (const key of ['message', 'remediation']) {
+      assert.match(await failureMessage(() => runParameterValidators(objectSchema({ name: { type: 'string', 'x-llm-req-parameter': { validation: { function: '() => true', [key]: blank } } } }), { name: 'Ada' }, REQUEST)), new RegExp(`validation\\.${key} must be a non-empty string`, 'u'), `${key}=${JSON.stringify(blank)}`);
+    }
+  }
+
+  const failure = new ParameterValidationFailure([
+    { path: 'name', message: 'first' },
+    { path: 'owner', message: 'second', remediation: 'fix owner' },
+    { path: '', message: 'third' },
+  ]);
+  assert.ok(failure instanceof LlmFailure);
+  assert.equal(failure.code, 'CONFIGURATION_INVALID');
+  assert.equal(failure.phase, 'configuration');
+  assert.equal(failure.message, "Request parameters are invalid. Validation of 'name' failed: first (2 more issues)");
+  assert.equal(Object.isFrozen(failure.issues), true);
+  assert.equal(Object.isFrozen(failure.issues[1]), true);
+  assert.throws(() => new ParameterValidationFailure([]), TypeError);
+
+  // The issue count survives a long first message, and directly constructed issues are normalized too.
+  const long = new ParameterValidationFailure([{ path: 'name', message: 'm'.repeat(5000) }, { path: 'owner', message: 'second' }]);
+  assert.ok(long.message.length <= 500);
+  assert.match(long.message, / \(1 more issue\)$/u);
+  assert.equal(long.issues[0]!.message.length, PARAMETER_VALIDATION_MAX_TEXT_LENGTH);
+  assert.equal(new ParameterValidationFailure([{ path: 'password=abc123', message: 'secret=xyz' }]).issues[0]!.path, '[redacted]');
+
+  const schema = objectSchema({
+    name: { type: 'string', ...validation("(value) => ({ valid: false, errors: [{ message: `bad ${value}`, remediation: 'Pass --p-name Grace.' }] })") },
+    content: { type: 'string', 'x-llm-req-parameter': { file: { mode: 'content', name: 'content.txt', type: 'text/plain', purpose: 'Content.' } } },
+  });
+  const fixture = await requestFixture(schema);
+  const calls: ProviderCompletionRequest[] = [];
+  const before = await temporaryContentDirectories();
+  try {
+    await assert.rejects(
+      () => completeRequest({ requestName: 'check', requestsDirectory: fixture.requests, parameters: { name: 'Ada', content: 'text' }, provider: provider(calls) }),
+      (error: unknown) => {
+        assert.ok(error instanceof ExportedParameterValidationFailure);
+        assert.deepEqual(error.issues, [{ path: 'name', message: 'bad Ada', remediation: 'Pass --p-name Grace.' }]);
+        return true;
+      },
+    );
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+  assert.equal(calls.length, 0);
+  assert.deepEqual(await temporaryContentDirectories(), before);
+});
+
+// SDLC-TEST-CASE: WI-0025-10000000_TC-CLI-ERROR-OUTPUT
+test('WI-0025-10000000_TC-CLI-ERROR-OUTPUT writes one llm req error entry per issue with parameterPath and remediation', async () => {
+  const schema = objectSchema({
+    name: {
+      type: 'string',
+      ...validation([
+        '(value) => ({ valid: false, errors: [',
+        "  { message: `unknown name: ${value}`, remediation: 'Use --p-name with a registered name.' },",
+        "  { message: 'owner is required', path: 'owner' },",
+        '] })',
+      ]),
+    },
+    owner: { type: 'string' },
+  });
+  const fixture = await requestFixture(schema);
+  const calls: ProviderCompletionRequest[] = [];
+  const run = async (assignments: readonly { path: string; value: string }[]) => {
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    const result = await runRequestCommand({
+      requestName: 'check',
+      requestsDirectory: fixture.requests,
+      assignments,
+      debug: false,
+      provider: provider(calls),
+      write: (text) => stdout.push(text),
+      writeError: (text) => stderr.push(text),
+    });
+    return { result, stdout: stdout.join(''), stderr: stderr.join('') };
+  };
+  try {
+    const failed = await run([{ path: 'name', value: 'Ada' }]);
+    assert.equal(failed.result, 1);
+    assert.equal(failed.stdout, '');
+    assert.deepEqual(JSON.parse(failed.stderr), {
+      status: 'configuration_error',
+      errors: [
+        {
+          code: 'CONFIGURATION_INVALID',
+          phase: 'configuration',
+          message: "Request parameters are invalid. Validation of 'name' failed: unknown name: Ada",
+          parameterPath: 'name',
+          remediation: 'Use --p-name with a registered name.',
+        },
+        {
+          code: 'CONFIGURATION_INVALID',
+          phase: 'configuration',
+          message: "Request parameters are invalid. Validation of 'owner' failed: owner is required",
+          parameterPath: 'owner',
+        },
+      ],
+    });
+
+    // Failures that are not validator issues keep the single-entry shape.
+    const unknown = await run([{ path: 'missing', value: 'x' }]);
+    assert.equal(unknown.result, 1);
+    const entries = (JSON.parse(unknown.stderr) as { errors: Record<string, unknown>[] }).errors;
+    assert.equal(entries.length, 1);
+    assert.deepEqual(Object.keys(entries[0]!).sort(), ['code', 'message', 'phase']);
+    assert.equal(calls.length, 0);
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+// SDLC-TEST-CASE: WI-0025-10000000_TC-CONTRACT-DOCUMENTATION
+test('WI-0025-10000000_TC-CONTRACT-DOCUMENTATION documents the result object, failure type, and CLI error fields', async () => {
+  const [contract, decisions, readme, skill] = await Promise.all([
+    readFile('requests/README.md', 'utf8'),
+    readFile('requests/decisions.md', 'utf8'),
+    readFile('README.md', 'utf8'),
+    readFile('SKILL.md', 'utf8'),
+  ]);
+  const start = contract.indexOf('### Validation functions\n');
+  const functions = contract.slice(start, contract.indexOf('\n## ', start));
+  for (const statement of [
+    '"valid": false',
+    '"errors": [',
+    '"remediation":',
+    '`valid: true`',
+    `1 to ${PARAMETER_VALIDATION_MAX_ERRORS}`,
+    `${PARAMETER_VALIDATION_MAX_TEXT_LENGTH} characters`,
+    '`ParameterValidationFailure`',
+    '`issues: { path, message, remediation? }[]`',
+    '`parameterPath`',
+    'own data properties',
+    'validation.remediation',
+  ]) {
+    assert.ok(functions.includes(statement), `Validation functions documents ${statement}`);
+  }
+  assert.match(decisions, /## D18 — Structured validation results/u);
+  for (const document of [readme, skill]) {
+    assert.match(document, /remediation/u);
+    assert.match(document, /ParameterValidationFailure/u);
+  }
 });

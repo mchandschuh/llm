@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0025",
-  "status": "planned",
+  "status": "complete",
   "title": "Return structured validation results from x-llm-req-parameter.validation.function",
   "type": "feature",
   "objective": "Let x-llm-req-parameter.validation.function return a well-defined result object whose error entries tell users and agents what is wrong with a parameter and how to fix it, and carry those entries unchanged to library callers and llm req error output. Contract sections: requests/README.md#validation-functions; requests/README.md#schema-declared-files-and-librarycli-boundaries.",
@@ -15,7 +15,7 @@
     },
     "branch": {
       "name": "WI-0025-structured-validation-results",
-      "created": false,
+      "created": true,
       "rationale": "Each work item is processed on its own branch."
     }
   },
@@ -51,12 +51,16 @@
     {
       "name": "aggregate-across-validators",
       "description": "Do not change the rule that the first failing validator stops validation; one validator may report several issues.",
-      "reason": "Keep the WI-0023 ordering contract."
+      "reason": "Keep the WI-0023 ordering contract.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
     },
     {
       "name": "response-envelope",
       "description": "Do not change the llm/response/v1 schema, error codes, or non-request commands.",
-      "reason": "The change is limited to request parameter validation."
+      "reason": "The change is limited to request parameter validation.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
     },
     {
       "name": "provider-and-release",

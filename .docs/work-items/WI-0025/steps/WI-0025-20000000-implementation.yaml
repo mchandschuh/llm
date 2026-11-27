@@ -4,7 +4,7 @@ taskUid: WI-0025-20000000
 orderKey: '20000000'
 parentTaskUid: WI-0025-10000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement structured validation results
 objective: Implement structured validation result objects, ParameterValidationFailure, and per-issue llm req error output.
 references:
@@ -54,7 +54,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -124,3 +124,109 @@ task:
     - Emit per-issue error entries from src/cli/request-command.ts.
     - Add provider-free trace-marked tests for every strategy case.
     - Update requests/README.md, requests/decisions.md, README.md, and SKILL.md.
+  result:
+    status: implemented
+    implementation:
+      summary: 'Validation functions may return a closed result object of the form valid plus errors, whose entries carry message, path, and remediation. Every validator-driven failure raises an exported ParameterValidationFailure with normalized issues, and llm req prints one JSON error entry per issue with parameterPath and remediation. Implementation commit 3587527; this record was added in a follow-up commit because the scripted record update failed.'
+      changes:
+      - id: WI-0025-20000000_CHANGE-001
+        type: production-code
+        summary: Added the result-object parser (own data properties only, closed shape, 1 to 20 errors, 500-character text bound), metadata remediation, the exported ParameterValidationFailure with frozen issues (rejecting an empty issue list), and exports of the result and issue types.
+        objectiveRefs:
+        - WI-0025-20000000_OBJ-001
+        - WI-0025-20000000_OBJ-002
+        paths:
+        - src/request-parameter-validation.ts
+        - src/index.ts
+      - id: WI-0025-20000000_CHANGE-002
+        type: production-code
+        summary: runRequestCommand writes one error entry per ParameterValidationFailure issue (code, phase, message, parameterPath, optional remediation) and keeps the single-entry shape for other failures.
+        objectiveRefs:
+        - WI-0025-20000000_OBJ-003
+        paths:
+        - src/cli/request-command.ts
+      - id: WI-0025-20000000_CHANGE-003
+        type: test-code
+        summary: Added four trace-marked provider-free WI-0025 strategy tests. Updated the WI-0023 RESULT-SEMANTICS pattern to the extended invalid-return message.
+        objectiveRefs:
+        - WI-0025-20000000_OBJ-001
+        - WI-0025-20000000_OBJ-002
+        - WI-0025-20000000_OBJ-003
+        - WI-0025-20000000_OBJ-004
+        paths:
+        - tests/request-parameter-validation.test.ts
+      - id: WI-0025-20000000_CHANGE-004
+        type: documentation
+        summary: Documented validation result objects, metadata remediation, ParameterValidationFailure, and the per-issue CLI error output in requests/README.md, and recorded decision D18. README.md and SKILL.md now explain how users and agents use parameterPath and remediation.
+        objectiveRefs:
+        - WI-0025-20000000_OBJ-004
+        paths:
+        - requests/README.md
+        - requests/decisions.md
+        - README.md
+        - SKILL.md
+      - id: WI-0025-20000000_CHANGE-005
+        type: production-code
+        summary: 'Rework for the independent review. Issue paths are now redacted and truncated like messages and remediations. The failure summary keeps the remaining-issue count when the first message is long. Whitespace-only or control-only text is a configuration error, including metadata message and remediation and string returns. The errors array may hold only its indexes and length. Index accessors report errors[i]. Directly constructed ParameterValidationFailure issues are normalized. Getter tests now throw a marker, so a host-side getter call fails instead of hanging.'
+        objectiveRefs:
+        - WI-0025-20000000_OBJ-001
+        - WI-0025-20000000_OBJ-002
+        - WI-0025-20000000_OBJ-004
+        paths:
+        - src/request-parameter-validation.ts
+        - tests/request-parameter-validation.test.ts
+        - requests/README.md
+      testImplementations:
+      - testCaseRef: WI-0025-10000000#test-case/WI-0025-10000000_TC-RESULT-OBJECT-CONTRACT
+        path: tests/request-parameter-validation.test.ts
+        selector: WI-0025-10000000_TC-RESULT-OBJECT-CONTRACT
+        traceMarker: WI-0025-10000000_TC-RESULT-OBJECT-CONTRACT
+      - testCaseRef: WI-0025-10000000#test-case/WI-0025-10000000_TC-STRUCTURED-FAILURE
+        path: tests/request-parameter-validation.test.ts
+        selector: WI-0025-10000000_TC-STRUCTURED-FAILURE
+        traceMarker: WI-0025-10000000_TC-STRUCTURED-FAILURE
+      - testCaseRef: WI-0025-10000000#test-case/WI-0025-10000000_TC-CLI-ERROR-OUTPUT
+        path: tests/request-parameter-validation.test.ts
+        selector: WI-0025-10000000_TC-CLI-ERROR-OUTPUT
+        traceMarker: WI-0025-10000000_TC-CLI-ERROR-OUTPUT
+      - testCaseRef: WI-0025-10000000#test-case/WI-0025-10000000_TC-CONTRACT-DOCUMENTATION
+        path: tests/request-parameter-validation.test.ts
+        selector: WI-0025-10000000_TC-CONTRACT-DOCUMENTATION
+        traceMarker: WI-0025-10000000_TC-CONTRACT-DOCUMENTATION
+    verification:
+      status: passed
+      objectiveRefs:
+      - WI-0025-20000000_OBJ-001
+      - WI-0025-20000000_OBJ-002
+      - WI-0025-20000000_OBJ-003
+      - WI-0025-20000000_OBJ-004
+      tests:
+      - id: WI-0025-20000000_EXEC-FOCUSED
+        type: component
+        testCaseRefs:
+        - WI-0025-10000000#test-case/WI-0025-10000000_TC-RESULT-OBJECT-CONTRACT
+        - WI-0025-10000000#test-case/WI-0025-10000000_TC-STRUCTURED-FAILURE
+        - WI-0025-10000000#test-case/WI-0025-10000000_TC-CLI-ERROR-OUTPUT
+        - WI-0025-10000000#test-case/WI-0025-10000000_TC-CONTRACT-DOCUMENTATION
+        command: node --import tsx --test --test-name-pattern WI-0025 tests/request-parameter-validation.test.ts
+        status: passed
+        result: All four provider-free WI-0025 strategy cases passed after the review rework, including redaction, summary-count, blank-text, closed-array, and getter-marker assertions.
+      - id: WI-0025-20000000_EXEC-PACKAGE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0025-10000000#test-case/WI-0025-10000000_TC-RESULT-OBJECT-CONTRACT
+        - WI-0025-10000000#test-case/WI-0025-10000000_TC-STRUCTURED-FAILURE
+        - WI-0025-10000000#test-case/WI-0025-10000000_TC-CLI-ERROR-OUTPUT
+        - WI-0025-10000000#test-case/WI-0025-10000000_TC-CONTRACT-DOCUMENTATION
+        command: npm run typecheck && npm test && npm run build && git diff --check
+        status: passed
+        result: Typecheck passed, the full 166-test provider-free suite passed, build passed, and the diff check passed.
+      - id: WI-0025-20000000_EXEC-CLI-SMOKE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0025-10000000#test-case/WI-0025-10000000_TC-CLI-ERROR-OUTPUT
+        command: LLM_CONFIG=<scratch> node ./bin/cli.js req check --p-path does-not-exist.md
+        status: passed
+        result: 'The compiled CLI exited 1 with one error entry carrying parameterPath "path" and the validator remediation. No provider call was made; OPENROUTER_API_KEY was unset.'
+    limitations:
+    - Provider-free local evidence does not establish authenticated provider behavior, sandbox security, deployment, publication, downstream integration, or production readiness.

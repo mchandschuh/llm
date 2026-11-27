@@ -159,6 +159,12 @@ as `fn(value, context)` before any file or provider work:
 }
 ```
 
+A validator can also return
+`{ valid: false, errors: [{ message, path?, remediation? }] }` to tell users
+and agents how to fix a parameter. `llm req` prints one JSON error entry per
+issue with `parameterPath` and `remediation`, and library callers catch a
+`ParameterValidationFailure` whose `issues` carry the same fields.
+
 Validators run synchronously with a 1000 ms timeout and a frozen context
 (`path`, `value`, `parameters`, `schema`, `request`, `workingDirectory`, and
 read-only `fs` helpers). The vm isolation is not a security sandbox, so only

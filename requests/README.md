@@ -259,6 +259,9 @@ declare validators in the parameter schema itself.
   evaluate to a callable function, not a class, before any value is
   validated.
 - `message` is optional and must be a non-empty string.
+- `remediation` is optional and must be a non-empty string. It tells the user
+  or agent how to fix the parameter when the function returns `false` or a
+  string.
 - No other members are accepted.
 
 Each function is called as `fn(value, context)` after the complete parameter
@@ -283,8 +286,12 @@ text from a regular file of at most 1048576 bytes.
 The return value decides the outcome:
 
 - `true` or `undefined` passes.
-- `false` fails with `message`, or a default message.
-- A non-empty string fails with that string as the message.
+- `false` fails with `message`, or a default message, plus
+  `validation.remediation` when it is declared.
+- A non-empty string fails with that string as the message, plus
+  `validation.remediation` when it is declared.
+- A validation result object passes or fails as described in
+  [Validation result objects](#validation-result-objects).
 - A thrown error fails with the error's message.
 - Any other result, including a promise or other thenable, is a configuration
   error. Validators must be synchronous.
@@ -292,9 +299,75 @@ The return value decides the outcome:
   fails validation with the rejection message. It does not surface as an
   unhandled rejection.
 
-A failure stops the request with a bounded `CONFIGURATION_INVALID` error naming
-the parameter path, before file materialization, placeholder substitution, and
-provider invocation.
+A failure stops the request before file materialization, placeholder
+substitution, and provider invocation. The first failing validator stops
+validation, but one validator may report several issues.
+
+#### Validation result objects
+
+A validation function can return a well-defined result object. Its errors tell
+users and agents what is wrong with a parameter and how to fix it:
+
+```json
+{
+  "valid": false,
+  "errors": [
+    {
+      "message": "notes.md does not exist",
+      "path": "path",
+      "remediation": "Pass an existing file with --p-path <file>."
+    }
+  ]
+}
+```
+
+- `valid` is a required boolean.
+  - `valid: true` passes, and `errors` must then be absent or empty.
+  - `valid: false` requires 1 to 20 entries in `errors`.
+- Each entry in `errors` has:
+  - `message` (required): a non-empty string saying what is wrong.
+  - `path` (optional): the parameter path the error refers to. It defaults to
+    the validator's `context.path`, and `''` names the root.
+  - `remediation` (optional): a non-empty string saying how to fix it.
+- No other members are accepted on the result, the `errors` array, or its
+  entries.
+- Text must contain visible characters. Whitespace-only text is a
+  configuration error.
+- Messages, remediations, and paths are sanitized: control characters are
+  removed, recognizable secrets are redacted, and text is truncated to 500
+  characters.
+- The object is read through own data properties only. An accessor, an
+  unknown member, or a wrong type is a configuration error naming the
+  validator, and validator getters never run outside the timeout.
+
+Every validator-driven failure raises `ParameterValidationFailure`, exported
+from the package entry point. This covers result objects, `false`, strings,
+thrown errors, and rejected promises. It extends `LlmFailure`, keeps code
+`CONFIGURATION_INVALID` and phase `configuration`, and carries
+`issues: { path, message, remediation? }[]`. Its `message` summarizes the first
+issue, truncated to 500 characters, and always ends with the count of
+remaining issues. Malformed metadata or results raise a plain
+`LlmFailure` instead.
+
+`llm req` writes one JSON error entry per issue:
+
+```json
+{
+  "status": "configuration_error",
+  "errors": [
+    {
+      "code": "CONFIGURATION_INVALID",
+      "phase": "configuration",
+      "message": "Request parameters are invalid. Validation of 'path' failed: notes.md does not exist",
+      "parameterPath": "path",
+      "remediation": "Pass an existing file with --p-path <file>."
+    }
+  ]
+}
+```
+
+`parameterPath` is a request parameter path, not a file path. `remediation`
+appears only when the validator supplied it.
 
 Each call runs in a fresh `node:vm` context with a 1000 ms timeout that also
 covers the context's promise jobs. The context has no `require`, `process`,
@@ -451,7 +524,9 @@ llm req <request-name> [--parameters <json>] [--p-<path> <value> ...] [--format=
 
 Successful `--format=raw` output is the model output only. `--format=full`
 prints the versioned response envelope. Errors are JSON in either format and
-use existing nonzero exit conventions.
+use existing nonzero exit conventions. Parameter validation failures add
+`parameterPath` and `remediation` fields to their error entries, as described in
+[Validation result objects](#validation-result-objects).
 
 ## Prompt, schema, and summarize compatibility
 

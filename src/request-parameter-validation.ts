@@ -6,7 +6,9 @@ import { boundedMessage, LlmFailure } from './errors.js';
 import type { InlineJsonSchema, JsonObject } from './types.js';
 
 const METADATA = 'x-llm-req-parameter';
-const VALIDATION_KEYS = new Set(['function', 'message']);
+const VALIDATION_KEYS = new Set(['function', 'message', 'remediation']);
+const RESULT_KEYS = new Set(['valid', 'errors']);
+const RESULT_ERROR_KEYS = new Set(['message', 'path', 'remediation']);
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_-]*$/u;
 
 /** Maximum synchronous run time of one validation function call. */
@@ -14,6 +16,62 @@ export const PARAMETER_VALIDATION_TIMEOUT_MS = 1000;
 
 /** Maximum number of bytes `context.fs.readText` returns. */
 export const PARAMETER_VALIDATION_READ_LIMIT_BYTES = 1024 * 1024;
+
+/** Maximum number of errors one validation result object may report. */
+export const PARAMETER_VALIDATION_MAX_ERRORS = 20;
+
+/** Maximum length of a reported message, remediation, or path; longer text is truncated. */
+export const PARAMETER_VALIDATION_MAX_TEXT_LENGTH = 500;
+
+/** One error entry of a validation result object returned by a validation function. */
+export interface ParameterValidationResultError {
+  /** What is wrong with the parameter. */
+  readonly message: string;
+  /** Parameter path the error refers to; defaults to the validator's `context.path`. */
+  readonly path?: string;
+  /** How a user or agent can fix the parameter. */
+  readonly remediation?: string;
+}
+
+/** The well-defined object a validation function may return instead of a boolean or string. */
+export type ParameterValidationResult =
+  | { readonly valid: true; readonly errors?: readonly [] }
+  | { readonly valid: false; readonly errors: readonly ParameterValidationResultError[] };
+
+/** One normalized parameter problem carried by {@link ParameterValidationFailure}. */
+export interface ParameterValidationIssue {
+  readonly path: string;
+  readonly message: string;
+  readonly remediation?: string;
+}
+
+/**
+ * Raised when a validation function rejects the resolved parameters. `issues`
+ * lists what is wrong and, when the validator supplied it, how to fix it.
+ */
+export class ParameterValidationFailure extends LlmFailure {
+  readonly issues: readonly ParameterValidationIssue[];
+
+  constructor(issues: readonly ParameterValidationIssue[]) {
+    if (issues.length === 0) throw new TypeError('ParameterValidationFailure requires at least one issue.');
+    const normalized = issues.map((entry) => Object.freeze(issue(entry.path, entry.message, entry.remediation)));
+    const more = normalized.length > 1 ? ` (${normalized.length - 1} more issue${normalized.length > 2 ? 's' : ''})` : '';
+    // Truncate the first issue, not the count, so the summary always says how many issues follow.
+    super('CONFIGURATION_INVALID', 'configuration', `${parameterIssueMessage(normalized[0]!).slice(0, SUMMARY_LENGTH - more.length)}${more}`);
+    this.name = 'ParameterValidationFailure';
+    this.issues = Object.freeze(normalized);
+  }
+}
+
+const SUMMARY_LENGTH = 500;
+
+/**
+ * The user-facing message for one issue, as used in llm req error output. Issue
+ * fields are already sanitized, so the full bounded message is kept.
+ */
+export function parameterIssueMessage(issue: ParameterValidationIssue): string {
+  return `Request parameters are invalid. Validation of '${issue.path || '<root>'}' failed: ${issue.message}`;
+}
 
 /** Read-only filesystem helpers exposed to validation functions. Relative paths resolve from `workingDirectory`. */
 export interface ParameterValidationFileSystem {
@@ -53,6 +111,7 @@ interface ParameterValidator {
   readonly segments: readonly ValidatorSegment[];
   readonly node: Record<string, unknown>;
   readonly message?: string;
+  readonly remediation?: string;
   readonly script: Script;
 }
 
@@ -60,8 +119,31 @@ function metadataFailure(location: string, message: string): LlmFailure {
   return new LlmFailure('CONFIGURATION_INVALID', 'configuration', boundedMessage(`Custom validation metadata at '${location}' is invalid. ${message}`));
 }
 
-function validationFailure(path: string, message: string): LlmFailure {
-  return new LlmFailure('CONFIGURATION_INVALID', 'configuration', boundedMessage(`Request parameters are invalid. Validation of '${path || '<root>'}' failed: ${message}`));
+/** True when text still has visible characters after control characters are removed. */
+function hasText(value: unknown): value is string {
+  return typeof value === 'string' && value.replace(/[\u0000-\u001f\u007f]/gu, '').trim().length > 0;
+}
+
+/** Sanitize and redact through boundedMessage, then apply the per-field length bound. */
+function boundedText(text: string): string {
+  return boundedMessage(text).slice(0, PARAMETER_VALIDATION_MAX_TEXT_LENGTH);
+}
+
+/** The root path is `''`; any other path is sanitized and redacted like other issue text. */
+function boundedPath(path: string): string {
+  return hasText(path) ? boundedText(path) : '';
+}
+
+function issue(path: string, message: string, remediation?: string): ParameterValidationIssue {
+  return {
+    path: boundedPath(path),
+    message: boundedText(message),
+    ...(remediation === undefined ? {} : { remediation: boundedText(remediation) }),
+  };
+}
+
+function validationFailure(path: string, message: string, remediation?: string): ParameterValidationFailure {
+  return new ParameterValidationFailure([issue(path, message, remediation)]);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -149,14 +231,17 @@ function parseValidation(node: Record<string, unknown>, segments: readonly Valid
   for (const key of Object.keys(validation)) {
     if (!VALIDATION_KEYS.has(key)) throw metadataFailure(location, `validation contains unsupported member '${key}'.`);
   }
-  if (validation.message !== undefined && (typeof validation.message !== 'string' || validation.message.length === 0)) {
-    throw metadataFailure(location, 'validation.message must be a non-empty string.');
+  for (const key of ['message', 'remediation'] as const) {
+    if (validation[key] !== undefined && !hasText(validation[key])) {
+      throw metadataFailure(location, `validation.${key} must be a non-empty string.`);
+    }
   }
   return {
     location,
     segments,
     node,
-    ...(validation.message === undefined ? {} : { message: validation.message }),
+    ...(validation.message === undefined ? {} : { message: validation.message as string }),
+    ...(validation.remediation === undefined ? {} : { remediation: validation.remediation as string }),
     script: compileValidator(functionSource(validation.function, location), location),
   };
 }
@@ -300,11 +385,78 @@ function runHandlingPromises(script: Script, context: Context, onRejected: (reas
   }
 }
 
+const INVALID_RESULT = 'validation.function must synchronously return true, false, undefined, a non-empty failure message, or a validation result object; asynchronous validators are not supported.';
+
+/**
+ * Read an own data property without running accessors. Returns `undefined`
+ * when the property is absent; an accessor is a malformed result.
+ */
+function ownData(target: object, key: string, location: string, label: string, propertyLabel = `${label}.${key}`): unknown {
+  const descriptor = Object.getOwnPropertyDescriptor(target, key);
+  if (descriptor === undefined) return undefined;
+  if (!('value' in descriptor)) throw metadataFailure(location, `${propertyLabel} must be a data property, not an accessor.`);
+  return descriptor.value;
+}
+
+function assertOwnKeys(target: object, allowed: ReadonlySet<string>, location: string, label: string): void {
+  for (const key of Reflect.ownKeys(target)) {
+    if (typeof key !== 'string' || !allowed.has(key)) throw metadataFailure(location, `${label} contains unsupported member '${String(key)}'.`);
+  }
+}
+
+/** Require visible text; paths may also be exactly `''` for the root. */
+function resultText(value: unknown, location: string, label: string, allowRoot = false): string {
+  if (allowRoot && value === '') return value;
+  if (!hasText(value)) throw metadataFailure(location, `${label} must be a non-empty string${allowRoot ? " or '' for the root" : ''}.`);
+  return value;
+}
+
+/** Parse a returned validation result object into issues; `[]` means valid. */
+function resultIssues(result: object, validator: ParameterValidator, path: string): readonly ParameterValidationIssue[] {
+  const location = validator.location;
+  assertOwnKeys(result, RESULT_KEYS, location, 'The validation result');
+  const valid = ownData(result, 'valid', location, 'The validation result');
+  if (typeof valid !== 'boolean') throw metadataFailure(location, 'The validation result must have a boolean valid member.');
+  const errors = ownData(result, 'errors', location, 'The validation result');
+  if (errors !== undefined && !Array.isArray(errors)) throw metadataFailure(location, 'The validation result errors member must be an array.');
+  const length = errors === undefined ? 0 : ownData(errors, 'length', location, 'The validation result errors') as number;
+  if (valid) {
+    if (length !== 0) throw metadataFailure(location, 'A validation result with valid: true must not contain errors.');
+    return [];
+  }
+  if (length === 0 || length > PARAMETER_VALIDATION_MAX_ERRORS) {
+    throw metadataFailure(location, `A validation result with valid: false must contain 1 to ${PARAMETER_VALIDATION_MAX_ERRORS} errors.`);
+  }
+  const indexes = new Set(['length', ...Array.from({ length }, (_, index) => String(index))]);
+  assertOwnKeys(errors as object, indexes, location, 'The validation result errors');
+  const issues: ParameterValidationIssue[] = [];
+  for (let index = 0; index < length; index += 1) {
+    const label = `The validation result errors[${index}]`;
+    const entry = ownData(errors as object, String(index), location, 'The validation result errors', label);
+    if (!isRecord(entry)) throw metadataFailure(location, `${label} must be an object.`);
+    assertOwnKeys(entry, RESULT_ERROR_KEYS, location, label);
+    const message = resultText(ownData(entry, 'message', location, label), location, `${label}.message`);
+    const entryPath = ownData(entry, 'path', location, label);
+    const remediation = ownData(entry, 'remediation', location, label);
+    issues.push(issue(
+      entryPath === undefined ? path : resultText(entryPath, location, `${label}.path`, true),
+      message,
+      remediation === undefined ? undefined : resultText(remediation, location, `${label}.remediation`),
+    ));
+  }
+  return issues;
+}
+
 function outcome(result: unknown, validator: ParameterValidator, path: string): LlmFailure | undefined {
   if (result === true || result === undefined) return undefined;
-  if (result === false) return validationFailure(path, validator.message ?? 'the value was rejected by its validation function.');
-  if (typeof result === 'string' && result.length > 0) return validationFailure(path, result);
-  return metadataFailure(validator.location, 'validation.function must synchronously return true, false, undefined, or a non-empty failure message; asynchronous validators are not supported.');
+  if (result === false) return validationFailure(path, validator.message ?? 'the value was rejected by its validation function.', validator.remediation);
+  if (hasText(result)) return validationFailure(path, result, validator.remediation);
+  // Promises and other objects without an own `valid` member are not result objects.
+  if (isRecord(result) && Object.getOwnPropertyDescriptor(result, 'valid') !== undefined) {
+    const issues = resultIssues(result, validator, path);
+    return issues.length === 0 ? undefined : new ParameterValidationFailure(issues);
+  }
+  return metadataFailure(validator.location, INVALID_RESULT);
 }
 
 /**
@@ -344,7 +496,9 @@ export async function runParameterValidators(schema: InlineJsonSchema | undefine
         const result = runHandlingPromises(validator.script, isolatedContext({ __llmValue: instance.value, __llmContext: context }), onRejected);
         failure = outcome(result, validator, instance.path);
       } catch (error) {
-        failure = validationFailure(instance.path, thrownMessage(error, 'the validation function threw an error.'));
+        failure = error instanceof LlmFailure
+          ? error
+          : validationFailure(instance.path, thrownMessage(error, 'the validation function threw an error.'));
       }
       if (failure !== undefined) break;
     }

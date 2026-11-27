@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 workItemId: WI-0025
 recordType: work-item-summary
 ---
@@ -8,9 +8,12 @@ recordType: work-item-summary
 
 ## Status
 
-`planned`. This record defines a bounded planning slice. It does not claim
-implementation, test execution, provider availability, production readiness,
-release, or commit.
+`complete` for structured validation result objects, `ParameterValidationFailure`,
+and per-issue `llm req` error output. The provider-free validation and an
+accepted review are recorded in the ordered task files. All independent review
+findings were fixed in rework commit dbbe9ea. This status does not claim
+sandbox security, authenticated provider availability, production readiness,
+release, deployment, or publication.
 
 ## Authority
 
