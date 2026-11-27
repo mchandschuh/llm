@@ -1,0 +1,110 @@
+{
+  "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
+  "workItemId": "WI-0027",
+  "status": "planned",
+  "title": "Fix claude provider schema dialect handling and add live claude tests",
+  "type": "bugfix",
+  "objective": "Make the claude provider pass --json-schema documents the real Claude Code CLI accepts by removing $schema dialect declarations, and add an opt-in live test suite (outside npm test) that confirms the provider end to end, including a read_file/write_file chat session.",
+  "repository": {
+    "root": "/home/michael/src/github/llm",
+    "authority": "local"
+  },
+  "context": {
+    "mergeTarget": {
+      "branch": "master"
+    },
+    "branch": {
+      "name": "WI-0027-claude-schema-dialect-live-tests",
+      "created": false,
+      "rationale": "Each work item is processed on its own branch."
+    }
+  },
+  "baseline": "b5e77d13d0056367f8b4f81b031c3c130fd8b43a",
+  "request": {
+    "source": "conversation",
+    "text": "Operator request: perform live testing to confirm the claude provider is operating as expected; read_file and write_file chat-session tests should work with the claude provider. Live testing found that the real Claude Code CLI rejects --json-schema documents declaring $schema https://json-schema.org/draft/2020-12/schema, so llm summarize and llm req summarize fail with the default claude provider.",
+    "sha256": "b1a09193b457f2e5ee5a433669b947e8264b6dfc80d8da30c75e0791fe761620"
+  },
+  "scope": [
+    {
+      "name": "schema-dialect",
+      "description": "Remove $schema keywords from every schema passed to the claude CLI as --json-schema, recursing through subschemas without deleting property names, so validation semantics are unchanged.",
+      "reason": "The real CLI rejects the 2020-12 dialect URI used by the bundled summarize outputSchema."
+    },
+    {
+      "name": "live-tests",
+      "description": "Add tests/live/claude-live.mjs and npm run test:live:claude: text completion, structured output with $defs, llm summarize through the compiled CLI, and a read_file/write_file chat session, all against the real CLI and only on explicit request.",
+      "reason": "The operator asked for live confirmation, including read_file/write_file chat-session tests."
+    }
+  ],
+  "nonGoals": [
+    {
+      "name": "provider-behavior",
+      "description": "Do not change provider selection, defaults, tool-calling semantics, or OpenRouter behavior.",
+      "reason": "This is a targeted fix.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    },
+    {
+      "name": "live-in-npm-test",
+      "description": "Do not add live or authenticated checks to npm test.",
+      "reason": "npm test stays provider-free.",
+      "forbiddenFileWrites": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ],
+      "forbiddenFileReads": [
+        ".env",
+        ".env.*",
+        "credentials/",
+        "secrets/"
+      ]
+    },
+    {
+      "name": "release",
+      "description": "Do not publish, deploy, tag, or claim production readiness.",
+      "reason": "The work item is local delivery.",
+      "forbiddenFileWrites": [],
+      "forbiddenFileReads": []
+    }
+  ],
+  "requirements": {
+    "items": [
+      {
+        "id": "WI-0027_REQ_001",
+        "name": "schema-dialect",
+        "description": "Schemas passed as --json-schema carry no $schema keywords, keep property names, and keep their validation semantics.",
+        "reason": "The real CLI must accept generated schemas.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0027_REQ_001_AC_001",
+            "description": "Object-root, wrapped, tool-envelope, and $id-scoped emitted schemas contain no $schema keyword, and a property named $schema is preserved."
+          },
+          {
+            "id": "WI-0027_REQ_001_AC_002",
+            "description": "Emitted schemas compile with strict Ajv 2020 and accept and reject the same values; llm summarize succeeds against the real CLI."
+          }
+        ]
+      },
+      {
+        "id": "WI-0027_REQ_002",
+        "name": "live-tests",
+        "description": "An opt-in live suite confirms the claude provider against the real CLI, including a read_file/write_file chat session.",
+        "reason": "The operator requested live confirmation.",
+        "acceptanceCriteria": [
+          {
+            "id": "WI-0027_REQ_002_AC_001",
+            "description": "npm run test:live:claude runs text, structured-output, CLI summarize, and read_file/write_file chat-session checks against the real CLI and exits non-zero on any failure."
+          },
+          {
+            "id": "WI-0027_REQ_002_AC_002",
+            "description": "npm test does not include the live suite, and README.md and SKILL.md document how and when to run it."
+          }
+        ]
+      }
+    ]
+  },
+  "stepsPath": ".docs/work-items/WI-0027/steps/"
+}
