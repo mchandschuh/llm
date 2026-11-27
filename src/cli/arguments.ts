@@ -23,8 +23,7 @@ export interface ParsedCliArguments {
   readonly requestName?: string;
   readonly requestParameters?: string;
   readonly requestAssignments?: readonly RequestParameterAssignment[];
-  readonly requestSourcePath?: string;
-  readonly requestSourceContent?: string;
+  readonly usageError?: string;
   readonly exitCode?: number;
 }
 
@@ -138,6 +137,18 @@ function assignmentPath(value: string, roots: readonly string[]): string | undef
   return roots.some((root) => path === root || path.startsWith(`${root}.`) || path.startsWith(`${root}[`)) ? path : undefined;
 }
 
+function parameterPath(value: string, roots: readonly string[]): string | undefined {
+  const path = value.startsWith('--') ? value.slice(2).split('=', 1)[0] : value;
+  if (!path || path.startsWith('p-')) return undefined;
+  return roots.some((root) => path === root || path.startsWith(`${root}.`) || path.startsWith(`${root}[`)) ? path : undefined;
+}
+
+function missingParameterPrefixError(token: string, path: string): string {
+  const separator = token.indexOf('=');
+  const suggestion = separator === -1 ? `--p-${path} <value>` : `--p-${path}=${token.slice(separator + 1)}`;
+  return `Option '${token}' is a request parameter. Request parameters must use the '--p-' prefix; use '${suggestion}'.`;
+}
+
 async function parseRequestArguments(args: readonly string[], common: { readonly debug: boolean; readonly format: ResponseFormat; readonly printChatId: boolean }): Promise<ParsedCliArguments> {
   if (common.printChatId || args.length < 2) return { ...common, command: 'req', exitCode: 2 };
   const requestName = args[1]!;
@@ -152,22 +163,8 @@ async function parseRequestArguments(args: readonly string[], common: { readonly
   const roots = parameterRoots(loaded.assets.parametersSchema?.value);
   let parameters: string | undefined;
   const assignments: RequestParameterAssignment[] = [];
-  let sourcePath: string | undefined;
-  let sourceContent: string | undefined;
   for (let index = 2; index < args.length; index += 1) {
     const token = args[index]!;
-    if (token === '--path' || token.startsWith('--path=')) {
-      if (sourcePath !== undefined || sourceContent !== undefined) return { ...common, command: 'req', exitCode: 2 };
-      sourcePath = token === '--path' ? args[++index] : token.slice('--path='.length);
-      if (!sourcePath) return { ...common, command: 'req', exitCode: 2 };
-      continue;
-    }
-    if (token === '--content' || token.startsWith('--content=')) {
-      if (sourcePath !== undefined || sourceContent !== undefined) return { ...common, command: 'req', exitCode: 2 };
-      sourceContent = token === '--content' ? args[++index] : token.slice('--content='.length);
-      if (!sourceContent) return { ...common, command: 'req', exitCode: 2 };
-      continue;
-    }
     if (token === '--parameters' || token.startsWith('--parameters=')) {
       if (parameters !== undefined) return { ...common, command: 'req', exitCode: 2 };
       parameters = token === '--parameters' ? args[++index] : token.slice('--parameters='.length);
@@ -175,7 +172,12 @@ async function parseRequestArguments(args: readonly string[], common: { readonly
       continue;
     }
     const pathToken = assignmentPath(token, roots);
-    if (pathToken === undefined) return { ...common, command: 'req', exitCode: 2 };
+    if (pathToken === undefined) {
+      const unprefixedPath = parameterPath(token, roots);
+      return unprefixedPath === undefined
+        ? { ...common, command: 'req', exitCode: 2 }
+        : { ...common, command: 'req', usageError: missingParameterPrefixError(token, unprefixedPath), exitCode: 2 };
+    }
     const separator = token.indexOf('=');
     const value = separator === -1 ? args[index + 1] : token.slice(separator + 1);
     if (!value) return { ...common, command: 'req', exitCode: 2 };
@@ -188,8 +190,6 @@ async function parseRequestArguments(args: readonly string[], common: { readonly
     requestName,
     ...(parameters === undefined ? {} : { requestParameters: parameters }),
     ...(assignments.length === 0 ? {} : { requestAssignments: assignments }),
-    ...(sourcePath === undefined ? {} : { requestSourcePath: sourcePath }),
-    ...(sourceContent === undefined ? {} : { requestSourceContent: sourceContent }),
   };
 }
 

@@ -74,16 +74,13 @@ function provider(response: string, calls: ProviderCompletionRequest[]): LlmProv
   };
 }
 
-test('WI-0020-10000000_TC-CONFIGURED-LOOKUP resolves the configured request and forwards additional path/content files', async () => {
+test('WI-0020-10000000_TC-CONFIGURED-LOOKUP resolves the configured request and forwards schema parameters', async () => {
   const value = await fixture();
   const calls: ProviderCompletionRequest[] = [];
   try {
-    const sourcePath = join(value.root, 'source.txt');
-    await writeFile(sourcePath, 'additional path input');
     const output = await withConfiguration(value.root, () => capture((write, writeError) => runRequestCommand({
       requestName: 'report',
       parameters: JSON.stringify({ filters: { owner: 'michael' } }),
-      sourcePath,
       debug: false,
       provider: provider('report answer', calls),
       write,
@@ -94,11 +91,10 @@ test('WI-0020-10000000_TC-CONFIGURED-LOOKUP resolves the configured request and 
     assert.equal(output.stderr, '');
     assert.equal(calls.length, 1);
     assert.equal(calls[0]?.task, 'Prepare a report for engineering.');
-    assert.equal(calls[0]?.files.at(-1)?.content, 'additional path input');
     const contentOutput = await withConfiguration(value.root, () => capture((write, writeError) => runRequestCommand({
       requestName: 'report',
+      parameters: JSON.stringify({ audience: 'engineering' }),
       assignments: [{ path: 'filters.owner', value: 'michael' }],
-      sourceContent: 'additional content input',
       debug: false,
       provider: provider('content answer', calls),
       write,
@@ -106,7 +102,7 @@ test('WI-0020-10000000_TC-CONFIGURED-LOOKUP resolves the configured request and 
     })));
     assert.equal(contentOutput.result, 0);
     assert.equal(calls.length, 2);
-    assert.equal(calls[1]?.files.at(-1)?.content, 'additional content input');
+    assert.equal(calls[1]?.task, 'Prepare a report for engineering.');
 
     const missingConfiguration = await withConfiguration(join(value.root, 'missing-config'), () => capture((write, writeError) => runRequestCommand({
       requestName: 'report',
@@ -198,13 +194,13 @@ test('WI-0020-10000000_TC-CLI-REGRESSION keeps existing parser modes and common 
   const value = await fixture();
   try {
     await withConfiguration(value.root, async () => {
-      assert.deepEqual(await parseCliArgumentsAsync(['--debug', 'req', 'report', '--format=full', '--content', 'input']), {
+      assert.deepEqual(await parseCliArgumentsAsync(['--debug', 'req', 'report', '--format=full', '--p-audience', 'input']), {
         debug: true,
         format: 'full',
         printChatId: false,
         command: 'req',
         requestName: 'report',
-        requestSourceContent: 'input',
+        requestAssignments: [{ path: 'audience', value: 'input' }],
       });
     });
   } finally {

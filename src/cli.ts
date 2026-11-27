@@ -14,11 +14,11 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
     console.log(await packageVersion());
     return 0;
   }
-  if (parsed.exitCode !== undefined) return printUsageError();
+  if (parsed.exitCode !== undefined) return printUsageError(parsed.usageError);
   if (parsed.command === 'prompt') return runPromptCommand({ prompt: parsed.prompt!, debug: parsed.debug, format: parsed.format });
   if (parsed.command === 'chat') return runChatCommand({ prompt: parsed.prompt!, chatId: parsed.chatId, continuation: false, debug: parsed.debug, format: parsed.format, printChatId: parsed.printChatId });
   if (parsed.command === 'continue') return runChatCommand({ prompt: parsed.prompt!, continuation: true, debug: parsed.debug, format: parsed.format, printChatId: parsed.printChatId });
   if (parsed.command === 'summarize') return runSummarizeCommand({ path: parsed.summarizePath, content: parsed.summarizeContent, providerName: parsed.summarizeProvider, model: parsed.summarizeModel, thinking: parsed.summarizeThinking, debug: parsed.debug, format: parsed.format });
-  if (parsed.command === 'req') return runRequestCommand({ requestName: parsed.requestName!, parameters: parsed.requestParameters, assignments: parsed.requestAssignments, sourcePath: parsed.requestSourcePath, sourceContent: parsed.requestSourceContent, debug: parsed.debug, format: parsed.format });
+  if (parsed.command === 'req') return runRequestCommand({ requestName: parsed.requestName!, parameters: parsed.requestParameters, assignments: parsed.requestAssignments, debug: parsed.debug, format: parsed.format });
   return runConfigCommand(parsed.requestPath!, parsed.debug, parsed.format);
 }

@@ -262,28 +262,3 @@ export async function materializeParameterFiles(schema: InlineJsonSchema | undef
     throw error;
   }
 }
-
-export async function prepareAdditionalFiles(options: { readonly sourcePath?: string; readonly sourceContent?: string }): Promise<PreparedReferenceFiles> {
-  if (options.sourcePath !== undefined) {
-    return { files: await preparePathFiles(options.sourcePath, 'text/plain', 'Text file supplied by the --path command-line option.') };
-  }
-  if (options.sourceContent !== undefined) {
-    const temporaryRoot = await mkdtemp(join(tmpdir(), 'llm-request-'));
-    try {
-      const metadata: ParameterFileMetadata = {
-        mode: 'content',
-        name: 'content',
-        type: 'text/plain',
-        purpose: 'Content supplied by the --content command-line option.',
-      };
-      return {
-        files: [await createContentFile(temporaryRoot, options.sourceContent, metadata)],
-        temporaryRoot,
-      };
-    } catch (error) {
-      await rm(temporaryRoot, { recursive: true, force: true });
-      throw error;
-    }
-  }
-  return { files: [] };
-}

@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { parseCliArguments, parseCliArgumentsAsync } from '../src/cli/arguments.js';
+import { printUsageError } from '../src/cli/output.js';
 import { runPromptCommand } from '../src/cli/prompt-command.js';
 import { runConfigCommand } from '../src/cli/config-command.js';
 import { runChatCommand } from '../src/cli/chat-command.js';
@@ -136,15 +137,35 @@ test('WI-0019-10000000_TC-PARAMETER-FORWARDING requires the --p- prefix and pres
     });
     assert.equal((await parseCliArgumentsAsync(['req', 'report', '--format=full', '--p-filters.owner', 'michael'])).requestAssignments?.[0]?.path, 'filters.owner');
     for (const args of [
-      ['req', 'report', '--filters.owner', 'michael'],
-      ['req', 'report', '--audience', 'public'],
-      ['req', 'report', '--metadata', '{"region":"us-east-1"}'],
       ['req', 'report', '--p-unknown', 'value'],
       ['req', 'report', '--p-'],
-      ['req', 'report', '--p-filters.owner', '--path', 'notes.md'],
     ]) {
       assert.equal((await parseCliArgumentsAsync(args)).exitCode, 2, args.join(' '));
     }
+  });
+});
+
+test('WI-0019-10000000_TC-PARAMETER-PREFIX-GUIDANCE derives --p- corrections for unprefixed schema parameters', async () => {
+  await withRequestCliFixture(async () => {
+    for (const [option, value, expected] of [
+      ['--audience', 'public', "Option '--audience' is a request parameter. Request parameters must use the '--p-' prefix; use '--p-audience <value>'."],
+      ['--filters.owner', 'michael', "Option '--filters.owner' is a request parameter. Request parameters must use the '--p-' prefix; use '--p-filters.owner <value>'."],
+    ] as const) {
+      const parsed = await parseCliArgumentsAsync(['req', 'report', option, value]);
+      assert.equal(parsed.exitCode, 2);
+      assert.equal(parsed.usageError, expected);
+    }
+
+    const stderr: string[] = [];
+    assert.equal(printUsageError("Option '--audience' is a request parameter. Request parameters must use the '--p-' prefix; use '--p-audience <value>'.", (text) => stderr.push(text)), 2);
+    assert.deepEqual(JSON.parse(stderr.join('')), {
+      status: 'input_invalid',
+      errors: [{
+        code: 'REQUEST_INVALID',
+        phase: 'request',
+        message: "Option '--audience' is a request parameter. Request parameters must use the '--p-' prefix; use '--p-audience <value>'.",
+      }],
+    });
   });
 });
 

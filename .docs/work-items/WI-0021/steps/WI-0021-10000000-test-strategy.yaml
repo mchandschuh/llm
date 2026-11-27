@@ -198,6 +198,30 @@ task:
       limitations:
       - Provider-free local evidence does not establish authenticated provider or
         production behavior.
+    - id: WI-0021-10000000_TC-PARAMETER-PREFIX-GUIDANCE
+      title: parameter-prefix-guidance required cases
+      type: unit
+      requirementLevel: required
+      purpose: Prove schema-derived request parameters reject unprefixed CLI options,
+        provide generalized --p- guidance, and preserve valid --p-path/--p-content
+        execution.
+      procedure:
+        executionMode: executable
+        target: Focused tests for parameter-prefix-guidance
+        steps:
+        - Arrange schema-derived path and content parameter fixtures.
+        - Run the focused CLI parsing and request-boundary tests.
+        - Assert generalized missing-prefix guidance, valid prefixed execution, and
+          bounded failure without provider use.
+        command: npm test
+      expectedOutcome: parameter-prefix-guidance satisfies the requirement and fails
+        closed at its boundary.
+      passCriteria: The command exits zero and all named assertions pass.
+      evidenceTier: component
+      fixtureRefs: []
+      limitations:
+      - Provider-free local evidence does not establish authenticated provider or
+        production behavior.
     - id: WI-0021-10000000_TC-COMPATIBILITY
       title: compatibility required cases
       type: unit
@@ -279,6 +303,19 @@ task:
       acceptanceCriterionRefs:
       - WI-0021_REQ_001_AC_001
       - WI-0021_REQ_001_AC_002
+    - id: COV-005
+      requirementRefs:
+      - WI-0021_REQ_001
+      invariantRefs:
+      - '#intent/invariants/WI-0021-10000000_INV-001'
+      objectiveRefs:
+      - '#objective/WI-0021-10000000_OBJ-001'
+      testCaseRefs:
+      - '#result/testCases/WI-0021-10000000_TC-PARAMETER-PREFIX-GUIDANCE'
+      rationale: The parameter-prefix-guidance case verifies documented schema-derived
+        CLI flags and generalized correction guidance for valid and invalid forms.
+      acceptanceCriterionRefs:
+      - WI-0021_REQ_001_AC_002
     - id: COV-002
       requirementRefs:
       - WI-0021_REQ_002
@@ -321,6 +358,7 @@ task:
       - WI-0021_REQ_004_AC_001
     minimumRequiredTestCaseRefs:
     - '#result/testCases/WI-0021-10000000_TC-GENERIC-EXAMPLE'
+    - '#result/testCases/WI-0021-10000000_TC-PARAMETER-PREFIX-GUIDANCE'
     - '#result/testCases/WI-0021-10000000_TC-COMPATIBILITY'
     - '#result/testCases/WI-0021-10000000_TC-SOURCE-REGRESSIONS'
     - '#result/testCases/WI-0021-10000000_TC-EXAMPLE-QUALITY'

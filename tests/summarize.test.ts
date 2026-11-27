@@ -85,18 +85,10 @@ test('WI-0021-10000000_TC-GENERIC-EXAMPLE executes summarize assets through the 
   assert.equal(invalidCalls.length, 0);
 });
 
-test('reports the --p-content fix for llm req summarize --content parameter validation', async () => {
+test('WI-0021-10000000_TC-PARAMETER-PREFIX-GUIDANCE requires schema-derived summarize parameters to use --p-', async () => {
   const configurationRoot = await mkdtemp(join(tmpdir(), 'llm-summarize-cli-repro-'));
   const previousConfiguration = process.env.LLM_CONFIG;
   const calls: ProviderCompletionRequest[] = [];
-  const expectedError = {
-    status: 'configuration_error',
-    errors: [{
-      code: 'CONFIGURATION_INVALID',
-      phase: 'configuration',
-      message: "Request parameters are invalid. The resolved parameters do not satisfy the parameter schema: $ must have required property 'path'; $ must have required property 'content'; $ must match exactly one schema in oneOf. The --content option supplies an additional input file; it does not set the request's content parameter. Use --p-content <value> (for example, llm req summarize --p-content 'some-content').",
-    }],
-  };
 
   try {
     await mkdir(join(configurationRoot, '.config'), { recursive: true });
@@ -107,30 +99,62 @@ test('reports the --p-content fix for llm req summarize --content parameter vali
     ]);
     process.env.LLM_CONFIG = configurationRoot;
 
-    const parsed = await parseCliArgumentsAsync(['req', 'summarize', '--content', 'some-content']);
-    assert.deepEqual(parsed, {
+    for (const [option, expected] of [
+      ['--content', "Option '--content' is a request parameter. Request parameters must use the '--p-' prefix; use '--p-content <value>'."],
+      ['--path', "Option '--path' is a request parameter. Request parameters must use the '--p-' prefix; use '--p-path <value>'."],
+    ] as const) {
+      const parsed = await parseCliArgumentsAsync(['req', 'summarize', option, option === '--content' ? 'some-content' : 'notes.md']);
+      assert.equal(parsed.exitCode, 2);
+      assert.equal(parsed.usageError, expected);
+    }
+
+    const contentParsed = await parseCliArgumentsAsync(['req', 'summarize', '--p-content', 'some-content']);
+    assert.deepEqual(contentParsed, {
       debug: false,
       format: 'raw',
       printChatId: false,
       command: 'req',
       requestName: 'summarize',
-      requestSourceContent: 'some-content',
+      requestAssignments: [{ path: 'content', value: 'some-content' }],
     });
 
-    const output = await capture((write, writeError) => runRequestCommand({
-      requestName: parsed.requestName!,
-      sourceContent: parsed.requestSourceContent,
-      debug: parsed.debug,
-      format: parsed.format,
-      provider: provider('must not run', calls),
+    const pathParsed = await parseCliArgumentsAsync(['req', 'summarize', '--p-path=notes.md']);
+    assert.deepEqual(pathParsed, {
+      debug: false,
+      format: 'raw',
+      printChatId: false,
+      command: 'req',
+      requestName: 'summarize',
+      requestAssignments: [{ path: 'path', value: 'notes.md' }],
+    });
+
+    const sourcePath = join(configurationRoot, 'notes.md');
+    await writeFile(sourcePath, 'Path-backed summarize content.');
+    const contentOutput = await capture((write, writeError) => runRequestCommand({
+      requestName: contentParsed.requestName!,
+      requestsDirectory,
+      assignments: contentParsed.requestAssignments,
+      debug: contentParsed.debug,
+      format: contentParsed.format,
+      provider: provider('{"summary":"content success"}', calls),
       write,
       writeError,
     }));
+    assert.equal(contentOutput.result, 0);
+    assert.equal(calls[0]?.files[0]?.content, 'some-content');
 
-    assert.equal(output.result, 1);
-    assert.equal(output.stdout, '');
-    assert.deepEqual(JSON.parse(output.stderr), expectedError);
-    assert.equal(calls.length, 0);
+    const pathOutput = await capture((write, writeError) => runRequestCommand({
+      requestName: pathParsed.requestName!,
+      requestsDirectory,
+      assignments: [{ path: 'path', value: sourcePath }],
+      debug: pathParsed.debug,
+      format: pathParsed.format,
+      provider: provider('{"summary":"path success"}', calls),
+      write,
+      writeError,
+    }));
+    assert.equal(pathOutput.result, 0);
+    assert.equal(calls[1]?.files[0]?.content, 'Path-backed summarize content.');
   } finally {
     if (previousConfiguration === undefined) delete process.env.LLM_CONFIG;
     else process.env.LLM_CONFIG = previousConfiguration;
