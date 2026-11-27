@@ -68,3 +68,4 @@ export type {
 export type { ChatSessionStoreConfigResolutionOptions } from './chat-session-config.js';
 export type { OpenRouterChatRequest, OpenRouterFunctionTool, OpenRouterMessage } from './openrouter-projection.js';
 export type { DebugEvent, DebugSink } from './debug.js';
+export type { ParameterValidationContext, ParameterValidationFileSystem } from './request-parameter-validation.js';

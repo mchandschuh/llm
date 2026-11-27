@@ -1,6 +1,7 @@
 import { boundedMessage, LlmFailure } from './errors.js';
 import { createJsonSchemaRegistry, type JsonSchemaRegistry } from 'schema-validate';
 import { validateParameterFileSchema } from './request-parameter-files.js';
+import { discoverParameterValidators } from './request-parameter-validation.js';
 import type { InlineJsonSchema, JsonObject } from './types.js';
 
 export interface RequestParameterAssignment {
@@ -257,6 +258,7 @@ export function constructRequestParameters(options: RequestParameterOptions): Js
   }
   const resolvedSchema = resolveSchema(options, registry);
   validateParameterFileSchema(resolvedSchema);
+  discoverParameterValidators(resolvedSchema);
   const rootSchema = resolvedSchema;
   const result: Record<string, unknown> = {};
   mergeObjects(result, defaults);

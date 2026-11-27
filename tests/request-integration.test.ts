@@ -18,7 +18,7 @@ const repositoryRoot = process.cwd();
 const requestsDirectory = resolve(repositoryRoot, 'requests');
 
 /** The dynamic request-lookup sequence whose strategy cases this matrix accounts for. */
-const SEQUENCE = ['WI-0014', 'WI-0015', 'WI-0016', 'WI-0017', 'WI-0018', 'WI-0019', 'WI-0020', 'WI-0021', 'WI-0022', 'WI-0024'] as const;
+const SEQUENCE = ['WI-0014', 'WI-0015', 'WI-0016', 'WI-0017', 'WI-0018', 'WI-0019', 'WI-0020', 'WI-0021', 'WI-0022', 'WI-0023', 'WI-0024'] as const;
 
 /** Generic request modules that must never branch on a specific request name. */
 const GENERIC_REQUEST_MODULES = [
@@ -26,6 +26,7 @@ const GENERIC_REQUEST_MODULES = [
   'src/request-directory.ts',
   'src/request-parameters.ts',
   'src/request-parameter-files.ts',
+  'src/request-parameter-validation.ts',
   'src/request-variables.ts',
   'src/cli/request-command.ts',
 ] as const;
@@ -157,7 +158,7 @@ test('WI-0014-10000000_TC-DOCUMENTATION documents the request-directory tree, ma
     assert.match(layout, new RegExp(`<request-name>\\.${suffix.replace(/\./gu, '\\.')}`, 'u'), suffix);
     assert.match(mapping, new RegExp(`\\| \`<request-name>\\.${suffix.replace(/\./gu, '\\.')}\` \\|`, 'u'), suffix);
   }
-  assert.match(section(contract, 'Processing order'), /^11\. Serialize through the existing raw\/full response contract\.$/mu);
+  assert.match(section(contract, 'Processing order'), /^\d+\. Serialize through the existing raw\/full response contract\.$/mu);
   assert.match(section(contract, 'Request-name and filesystem safety'), /rejects absolute paths,\s+traversal, path separators/u);
   assert.match(section(contract, 'Parameter contract'), /`parameter` is reserved/u);
   assert.match(section(contract, 'Placeholder substitution'), /No unresolved placeholder reaches the\s+provider\./u);

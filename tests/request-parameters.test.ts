@@ -129,6 +129,7 @@ test('WI-0016-10000000_TC-SCHEMA-VALIDATION validates the final object and rejec
   assert.equal(createJsonSchemaRegistry({ rules: [] }).validateSchema(schema, { documentPath: '/tmp/request.parameters.schema.json', rules: [] }).valid, true);
   assertParameterFailure(() => constructRequestParameters({ schema, parameters: { audience: 'invalid', filters: { owner: 'michael' }, sections: [{ title: 'Status' }], metadata: {} } }), /schema|invalid/u);
   assertParameterFailure(() => constructRequestParameters({ schema, parameters: { audience: 'engineering', filters: { owner: 'michael' }, sections: [{ title: 'Status' }], metadata: {}, extra: true } }), /schema|additional/u);
-  assertParameterFailure(() => constructRequestParameters({ schema: { ...schema, 'x-llm-req-parameter': { validation: { function: 'validate' } } } }), /custom validation metadata/u);
+  // WI-0023 supports validation.function; a source that is not a function expression still fails closed.
+  assertParameterFailure(() => constructRequestParameters({ schema: { ...schema, 'x-llm-req-parameter': { validation: { function: 'validate' } } } }), /Custom validation metadata at '<root>' is invalid/u);
   assertParameterFailure(() => constructRequestParameters({ schema: undefined, defaults: { audience: 'engineering' } }), /schema is required/u);
 });

@@ -4,7 +4,7 @@ taskUid: WI-0023-20000000
 orderKey: '20000000'
 parentTaskUid: WI-0023-10000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement x-llm-req-parameter.validation.function
 objective: Implement inline JavaScript parameter validation functions with a sufficient read-only context through the shared completeRequest boundary.
 references:
@@ -60,7 +60,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -146,3 +146,120 @@ task:
     - Update existing tests whose fixtures relied on validation being rejected so they keep asserting fail-closed malformed metadata.
     - Add provider-free trace-marked tests for every strategy case.
     - Update requests/README.md, requests/decisions.md, README.md, and SKILL.md.
+  result:
+    status: implemented
+    implementation:
+      summary: Added x-llm-req-parameter.validation.function. Schema nodes declare inline synchronous JavaScript validators, which completeRequest runs after JSON Schema validation and before file materialization, substitution, and provider delegation. Each validator runs in a fresh node:vm context with a frozen context, read-only filesystem helpers, and a 1000 ms timeout. The contract, decision log, and public docs document the feature and its trust boundary.
+      changes:
+      - id: WI-0023-20000000_CHANGE-001
+        type: production-code
+        summary: Added src/request-parameter-validation.ts for metadata discovery, compile-time function checks, allowed positions, frozen context construction, read-only fs helpers, result mapping, and isolated vm execution with a timeout. Exported the context types.
+        objectiveRefs:
+        - WI-0023-20000000_OBJ-001
+        - WI-0023-20000000_OBJ-002
+        - WI-0023-20000000_OBJ-003
+        paths:
+        - src/request-parameter-validation.ts
+        - src/index.ts
+      - id: WI-0023-20000000_CHANGE-002
+        type: production-code
+        summary: The file-binding parser now accepts the validation member and still rejects unknown members. constructRequestParameters checks validation metadata fail-closed, and completeRequest runs validators before materializing schema-declared files.
+        objectiveRefs:
+        - WI-0023-20000000_OBJ-001
+        - WI-0023-20000000_OBJ-004
+        paths:
+        - src/request-parameter-files.ts
+        - src/request-parameters.ts
+        - src/request.ts
+      - id: WI-0023-20000000_CHANGE-003
+        type: test-code
+        summary: Added six trace-marked provider-free strategy tests. Retargeted two fixtures that assumed validation was always rejected (WI-0016 TC-SCHEMA-VALIDATION and WI-0024 TC-METADATA-VALIDATION) so they still assert fail-closed malformed metadata. Added WI-0023 and the new module to the WI-0022 matrix and scope checks, and made the WI-0014 processing-order assertion independent of step numbering.
+        objectiveRefs:
+        - WI-0023-20000000_OBJ-001
+        - WI-0023-20000000_OBJ-002
+        - WI-0023-20000000_OBJ-003
+        - WI-0023-20000000_OBJ-004
+        - WI-0023-20000000_OBJ-005
+        paths:
+        - tests/request-parameter-validation.test.ts
+        - tests/request-parameters.test.ts
+        - tests/request-parameter-files.test.ts
+        - tests/request-integration.test.ts
+      - id: WI-0023-20000000_CHANGE-004
+        type: documentation
+        summary: With operator confirmation, documented validation functions, context, results, ordering, timeout, and trust boundary in requests/README.md. Updated the processing order, filesystem-safety, authority, evidence-boundary, and contract-table text. Recorded decision D17 and added short sections to README.md and SKILL.md.
+        objectiveRefs:
+        - WI-0023-20000000_OBJ-005
+        paths:
+        - requests/README.md
+        - requests/decisions.md
+        - README.md
+        - SKILL.md
+      testImplementations:
+      - testCaseRef: WI-0023-10000000#test-case/WI-0023-10000000_TC-METADATA-CONTRACT
+        path: tests/request-parameter-validation.test.ts
+        selector: WI-0023-10000000_TC-METADATA-CONTRACT
+        traceMarker: WI-0023-10000000_TC-METADATA-CONTRACT
+      - testCaseRef: WI-0023-10000000#test-case/WI-0023-10000000_TC-INVOCATION-CONTEXT
+        path: tests/request-parameter-validation.test.ts
+        selector: WI-0023-10000000_TC-INVOCATION-CONTEXT
+        traceMarker: WI-0023-10000000_TC-INVOCATION-CONTEXT
+      - testCaseRef: WI-0023-10000000#test-case/WI-0023-10000000_TC-FILESYSTEM-HELPERS
+        path: tests/request-parameter-validation.test.ts
+        selector: WI-0023-10000000_TC-FILESYSTEM-HELPERS
+        traceMarker: WI-0023-10000000_TC-FILESYSTEM-HELPERS
+      - testCaseRef: WI-0023-10000000#test-case/WI-0023-10000000_TC-RESULT-SEMANTICS
+        path: tests/request-parameter-validation.test.ts
+        selector: WI-0023-10000000_TC-RESULT-SEMANTICS
+        traceMarker: WI-0023-10000000_TC-RESULT-SEMANTICS
+      - testCaseRef: WI-0023-10000000#test-case/WI-0023-10000000_TC-PIPELINE-ORDER
+        path: tests/request-parameter-validation.test.ts
+        selector: WI-0023-10000000_TC-PIPELINE-ORDER
+        traceMarker: WI-0023-10000000_TC-PIPELINE-ORDER
+      - testCaseRef: WI-0023-10000000#test-case/WI-0023-10000000_TC-CONTRACT-DOCUMENTATION
+        path: tests/request-parameter-validation.test.ts
+        selector: WI-0023-10000000_TC-CONTRACT-DOCUMENTATION
+        traceMarker: WI-0023-10000000_TC-CONTRACT-DOCUMENTATION
+    verification:
+      status: passed
+      objectiveRefs:
+      - WI-0023-20000000_OBJ-001
+      - WI-0023-20000000_OBJ-002
+      - WI-0023-20000000_OBJ-003
+      - WI-0023-20000000_OBJ-004
+      - WI-0023-20000000_OBJ-005
+      tests:
+      - id: WI-0023-20000000_EXEC-FOCUSED
+        type: component
+        testCaseRefs:
+        - WI-0023-10000000#test-case/WI-0023-10000000_TC-METADATA-CONTRACT
+        - WI-0023-10000000#test-case/WI-0023-10000000_TC-INVOCATION-CONTEXT
+        - WI-0023-10000000#test-case/WI-0023-10000000_TC-FILESYSTEM-HELPERS
+        - WI-0023-10000000#test-case/WI-0023-10000000_TC-RESULT-SEMANTICS
+        - WI-0023-10000000#test-case/WI-0023-10000000_TC-PIPELINE-ORDER
+        - WI-0023-10000000#test-case/WI-0023-10000000_TC-CONTRACT-DOCUMENTATION
+        command: node --import tsx --test tests/request-parameter-validation.test.ts
+        status: passed
+        result: All six provider-free WI-0023 strategy cases passed.
+      - id: WI-0023-20000000_EXEC-PACKAGE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0023-10000000#test-case/WI-0023-10000000_TC-METADATA-CONTRACT
+        - WI-0023-10000000#test-case/WI-0023-10000000_TC-INVOCATION-CONTEXT
+        - WI-0023-10000000#test-case/WI-0023-10000000_TC-FILESYSTEM-HELPERS
+        - WI-0023-10000000#test-case/WI-0023-10000000_TC-RESULT-SEMANTICS
+        - WI-0023-10000000#test-case/WI-0023-10000000_TC-PIPELINE-ORDER
+        - WI-0023-10000000#test-case/WI-0023-10000000_TC-CONTRACT-DOCUMENTATION
+        command: npm run typecheck && npm test && npm run build && git diff --check
+        status: passed
+        result: Typecheck passed, the full 162-test provider-free suite passed, build passed, and the diff check passed.
+      - id: WI-0023-20000000_EXEC-CLI-SMOKE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0023-10000000#test-case/WI-0023-10000000_TC-PIPELINE-ORDER
+        command: LLM_CONFIG=<scratch> node ./bin/cli.js req check --p-path does-not-exist.md
+        status: passed
+        result: 'The compiled CLI exited 1 and wrote a CONFIGURATION_INVALID JSON error with the message "Request parameters are invalid. Validation of ''path'' failed: not a file: does-not-exist.md". No provider call was made; OPENROUTER_API_KEY was unset.'
+    limitations:
+    - The node:vm isolation is not a security sandbox; no sandbox-security evidence is claimed.
+    - Provider-free local evidence does not establish authenticated provider behavior, network transport, deployment, publication, downstream integration, or production readiness.

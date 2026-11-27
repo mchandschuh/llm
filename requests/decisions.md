@@ -133,3 +133,19 @@ table's stale `#library-and-cli-boundaries` links were retargeted to the
 current [Schema-declared files and library/CLI boundaries] section. The cited
 behavior is unchanged. Every in-document anchor in `requests/README.md` is now
 checked by `WI-0022-10000000_TC-DOCUMENTATION-CONSISTENCY`.
+
+## D17 — Inline parameter validation functions
+
+Confirmed by the human operator for WI-0023. This supersedes the earlier
+decisions that kept `x-llm-req-parameter.validation` reserved and unsupported.
+A parameter schema may declare `x-llm-req-parameter.validation.function` as an
+inline JavaScript function expression. The shared `completeRequest` boundary
+calls it as `fn(value, context)` after JSON Schema validation and before file
+materialization, placeholder substitution, and provider delegation. The frozen
+context exposes the parameter path, value, a deep-frozen copy of the resolved
+parameters, the schema node, request identity, working directory, and read-only
+filesystem helpers. Validators are synchronous and run in a fresh `node:vm`
+context without Node globals or string code generation, with a 1000 ms
+timeout. That isolation is not a security boundary: request bundles are trusted
+code. Validator modules, asynchronous validators, and filesystem writes remain
+out of scope.
