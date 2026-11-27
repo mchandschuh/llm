@@ -216,6 +216,6 @@ task:
         - WI-0025-10000000#test-case/WI-0025-10000000_TC-CLI-ERROR-OUTPUT
         command: LLM_CONFIG=<scratch> node ./bin/cli.js req check --p-path does-not-exist.md
         status: passed
-        result: 'The compiled CLI exited 1 with one error entry carrying parameterPath "path" and the validator remediation. No provider call was made; OPENROUTER_APWI-0025-20000000_KEY was unset.'
+        result: 'The compiled CLI exited 1 with one error entry carrying parameterPath "path" and the validator remediation. No provider call was made; OPENROUTER_API_KEY was unset.'
     limitations:
     - Provider-free local evidence does not establish authenticated provider behavior, sandbox security, deployment, publication, downstream integration, or production readiness.
