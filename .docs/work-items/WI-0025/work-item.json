@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0025",
-  "status": "planned",
+  "status": "complete",
   "title": "Return structured validation results from x-llm-req-parameter.validation.function",
   "type": "feature",
   "objective": "Let x-llm-req-parameter.validation.function return a well-defined result object whose error entries tell users and agents what is wrong with a parameter and how to fix it, and carry those entries unchanged to library callers and llm req error output. Contract sections: requests/README.md#validation-functions; requests/README.md#schema-declared-files-and-librarycli-boundaries.",
