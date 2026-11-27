@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 workItemId: WI-0022
 recordType: work-item-summary
 ---
@@ -8,7 +8,7 @@ recordType: work-item-summary
 
 ## Status
 
-`planned`. This record defines a bounded planning slice. It does not claim implementation, test execution, provider availability, production readiness, release, or commit.
+`complete` for the provider-free request-lookup integration matrix, package and declaration gates, scope audit, and documentation alignment recorded in the ordered task files. Review finding WI-0022-90000000_FIND-001 (a stale WI-0014 test-path record) remains open for operator action. It does not claim authenticated provider availability, production readiness, release, deployment, or publication.
 
 ## Authority
 

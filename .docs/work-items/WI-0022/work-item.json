@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0022",
-  "status": "planned",
+  "status": "complete",
   "title": "Validate dynamic request lookup and evidence coverage",
   "type": "feature",
   "objective": "Run the complete provider-free matrix, package gates, documentation checks, scope audit, and non-goal review for dynamic request lookup. Contract sections: requests/README.md#work-item-validation-gates; requests/README.md#evidence-boundary. Explicit human operator confirmation is required before modifying requests/README.md.",
