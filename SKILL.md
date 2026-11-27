@@ -149,6 +149,25 @@ exits. There is intentionally no REPL, interactive chat loop, long-lived
 process, TTY/readline requirement, stdin-driven message loop, slash-command
 exit interface, or promptless chat start.
 
+### Dynamic requests
+
+```text
+llm req <request-name> [--parameters <json>] [--p-<path> <value>] [--format=full|raw] [--debug]
+llm summarize --path <path> [--provider <provider>] [--model <model>] [--thinking <thinking>] [--format=full|raw]
+llm summarize --content <text> [--provider <provider>] [--model <model>] [--thinking <thinking>] [--format=full|raw]
+```
+
+`llm req` loads `<request-name>/` from the absolute `requestsDirectory` set in
+the layered `config.json`. Parameters come from `--parameters` and
+`--p-<path> <value>` assignments and are validated against
+`<request-name>.parameters.schema.json`. A parameter whose schema declares
+`x-llm-req-parameter.file` becomes a file under `<files>`. For example,
+`llm req summarize --p-path notes.md` or `--p-content <text>`. Unprefixed
+schema-parameter options such as `--path` are rejected on `llm req` with a
+`--p-` suggestion. `llm summarize` is a compatibility form for
+`llm req summarize`. See `requests/README.md` for the full request-bundle
+contract.
+
 ### Chat-session store configuration
 
 The process-per-turn chat mode uses `ChatSessionStoreFactory` and supports two
@@ -394,6 +413,9 @@ if (result.status === 'success') {
 
 The public exports also include:
 
+- `completeRequest({ requestName, parameters, assignments, files, settings, provider })`
+  for running a named request bundle with one provider delegation; it returns
+  the raw provider result;
 - `normalizeRequest` for request preparation and source resolution;
 - `composePrompt`, `composeRequestPrompt`, and `composeCorrectionPrompt`;
 - `OpenRouterProvider`;

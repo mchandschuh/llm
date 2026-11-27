@@ -4,7 +4,7 @@ taskUid: WI-0022-80000000
 orderKey: '80000000'
 parentTaskUid: WI-0022-20000000
 taskType: validation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Validate Validate dynamic request lookup and evidence coverage
 objective: Run the complete provider-free matrix, package gates, documentation checks,
   scope audit, and non-goal review for dynamic request lookup.
@@ -58,7 +58,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
@@ -140,3 +140,52 @@ task:
     - "Implement only these authoritative contract sections: requests/README.md#work-item-validation-gates; requests/README.md#evidence-boundary. Explicit human operator confirmation is required before modifying requests/README.md."
     - Do not claim authenticated provider, deployment, release, downstream, or production
       behavior.
+  result:
+    status: passed
+    summary: The request-lookup integration matrix, the declaration check, the scope audit, the documentation-consistency checks, and the complete provider-free package gate passed locally.
+    executions:
+    - id: WI-0022-80000000_EXEC-ALL
+      procedureRef: '#procedure/WI-0022-80000000_VAL-ALL'
+      status: passed
+      observed:
+        outcome: passed
+        exitCode: 0
+        summary: Eight focused integration cases passed; the complete package gate passed 156 tests, typecheck, build, and whitespace checks.
+        assertions:
+        - Every minimum-required strategy case for WI-0014 to WI-0022 and WI-0024 maps to exactly one trace-named test, and every one of those tests passed in the full suite.
+        - The four WI-0014 cases had no committed test before WI-0022. They now run in tests/request-integration.test.ts under their WI-0014 trace markers.
+        - The combined matrix ran positive, boundary (nested and indexed paths, defaults precedence), negative (enum, missing value, missing file, traversal; zero provider calls), and summarize compatibility cases with OPENROUTER_API_KEY unset.
+        - Generated declarations export completeRequest and CompleteRequestOptions; dist/index.d.ts after npm run build contains completeRequest.
+        - Generic request modules contain no request-name conditional, and no .env, credentials, or secrets path is tracked.
+        - The llm --help req line matches README.md and SKILL.md and the requests/README.md option set, and every requests/README.md anchor resolves.
+        - The changed paths versus master are README.md, SKILL.md, requests/README.md, requests/decisions.md, tests/request-integration.test.ts, and WI-0022 records, all owned by WI-0022.
+        - npm run typecheck exited zero.
+        - npm test passed 156 of 156 tests.
+        - npm run build exited zero.
+        - git diff --check exited zero.
+        - sdlc work-item validate --work-item WI-0022 reported valid.
+        - No provider or production claim was made.
+      evidenceTier: cli-audit
+      evidence:
+      - kind: test
+        source: tests/request-integration.test.ts
+        claim: All eight focused integration cases passed.
+        command: node --import tsx --test tests/request-integration.test.ts
+      - kind: command
+        source: repository package gate
+        claim: The complete provider-free package gate passed.
+        command: npm run typecheck && npm test && npm run build && git diff --check
+      - kind: command
+        source: bin/cli.js
+        claim: The compiled help output documents the same llm req form as the public docs.
+        command: node ./bin/cli.js --help
+      - kind: command
+        source: .docs/work-items/WI-0022/work-item.json
+        claim: The work item, its references, and its tasks validated.
+        command: sdlc work-item validate --work-item WI-0022 --json
+    findings: []
+    evidenceTier: cli-audit
+    limitations:
+    - Provider-free local validation does not establish authenticated provider behavior, network transport, deployment, publication, downstream integration, or production readiness.
+    nonClaims:
+    - This validation does not authorize deployment, publication, or release.
