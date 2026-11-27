@@ -269,27 +269,37 @@ Implementations must use this order and fail closed at each boundary:
 
 ## Additional input files
 
-Dynamic requests use the same source behavior as `llm summarize`. A request may
-provide either one explicit `--path <path>` source or one explicit
-`--content <text>` source per invocation; the two modes cannot be combined. With
-neither option, explicit additional files are absent. These source options add
-files; they do not replace the request task or request assets. They are separate
-from schema-declared file bindings and may be combined with them.
+Explicit additional input files are a library boundary. A `completeRequest`
+caller may supply `files: readonly ReferenceFile[]`; each entry already carries
+its stable name, path, MIME type, purpose, and optional encoding. Explicit files
+add to the request; they do not replace the request task or request assets.
+They are separate from schema-declared file bindings, may be combined with
+them, and are merged after schema-declared files in caller order. With no
+`files` option, explicit additional files are absent.
 
-`--path` accepts a regular file or a directory. A directory is traversed
-recursively in deterministic sorted order. Regular files and final symlink files
-are included; symlink directories are not traversed, broken links are skipped,
-and a directly supplied symlink directory is rejected. Each included file is
-attached to `LlmRequest.files` with a stable name, path, MIME type, and purpose.
-Relative paths resolve from the application current working directory. Absolute
-paths are also allowed. Additional files are not required to be contained within
-the request directory or repository; request asset files remain subject to the
-request-directory safety rules.
+`llm req` has no separate explicit-file options. The CLI accepts only
+`--parameters`, `--p-<path>` assignments, and the common output flags. A request
+receives command-line files only when its parameter schema declares a parameter
+with `x-llm-req-parameter.file`; for example, `--p-path` and `--p-content` are
+file inputs for `summarize` only because
+`requests/summarize/summarize.parameters.schema.json` declares those properties
+as `path` and `content` file bindings. An unprefixed option that names a schema
+parameter, such as `llm req summarize --path notes.md`, is rejected with a usage
+error that suggests the `--p-` form. Any other unrecognized option is rejected.
 
-`--content` creates one synthetic UTF-8 file named `content` and marks its
-purpose as command-line content rather than a filesystem file. The source files
-are passed to completion under `<files>` and are available to the provider
-without being parsed as request assets.
+A `mode: path` file binding accepts a regular file or a directory. A directory
+is traversed recursively in deterministic sorted order. Regular files and final
+symlink files are included; symlink directories are not traversed, broken links
+are skipped, and a directly supplied symlink directory is rejected. Each
+included file is attached to `LlmRequest.files` with a stable name, path, MIME
+type, and purpose. Relative paths resolve from the application current working
+directory. Absolute paths are also allowed. Explicit and schema-declared files
+are not required to be contained within the request directory or repository;
+request asset files remain subject to the request-directory safety rules.
+
+A `mode: content` file binding creates one synthetic file with the declared
+`name` and `purpose`. All files are passed to completion under `<files>` and are
+available to the provider without being parsed as request assets.
 
 ## Placeholder substitution
 
@@ -352,7 +362,7 @@ any request name specially.
 The CLI form is:
 
 ```text
-llm req <request-name> [--parameters <json>] [--p-<path> <value> ...] [--path <path> | --content <text>] [--format=raw|full] [--debug]
+llm req <request-name> [--parameters <json>] [--p-<path> <value> ...] [--format=raw|full] [--debug]
 ```
 
 Successful `--format=raw` output is the model output only. `--format=full`
@@ -394,12 +404,28 @@ collection. No summarize-specific branch is permitted in the generic request
 loader or completion boundary.
 
 The existing `llm summarize` command remains valid without a system-prompt
-asset and must retain its current source and output behavior. This is an
-explicit compatibility requirement; its current
-`--path`, recursive directory, symlink-file, `--content`, raw, and full behavior
-is unchanged. It will transition to `llm req summarize` with no or minimal
-changes because the generic loader uses the same source boundary and supplies
-null system prompt when `summarize.prompt.system.md` is absent.
+asset. It is a compatibility adapter over `llm req summarize`, not a separate
+implementation. The adapter owns only the legacy command spelling:
+
+| `llm summarize` option | Generic request input |
+| --- | --- |
+| `--path <path>` | parameter `{ "path": "<path>" }` |
+| `--content <text>` | parameter `{ "content": "<text>" }` |
+| `--provider <provider>` | request setting `provider` |
+| `--model <model>` | request setting `model` |
+| `--thinking <thinking>` | request setting `thinking` |
+| `--format=raw\|full`, `--debug` | the same `llm req` output and debug flags |
+
+Exactly one of `--path` and `--content` is required, and each option may appear
+once. The adapter resolves the configured `requestsDirectory` and delegates to
+the same request command and `completeRequest` boundary as
+`llm req summarize`. Request loading, parameter validation, recursive directory
+and symlink handling, file materialization, prompt composition, provider
+delegation, and raw/full/error output are therefore identical to the generic
+form. Legacy `--provider`, `--model`, and `--thinking` values are explicit
+settings and override `summarize.defaults.json`. The summarize prompt, output
+schema, and defaults come only from `requests/summarize/`; the adapter adds no
+prompt text, system prompt, or source handling of its own.
 
 ## Request-name and filesystem safety
 

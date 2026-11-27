@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0021",
-  "status": "planned",
+  "status": "complete",
   "title": "Migrate and validate the summarize request example",
   "type": "feature",
   "objective": "Make summarize an explicit generic request example while preserving specialized path/content source behavior, output formats, and compatibility. Contract sections: requests/README.md#prompt-schema-and-summarize-compatibility; requests/README.md#additional-input-files. Explicit human operator confirmation is required before modifying requests/README.md.",
@@ -14,9 +14,9 @@
       "branch": "master"
     },
     "branch": {
-      "name": "llm-request-lookup",
-      "created": false,
-      "rationale": "The record captures bounded planning without creating or switching a branch."
+      "name": "WI-0021-summarize-request-example",
+      "created": true,
+      "rationale": "Processing moved from the shared llm-request-lookup branch (merged to master) to a dedicated per-work-item branch."
     }
   },
   "baseline": "51984b6064503b576c52ca460d7cf21cc356f52b",

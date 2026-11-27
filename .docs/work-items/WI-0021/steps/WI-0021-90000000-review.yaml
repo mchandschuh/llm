@@ -4,7 +4,7 @@ taskUid: WI-0021-90000000
 orderKey: '90000000'
 parentTaskUid: WI-0021-80000000
 taskType: review
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Review Migrate and validate the summarize request example scope and evidence
 objective: Make summarize an explicit generic request example while preserving specialized
   path/content source behavior, output formats, and compatibility.
@@ -53,7 +53,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
@@ -113,3 +113,79 @@ task:
       ref: .docs/work-items/WI-0021/README.md
       purpose: Apply declared scope and evidence boundary.
       required: true
+  result:
+    status: complete
+    decision: accepted
+    summary: Review accepted WI-0021. llm summarize is a documented compatibility adapter over the generic summarize request. The summarize bundle executes through llm req with schema-declared path/content bindings. The cited requests/README.md sections now match the implemented CLI and library behavior. Every strategy case has a trace-marked passing test. One out-of-section documentation finding is deferred to WI-0022.
+    actor:
+      id: wi-0021-reviewer
+      role: reviewer
+      authorityRef: WI-0021
+    criteriaEvaluations:
+    - criterionRef: '#criterion/CRIT-001'
+      status: satisfied
+      summary: All four requirements and six acceptance criteria map to strategy cases (COV-001 through COV-006). Every case has a trace-marked test that passed in the focused run and the full suite.
+      evidenceRefs:
+      - WI-0021-20000000#result/R-001
+      - WI-0021-80000000#result/R-001
+      findingRefs: []
+    - criterionRef: '#criterion/CRIT-002'
+      status: satisfied
+      summary: Changed paths are limited to WI-0021 records, the cited contract sections, the decision log, and tests/summarize.test.ts. README edits went through operator confirmation (D15). No provider or production claim is made.
+      evidenceRefs:
+      - WI-0021#work-item.json#requirement/WI-0021_REQ_004
+      - WI-0021-80000000#result/R-001
+      findingRefs:
+      - '#finding/WI-0021-90000000_FIND-001'
+    - criterionRef: '#criterion/CRIT-003'
+      status: satisfied
+      summary: The validation task executed the full package gate, focused cases, the schema check, the scope audit, and work-item validation, all passing.
+      evidenceRefs:
+      - WI-0021-80000000#result/R-001
+      findingRefs: []
+    findings:
+    - id: WI-0021-90000000_FIND-001
+      severity: advisory
+      status: open
+      message: The requests/README.md work-item contract-reference table links WI-0018, WI-0019, and WI-0020 to a nonexistent "#library-and-cli-boundaries" anchor; the section is now "Schema-declared files and library/CLI boundaries". The table lies outside the WI-0021 contract sections, so the correction is deferred to WI-0022, which owns documentation consistency (WI-0022_REQ_004).
+      requestedChange: Under WI-0022, retarget the stale anchor to "#schema-declared-files-and-librarycli-boundaries".
+      criterionRefs:
+      - '#criterion/CRIT-002'
+      affectedRefs:
+      - requests/README.md
+      evidenceRefs:
+      - WI-0021-80000000#result/R-001
+    evidence:
+    - id: EVID-001
+      kind: validation
+      ref: WI-0021-80000000#result/R-001
+      claim: The required WI-0021 validation passed locally.
+      tier: cli-audit
+      source: referenced-result
+    - id: EVID-002
+      kind: test
+      ref: WI-0021-20000000#result/R-001
+      claim: Every required strategy case has an executable task-ID-prefixed trace marker.
+      tier: component
+      source: referenced-result
+    - id: EVID-003
+      kind: diff
+      ref: '#repository-state/HEAD'
+      claim: Changed paths versus master remain within WI-0021 owned paths.
+      tier: inspection
+      source: repository
+    limitations:
+    - This review was performed by the same agent session that processed the implementation; it is not an independent human review.
+    - This decision does not establish authenticated provider behavior, network transport, deployment, publication, downstream integration, or production readiness.
+    nonClaims:
+    - This decision does not authorize deployment, publication, or release.
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: WI-0021-90000000_EXEC-REVIEW
+      status: succeeded
+      startedAt: '2026-11-27T00:00:00Z'
+      finishedAt: '2026-11-27T00:00:00Z'

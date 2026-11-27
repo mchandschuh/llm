@@ -4,7 +4,7 @@ taskUid: WI-0021-20000000
 orderKey: '20000000'
 parentTaskUid: WI-0021-10000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement summarize generic-request compatibility
 objective: Implement summarize generic-request compatibility
 references:
@@ -67,7 +67,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -157,3 +157,105 @@ task:
       summarize and req.
     - Preserve path, directory, symlink, content, raw, and full source behavior.
     - Add provider-free generic summarize and compatibility regression tests.
+  result:
+    status: implemented
+    implementation:
+      summary: llm summarize is a thin compatibility adapter over the generic summarize request, the summarize bundle executes through llm req with schema-declared path/content file bindings, and requests/README.md now documents the CLI file-input and compatibility behavior the code implements.
+      changes:
+      - id: WI-0021-20000000_CHANGE-001
+        type: production-code
+        summary: Reduced runSummarizeCommand to an adapter that maps --path/--content to generic path/content parameters and --provider/--model/--thinking to request settings, then delegates to runRequestCommand; unprefixed schema-parameter options on llm req produce --p- guidance (operator commits 1fb3879 and cd55827).
+        objectiveRefs:
+        - WI-0021-20000000_OBJ-001
+        - WI-0021-20000000_OBJ-002
+        - WI-0021-20000000_OBJ-003
+        paths:
+        - src/cli/summarize-command.ts
+        - src/cli/request-command.ts
+      - id: WI-0021-20000000_CHANGE-002
+        type: documentation
+        summary: With operator confirmation, rewrote requests/README.md Additional input files to state that explicit additional files are a library-only completeRequest files option and that CLI files come only from x-llm-req-parameter.file parameters; removed the stale [--path | --content] llm req form; documented the llm summarize option-to-request mapping; recorded decision D15.
+        objectiveRefs:
+        - WI-0021-20000000_OBJ-001
+        - WI-0021-20000000_OBJ-002
+        paths:
+        - requests/README.md
+        - requests/decisions.md
+      - id: WI-0021-20000000_CHANGE-003
+        type: test-code
+        summary: Added SDLC-TEST-CASE trace markers to every WI-0021 strategy case and added the contract-documentation case that parses the documented summarize forms and the legacy option mapping.
+        objectiveRefs:
+        - WI-0021-20000000_OBJ-001
+        - WI-0021-20000000_OBJ-002
+        - WI-0021-20000000_OBJ-003
+        - WI-0021-20000000_OBJ-004
+        paths:
+        - tests/summarize.test.ts
+      - id: WI-0021-20000000_CHANGE-004
+        type: test-code
+        summary: Added the WI-0021-10000000_TC-CONTRACT-DOCUMENTATION case and its coverage mapping to the test strategy.
+        objectiveRefs:
+        - WI-0021-20000000_OBJ-001
+        - WI-0021-20000000_OBJ-002
+        paths:
+        - .docs/work-items/WI-0021/steps/WI-0021-10000000-test-strategy.yaml
+      testImplementations:
+      - testCaseRef: WI-0021-10000000#test-case/WI-0021-10000000_TC-GENERIC-EXAMPLE
+        path: tests/summarize.test.ts
+        selector: WI-0021-10000000_TC-GENERIC-EXAMPLE
+        traceMarker: WI-0021-10000000_TC-GENERIC-EXAMPLE
+      - testCaseRef: WI-0021-10000000#test-case/WI-0021-10000000_TC-PARAMETER-PREFIX-GUIDANCE
+        path: tests/summarize.test.ts
+        selector: WI-0021-10000000_TC-PARAMETER-PREFIX-GUIDANCE
+        traceMarker: WI-0021-10000000_TC-PARAMETER-PREFIX-GUIDANCE
+      - testCaseRef: WI-0021-10000000#test-case/WI-0021-10000000_TC-COMPATIBILITY
+        path: tests/summarize.test.ts
+        selector: WI-0021-10000000_TC-COMPATIBILITY
+        traceMarker: WI-0021-10000000_TC-COMPATIBILITY
+      - testCaseRef: WI-0021-10000000#test-case/WI-0021-10000000_TC-SOURCE-REGRESSIONS
+        path: tests/summarize.test.ts
+        selector: WI-0021-10000000_TC-SOURCE-REGRESSIONS
+        traceMarker: WI-0021-10000000_TC-SOURCE-REGRESSIONS
+      - testCaseRef: WI-0021-10000000#test-case/WI-0021-10000000_TC-EXAMPLE-QUALITY
+        path: tests/summarize.test.ts
+        selector: WI-0021-10000000_TC-EXAMPLE-QUALITY
+        traceMarker: WI-0021-10000000_TC-EXAMPLE-QUALITY
+      - testCaseRef: WI-0021-10000000#test-case/WI-0021-10000000_TC-CONTRACT-DOCUMENTATION
+        path: tests/summarize.test.ts
+        selector: WI-0021-10000000_TC-CONTRACT-DOCUMENTATION
+        traceMarker: WI-0021-10000000_TC-CONTRACT-DOCUMENTATION
+    verification:
+      status: passed
+      objectiveRefs:
+      - WI-0021-20000000_OBJ-001
+      - WI-0021-20000000_OBJ-002
+      - WI-0021-20000000_OBJ-003
+      - WI-0021-20000000_OBJ-004
+      tests:
+      - id: WI-0021-20000000_EXEC-FOCUSED
+        type: component
+        testCaseRefs:
+        - WI-0021-10000000#test-case/WI-0021-10000000_TC-GENERIC-EXAMPLE
+        - WI-0021-10000000#test-case/WI-0021-10000000_TC-PARAMETER-PREFIX-GUIDANCE
+        - WI-0021-10000000#test-case/WI-0021-10000000_TC-COMPATIBILITY
+        - WI-0021-10000000#test-case/WI-0021-10000000_TC-SOURCE-REGRESSIONS
+        - WI-0021-10000000#test-case/WI-0021-10000000_TC-EXAMPLE-QUALITY
+        - WI-0021-10000000#test-case/WI-0021-10000000_TC-CONTRACT-DOCUMENTATION
+        command: node --import tsx --test --test-name-pattern WI-0021 tests/summarize.test.ts
+        status: passed
+        result: All six provider-free WI-0021 strategy cases passed.
+      - id: WI-0021-20000000_EXEC-PACKAGE
+        type: cli-audit
+        testCaseRefs:
+        - WI-0021-10000000#test-case/WI-0021-10000000_TC-GENERIC-EXAMPLE
+        - WI-0021-10000000#test-case/WI-0021-10000000_TC-PARAMETER-PREFIX-GUIDANCE
+        - WI-0021-10000000#test-case/WI-0021-10000000_TC-COMPATIBILITY
+        - WI-0021-10000000#test-case/WI-0021-10000000_TC-SOURCE-REGRESSIONS
+        - WI-0021-10000000#test-case/WI-0021-10000000_TC-EXAMPLE-QUALITY
+        - WI-0021-10000000#test-case/WI-0021-10000000_TC-CONTRACT-DOCUMENTATION
+        command: npm run typecheck && npm test && npm run build && git diff --check
+        status: passed
+        result: Typecheck passed, the full 148-test provider-free suite passed, build passed, and the diff check passed.
+    limitations:
+    - Provider-free local evidence does not establish authenticated provider behavior, network transport, deployment, publication, downstream integration, or production readiness.
+    - Documentation consistency is asserted for the WI-0021 contract sections only; whole-repository documentation and help consistency is owned by WI-0022.

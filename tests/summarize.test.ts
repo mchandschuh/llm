@@ -37,6 +37,7 @@ function provider(response: string, calls: ProviderCompletionRequest[]): LlmProv
   };
 }
 
+// SDLC-TEST-CASE: WI-0021-10000000_TC-GENERIC-EXAMPLE
 test('WI-0021-10000000_TC-GENERIC-EXAMPLE executes summarize assets through the generic req boundary', async () => {
   const calls: ProviderCompletionRequest[] = [];
   const prompt = await readFile(join(summarizeDirectory, 'summarize.prompt.md'), 'utf8');
@@ -85,6 +86,7 @@ test('WI-0021-10000000_TC-GENERIC-EXAMPLE executes summarize assets through the 
   assert.equal(invalidCalls.length, 0);
 });
 
+// SDLC-TEST-CASE: WI-0021-10000000_TC-PARAMETER-PREFIX-GUIDANCE
 test('WI-0021-10000000_TC-PARAMETER-PREFIX-GUIDANCE requires schema-derived summarize parameters to use --p-', async () => {
   const configurationRoot = await mkdtemp(join(tmpdir(), 'llm-summarize-cli-repro-'));
   const previousConfiguration = process.env.LLM_CONFIG;
@@ -162,6 +164,7 @@ test('WI-0021-10000000_TC-PARAMETER-PREFIX-GUIDANCE requires schema-derived summ
   }
 });
 
+// SDLC-TEST-CASE: WI-0021-10000000_TC-COMPATIBILITY
 test('WI-0021-10000000_TC-COMPATIBILITY keeps legacy summarize as a generic-request adapter', async () => {
   const genericCalls: ProviderCompletionRequest[] = [];
   const legacyCalls: ProviderCompletionRequest[] = [];
@@ -203,6 +206,7 @@ test('WI-0021-10000000_TC-COMPATIBILITY keeps legacy summarize as a generic-requ
   assert.equal(legacyCalls[0]?.thinking, 'medium');
 });
 
+// SDLC-TEST-CASE: WI-0021-10000000_TC-SOURCE-REGRESSIONS
 test('WI-0021-10000000_TC-SOURCE-REGRESSIONS preserves generic path, directory, symlink, content, raw, and full cases', async () => {
   const root = await mkdtemp(join(tmpdir(), 'llm-summarize-generic-sources-'));
   const nested = join(root, 'nested');
@@ -271,6 +275,7 @@ test('WI-0021-10000000_TC-SOURCE-REGRESSIONS preserves generic path, directory, 
   }
 });
 
+// SDLC-TEST-CASE: WI-0021-10000000_TC-EXAMPLE-QUALITY
 test('WI-0021-10000000_TC-EXAMPLE-QUALITY keeps the summarize bundle generic and provider-free', async () => {
   const names = (await readdir(summarizeDirectory)).sort();
   assert.deepEqual(names, [
@@ -283,6 +288,54 @@ test('WI-0021-10000000_TC-EXAMPLE-QUALITY keeps the summarize bundle generic and
   assert.match(await readFile(join(summarizeDirectory, 'summarize.prompt.md'), 'utf8'), /<files>/u);
   assert.match(await readFile(join(summarizeDirectory, 'summarize.parameters.schema.json'), 'utf8'), /x-llm-req-parameter/u);
   assert.doesNotMatch(await readFile(join(summarizeDirectory, 'summarize.prompt.md'), 'utf8'), /provider|credential|api key/u);
+});
+
+function contractSection(readme: string, heading: string): string {
+  const start = readme.indexOf(`## ${heading}\n`);
+  assert.notEqual(start, -1, `missing contract section: ${heading}`);
+  const end = readme.indexOf('\n## ', start + 1);
+  return readme.slice(start, end === -1 ? undefined : end);
+}
+
+// SDLC-TEST-CASE: WI-0021-10000000_TC-CONTRACT-DOCUMENTATION
+test('WI-0021-10000000_TC-CONTRACT-DOCUMENTATION keeps summarize contract examples aligned with the CLI', async () => {
+  const readme = await readFile(join(requestsDirectory, 'README.md'), 'utf8');
+  const compatibility = contractSection(readme, 'Prompt, schema, and summarize compatibility');
+  const additionalFiles = contractSection(readme, 'Additional input files');
+  const examples = [...compatibility.matchAll(/^llm req summarize (--p-(path|content)) <(path|text)> \[--format=raw\|full\]$/gmu)];
+  assert.deepEqual(examples.map((match) => match[1]), ['--p-path', '--p-content']);
+
+  const configurationRoot = await mkdtemp(join(tmpdir(), 'llm-summarize-contract-docs-'));
+  const previousConfiguration = process.env.LLM_CONFIG;
+  try {
+    await writeFile(join(configurationRoot, 'config.json'), JSON.stringify({ requestsDirectory }));
+    process.env.LLM_CONFIG = configurationRoot;
+    for (const [, flag, name] of examples) {
+      for (const format of ['raw', 'full'] as const) {
+        const parsed = await parseCliArgumentsAsync(['req', 'summarize', flag!, 'value', `--format=${format}`]);
+        assert.equal(parsed.exitCode, undefined, `${flag} --format=${format}`);
+        assert.equal(parsed.format, format);
+        assert.deepEqual(parsed.requestAssignments, [{ path: name, value: 'value' }]);
+      }
+    }
+    for (const option of ['--path', '--content']) {
+      const parsed = await parseCliArgumentsAsync(['req', 'summarize', option, 'value']);
+      assert.equal(parsed.exitCode, 2);
+      assert.match(parsed.usageError ?? '', /must use the '--p-' prefix/u);
+    }
+    assert.match(additionalFiles, /`llm req summarize --path notes\.md`, is rejected with a usage\s+error that suggests the `--p-` form/u);
+  } finally {
+    if (previousConfiguration === undefined) delete process.env.LLM_CONFIG;
+    else process.env.LLM_CONFIG = previousConfiguration;
+    await rm(configurationRoot, { recursive: true, force: true });
+  }
+
+  assert.doesNotMatch(readme, /\[--path <path> \| --content <text>\]/u);
+  const legacyOptions = [...compatibility.matchAll(/^\| `--(path|content|provider|model|thinking) </gmu)].map((match) => match[1]);
+  assert.deepEqual(legacyOptions, ['path', 'content', 'provider', 'model', 'thinking']);
+  assert.equal(parseCliArguments(['summarize', '--path', 'notes.md', '--provider', 'p', '--model', 'm', '--thinking', 'low']).exitCode, undefined);
+  assert.equal(parseCliArguments(['summarize', '--path', 'notes.md', '--system-prompt', 'legacy']).exitCode, 2);
+  assert.match(compatibility, /adds no\s+prompt text, system prompt, or source handling of its own/u);
 });
 
 test('legacy summarize argument parsing remains a compatibility surface while req owns generic parameters', () => {
