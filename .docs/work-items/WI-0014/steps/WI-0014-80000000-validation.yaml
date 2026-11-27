@@ -157,9 +157,9 @@ task:
         claim: The provider-free package and WI-0014 contract evidence passed.
         command: npm run typecheck && npm test && npm run build && git diff --check
       - kind: test
-        source: tests/wi-0014-contract.test.ts
+        source: tests/request-integration.test.ts
         claim: All four WI-0014 strategy cases passed with trace-marked executable tests.
-        command: node --import tsx --test tests/wi-0014-contract.test.ts
+        command: tsx --import ./tests/support/claude-guard.ts --test --test-name-pattern WI-0014-10000000 tests/request-integration.test.ts
     findings: []
     evidenceTier: cli-audit
     limitations:
