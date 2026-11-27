@@ -369,12 +369,16 @@ export interface CompletionOptions {
   readonly conversationHistory?: readonly LlmChatMessage[];
 }
 
+export type RequestSettingsOverrides = Partial<Pick<LlmRequest, 'provider' | 'model' | 'thinking' | 'maxFailedAttempts' | 'maxIterations'>>;
+
 /** Request-directory completion boundary used by the planned `llm req` API. */
 export interface CompleteRequestOptions extends CompletionOptions {
   readonly requestName: string;
+  readonly requestsDirectory?: string;
   readonly parameters?: string | JsonObject;
   readonly assignments?: readonly { readonly path: string; readonly value: string }[];
   readonly files?: readonly ReferenceFile[];
+  readonly settings?: RequestSettingsOverrides;
 }
 
 /** @see schemas/request/v1/request.schema.json */

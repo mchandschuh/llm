@@ -36,8 +36,8 @@ function replaceAsset<T>(asset: { readonly path: string; readonly value: T } | u
   return asset === undefined ? undefined : replaceValue(asset.value, parameters) as T;
 }
 
-function requestSettings(defaults: JsonObject | undefined): Pick<LlmRequest, 'provider' | 'model' | 'thinking' | 'maxFailedAttempts' | 'maxIterations'> {
-  const value = defaults ?? {};
+function requestSettings(defaults: JsonObject | undefined, overrides: CompleteRequestOptions['settings'] = {}): Pick<LlmRequest, 'provider' | 'model' | 'thinking' | 'maxFailedAttempts' | 'maxIterations'> {
+  const value = { ...(defaults ?? {}), ...overrides };
   const provider = value.provider;
   const model = value.model;
   const thinking = value.thinking;
@@ -91,7 +91,7 @@ async function providerFor(options: CompleteRequestOptions): Promise<LlmProvider
  * owned by `complete`; this boundary returns the provider-neutral raw result.
  */
 export async function completeRequest(options: CompleteRequestOptions): Promise<ProviderCompletionResponse> {
-  const requestsDirectory = await resolveRequestsDirectory({ applicationSourceDirectory: options.configurationRoot });
+  const requestsDirectory = options.requestsDirectory ?? await resolveRequestsDirectory({ applicationSourceDirectory: options.configurationRoot });
   const loaded = await loadRequestDirectory(requestsDirectory, options.requestName);
   const defaults = replaceAsset(loaded.assets.defaults, {}) as JsonObject | undefined;
   const parameters = constructRequestParameters({
@@ -106,7 +106,7 @@ export async function completeRequest(options: CompleteRequestOptions): Promise<
   try {
     const request: LlmRequest = {
       schema: 'https://schemas.handschuh.dev/llm/request/v1',
-      ...requestSettings(defaults),
+      ...requestSettings(defaults, options.settings),
       ...taskAndSchemas(loaded.assets, parameters),
     };
     const normalized = await normalizeRequest(request, {

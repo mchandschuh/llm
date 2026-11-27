@@ -26,6 +26,7 @@ export type {
   ParallelToolCallBatch,
   ProviderCompletionRequest,
   ProviderCompletionResponse,
+  RequestSettingsOverrides,
   ProviderValidationError,
   ProviderValidationResult,
   ProviderCompletionDecision,
