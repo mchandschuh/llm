@@ -1,0 +1,187 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0029
+taskUid: WI-0029-80000000
+orderKey: "80000000"
+parentTaskUid: WI-0029-20000000
+taskType: validation
+processingStatus: processing_completed
+title: Validate multiple request directories
+objective: Validate WI-0029 against every required strategy case and scope boundary.
+references:
+  required:
+    - .docs/work-items/WI-0029/work-item.json
+    - .docs/work-items/WI-0029/work-item-request.md
+    - src/requests-config.ts
+    - src/request-directory.ts
+    - src/request.ts
+    - src/cli/arguments.ts
+    - src/cli.ts
+    - src/cli/request-help.ts
+    - src/cli/summarize-command.ts
+    - tests/request-directories.test.ts
+    - requests/README.md
+    - requests/decisions.md
+    - .docs/work-items/WI-0029/steps/WI-0029-10000000-test-strategy.yaml
+    - .docs/work-items/WI-0029/steps/WI-0029-20000000-implementation.yaml
+  informational:
+    - README.md
+    - SKILL.md
+dependsOn:
+  - WI-0029-10000000
+  - WI-0029-20000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0029/steps/WI-0029-80000000-validation.yaml
+  commitSubject: "WI-0029: plan: define validation evidence"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: schema-audit
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: full-suite
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
+  intent:
+    summary: Validate WI-0029 against every required strategy case and scope boundary.
+    inputs:
+      - id: WI-0029-80000000_INPUT-STRATEGY
+        kind: testStrategy
+        ref: WI-0029-10000000#result/testCases
+        purpose: Provide required cases and coverage.
+        required: true
+      - id: WI-0029-80000000_INPUT-IMPLEMENTATION
+        kind: implementation
+        ref: WI-0029-20000000#result/implementation
+        purpose: Identify implementation outputs and owned paths.
+        required: true
+    targets:
+      - id: WI-0029-80000000_TARGET-REPOSITORY
+        kind: repositoryState
+        ref: "#repository-state/HEAD"
+        purpose: Inspect implementation, tests, docs, contract, and changed paths.
+        required: true
+      - id: WI-0029-80000000_TARGET-IMPLEMENTATION
+        kind: taskResult
+        taskType: implementation
+        ref: WI-0029-20000000#result/implementation
+        purpose: Validate implementation evidence.
+        required: true
+    objectiveRefs: &a1
+      - WI-0029-10000000#objective/WI-0029-10000000_OBJ-001
+      - WI-0029-10000000#objective/WI-0029-10000000_OBJ-002
+      - WI-0029-10000000#objective/WI-0029-10000000_OBJ-003
+      - WI-0029-10000000#objective/WI-0029-10000000_OBJ-004
+      - WI-0029-10000000#objective/WI-0029-10000000_OBJ-005
+    testCaseRefs: &a2
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-STRING-ONLY-REGRESSION
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-ARRAY-ONLY
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-BOTH-KEYS-ORDER-AND-LAYERS
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-SAME-DIRECTORY-DEDUPLICATED
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-LATER-DIRECTORIES-RESOLVE
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-DUPLICATE-AMBIGUOUS
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-UNKNOWN-AND-UNSAFE-NAMES
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-CLI-CONFIGURATION-ERROR-PROVIDER-FREE
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-INVALID-ARRAY-SHAPE
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-INVALID-ARRAY-ENTRIES
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-NEITHER-KEY
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-SCHEMA-ROOTS-OWN-DIRECTORY
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-HELP-LISTING-MULTI
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-REQUEST-HELP-MULTI
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-DOCUMENTATION-AND-CONTRACT
+      - WI-0029-10000000#test-case/WI-0029-10000000_TC-QUALITY-GATES
+    procedures:
+      - id: WI-0029-80000000_VAL-ALL
+        sequence: 1
+        name: validate-all-wi-0029-evidence
+        description: Run the focused tests with the claude guard log, the full package gate, a CLI smoke check, and changed-path and contract-diff review.
+        reason: Every requirement needs bounded local evidence, and configuration failures must not reach a provider.
+        targetRefs:
+          - "#target/WI-0029-80000000_TARGET-REPOSITORY"
+          - "#target/WI-0029-80000000_TARGET-IMPLEMENTATION"
+        objectiveRefs: *a1
+        testCaseRefs: *a2
+        method:
+          executionMode: executable
+          target: Provider-free WI-0029 matrix
+          steps:
+            - Run tests/request-directories.test.ts and tests/request-help.test.ts with FAKE_CLAUDE_GUARD_LOG set and assert no claude invocation was recorded.
+            - Confirm the new tests failed against the baseline implementation (recorded before the production change).
+            - Run npm run typecheck, npm test, npm run build, and git diff --check.
+            - Run the built CLI against a temporary HOME and LLM_CONFIG with two directories, including one duplicate name.
+            - Inspect the changed paths, the requests/README.md hunks against the baseline, and the non-goals.
+          command: npm run typecheck && npm test && npm run build && git diff --check
+        expected:
+          outcome: passed
+          exitCode: 0
+          assertions:
+            - All required strategy cases pass and are trace-marked.
+            - No provider is started by a configuration failure or an ambiguous name.
+            - requests/README.md changes only in the operator-confirmed passages, and only README.md and decisions.md change under requests/.
+        evidenceTier: cli-audit
+        required: true
+    nonGoals:
+      - Do not edit ~/.llm/config.json or the sdlc repository.
+      - Do not change requests/README.md outside the operator-confirmed requestsDirectory passages, requests/decisions.md beyond D20, or the bundled request assets.
+      - Do not invoke a provider or add live checks to npm test.
+  result:
+    status: passed
+    summary: The provider-free WI-0029 gate passed at 29966d5.
+    executions:
+      - id: WI-0029-80000000_EXEC-ALL
+        procedureRef: "#procedure/WI-0029-80000000_VAL-ALL"
+        status: passed
+        observed:
+          outcome: passed
+          exitCode: 0
+          summary: 204 provider-free tests passed, including all 16 WI-0029 cases.
+          assertions:
+            - "All 16 WI-0029 strategy cases passed; each has exactly one test whose name and // SDLC-TEST-CASE: marker carry its canonical id."
+            - Against the baseline implementation 15 of the 16 new tests failed; the trace-marker case passed by design.
+            - FAKE_CLAUDE_GUARD_LOG recorded no claude invocation across tests/request-directories.test.ts and tests/request-help.test.ts (30 tests); the CLI case's own control proves the log records a real provider start.
+            - "The built CLI listed both directories, reported a duplicate `summarize` under Duplicate requests, and `llm req summarize --p-content hi` exited 1 with a configuration_error naming both directories."
+            - requests/README.md differs from the baseline cb45d3f only in hunks at baseline lines 26-30, 388, 394-397, and 585; under requests/ only README.md and decisions.md changed.
+            - The changed paths versus the planning commit are WI-0029 records and the implementation owned paths.
+            - npm run typecheck exited zero; npm test passed 204 of 204 tests; npm run build exited zero; git diff --check exited zero.
+            - sdlc work-item validate --work-item WI-0029 reported valid.
+        evidenceTier: cli-audit
+        evidence:
+          - kind: test
+            source: tests/request-directories.test.ts
+            claim: All 16 WI-0029 tests passed with no claude invocation recorded by the guard log.
+            command: FAKE_CLAUDE_GUARD_LOG=<log> tsx --import ./tests/support/claude-guard.ts --test tests/request-directories.test.ts tests/request-help.test.ts
+          - kind: command
+            source: repository package gate
+            claim: The complete provider-free package gate passed.
+            command: npm run typecheck && npm test && npm run build && git diff --check
+          - kind: command
+            source: bin/cli.js
+            claim: The built CLI lists several directories, reports duplicates, and rejects an ambiguous name with a configuration_error.
+            command: HOME=<tmp> LLM_CONFIG=<tmp> node ./bin/cli.js req -h; HOME=<tmp> LLM_CONFIG=<tmp> node ./bin/cli.js req summarize --p-content hi
+    findings: []
+    evidenceTier: cli-audit
+    limitations:
+      - Evidence uses temporary configurations only; the operator's real ~/.llm/config.json and the sdlc request directory were not exercised.
+      - Cross-file schema references are rejected by the loader in every directory, so owning-directory schema roots are proven for local references only.
+    nonClaims:
+      - This validation does not authorize deployment, publication, or release.
