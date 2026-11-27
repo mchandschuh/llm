@@ -103,7 +103,7 @@ export async function completeRequest(options: CompleteRequestOptions): Promise<
     assignments: options.assignments,
     schemaRoots: [requestsDirectory],
   });
-  runParameterValidators(loaded.assets.parametersSchema?.value, parameters, {
+  await runParameterValidators(loaded.assets.parametersSchema?.value, parameters, {
     name: options.requestName,
     directory: loaded.requestDirectory,
   });

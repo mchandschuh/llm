@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import { promisify } from 'node:util';
 import { runRequestCommand } from '../src/cli/request-command.js';
 import { LlmFailure } from '../src/errors.js';
 import { completeRequest } from '../src/index.js';
@@ -15,6 +17,7 @@ import {
 } from '../src/request-parameter-validation.js';
 import type { InlineJsonSchema, LlmProvider, ProviderCompletionRequest } from '../src/types.js';
 
+const execFileAsync = promisify(execFile);
 const REQUEST = { name: 'check', directory: '/requests/check' } as const;
 
 function validation(source: string | readonly string[], message?: string): Record<string, unknown> {
@@ -34,9 +37,9 @@ function provider(calls: ProviderCompletionRequest[]): LlmProvider {
   };
 }
 
-function failureMessage(operation: () => unknown): string {
+async function failureMessage(operation: () => unknown): Promise<string> {
   try {
-    operation();
+    await operation();
   } catch (error) {
     assert.ok(error instanceof LlmFailure, String(error));
     assert.equal(error.code, 'CONFIGURATION_INVALID');
@@ -46,8 +49,8 @@ function failureMessage(operation: () => unknown): string {
 }
 
 /** Validation failure text after the `failed: ` prefix. */
-function reported(operation: () => unknown): string {
-  const message = failureMessage(operation);
+async function reported(operation: () => unknown): Promise<string> {
+  const message = await failureMessage(operation);
   const marker = 'failed: ';
   assert.ok(message.includes(marker), message);
   return message.slice(message.indexOf(marker) + marker.length);
@@ -98,9 +101,17 @@ test('WI-0023-10000000_TC-METADATA-CONTRACT accepts declared validators and fail
     ['statement injection', objectSchema({ name: { type: 'string', ...validation('() => true); globalThis.injected = (1') } }), /must be a JavaScript function expression|not valid JavaScript/u],
     ['oneOf position', objectSchema({ name: { type: 'string' } }, { oneOf: [{ required: ['name'], ...validation('() => true') }] }), /supported only on the schema root, properties, and array items/u],
     ['$defs position', objectSchema({ name: { type: 'string' } }, { $defs: { named: { type: 'string', ...validation('() => true') } } }), /supported only on the schema root, properties, and array items/u],
+    ...([
+      ['contains', { contains: { type: 'string', ...validation('() => true') } }],
+      ['propertyNames', { propertyNames: { type: 'string', ...validation('() => true') } }],
+      ['unevaluatedProperties', { unevaluatedProperties: { type: 'string', ...validation('() => true') } }],
+    ] as const).map(([name, extra]) => [`${name} position`, objectSchema({ name: { type: 'string' } }, extra), /supported only on the schema root, properties, and array items/u] as [string, InlineJsonSchema, RegExp]),
+    ['class expression', objectSchema({ name: { type: 'string', ...validation('class {}') } }), /not a class/u],
+    ['evaluation timeout', objectSchema({ name: { type: 'string', ...validation('(() => { for (;;) {} })()') } }), /exceeded the 1000 ms timeout/u],
+    ['evaluation error message', objectSchema({ name: { type: 'string', ...validation("(() => { throw new TypeError('bad factory'); })()") } }), /could not be evaluated: bad factory/u],
   ];
   for (const [name, schema, pattern] of invalid) {
-    assert.match(failureMessage(() => constructRequestParameters({ schema, parameters: { name: 'ok' } })), pattern, name);
+    assert.match(await failureMessage(() => constructRequestParameters({ schema, parameters: { name: 'ok' } })), pattern, name);
     const fixture = await requestFixture(schema);
     const calls: ProviderCompletionRequest[] = [];
     try {
@@ -111,10 +122,20 @@ test('WI-0023-10000000_TC-METADATA-CONTRACT accepts declared validators and fail
     assert.equal(calls.length, 0, name);
   }
   assert.equal((globalThis as Record<string, unknown>).injected, undefined);
+
+  // Draft-07 subschema keywords that the 2020-12 meta-schema does not accept are still rejected by discovery itself.
+  for (const extra of [
+    { items: [{ type: 'string', ...validation('() => true') }] },
+    { additionalItems: { type: 'string', ...validation('() => true') } },
+    { dependencies: { name: { type: 'object', ...validation('() => true') } } },
+    { unevaluatedItems: { type: 'string', ...validation('() => true') } },
+  ]) {
+    assert.match(await failureMessage(() => discoverParameterValidators({ type: 'array', ...extra } as InlineJsonSchema)), /supported only on the schema root, properties, and array items/u, JSON.stringify(Object.keys(extra)));
+  }
 });
 
 // SDLC-TEST-CASE: WI-0023-10000000_TC-INVOCATION-CONTEXT
-test('WI-0023-10000000_TC-INVOCATION-CONTEXT passes the value and a frozen context in declaration order', () => {
+test('WI-0023-10000000_TC-INVOCATION-CONTEXT passes the value and a frozen context in declaration order', async () => {
   // Each validator fails with its concrete path unless already listed in `skip`; growing `skip` reveals the order.
   const reportPath = '(value, context) => context.parameters.skip.includes(context.path) || `seen:${context.path}`';
   const schema = objectSchema({
@@ -129,10 +150,10 @@ test('WI-0023-10000000_TC-INVOCATION-CONTEXT passes the value and a frozen conte
   for (;;) {
     const parameters = { ...base, skip: [...order] };
     try {
-      runParameterValidators(schema, parameters, REQUEST);
+      await runParameterValidators(schema, parameters, REQUEST);
       break;
     } catch {
-      const path = reported(() => runParameterValidators(schema, parameters, REQUEST)).replace(/^seen:/u, '');
+      const path = (await reported(() => runParameterValidators(schema, parameters, REQUEST))).replace(/^seen:/u, '');
       order.push(path);
       assert.ok(order.length <= 6, order.join(','));
     }
@@ -153,7 +174,7 @@ test('WI-0023-10000000_TC-INVOCATION-CONTEXT passes the value and a frozen conte
     },
     owner: { type: 'object', properties: { id: { type: 'string' } } },
   });
-  assert.deepEqual(JSON.parse(reported(() => runParameterValidators(describe, { name: 'Ada', owner: { id: 'u-1' } }, REQUEST))), {
+  assert.deepEqual(JSON.parse(await reported(() => runParameterValidators(describe, { name: 'Ada', owner: { id: 'u-1' } }, REQUEST))), {
     keys: ['fs', 'parameters', 'path', 'request', 'schema', 'value', 'workingDirectory'],
     path: 'name',
     value: 'Ada',
@@ -169,8 +190,12 @@ test('WI-0023-10000000_TC-INVOCATION-CONTEXT passes the value and a frozen conte
 
   const mutating = objectSchema({ name: { type: 'string', ...validation("(value, context) => { context.parameters.name = 'changed'; }") } });
   const original = { name: 'Ada' };
-  assert.match(reported(() => runParameterValidators(mutating, original, REQUEST)), /read.only|Cannot assign/u);
+  assert.match(await reported(() => runParameterValidators(mutating, original, REQUEST)), /read.only|Cannot assign/u);
   assert.equal(original.name, 'Ada');
+
+  // Property names outside the identifier grammar are bracket-quoted so paths stay unambiguous.
+  const quoted = objectSchema({ 'a.b': { type: 'string', ...validation('(value, context) => `seen:${context.path}`') } });
+  assert.equal(await reported(() => runParameterValidators(quoted, { 'a.b': 'x' }, REQUEST)), 'seen:["a.b"]');
 });
 
 // SDLC-TEST-CASE: WI-0023-10000000_TC-FILESYSTEM-HELPERS
@@ -186,19 +211,19 @@ test('WI-0023-10000000_TC-FILESYSTEM-HELPERS resolves from the working directory
         ...validation('(value, context) => JSON.stringify({ resolved: context.fs.resolve(value), exists: context.fs.exists(value), file: context.fs.isFile(value), directory: context.fs.isDirectory(value) })'),
       },
     });
-    const observe = (target: string) => JSON.parse(reported(() => runParameterValidators(probe, { target }, { ...REQUEST, workingDirectory: root }))) as Record<string, unknown>;
-    assert.deepEqual(observe('note.txt'), { resolved: join(root, 'note.txt'), exists: true, file: true, directory: false });
-    assert.deepEqual(observe('folder'), { resolved: join(root, 'folder'), exists: true, file: false, directory: true });
-    assert.deepEqual(observe('missing'), { resolved: join(root, 'missing'), exists: false, file: false, directory: false });
-    assert.deepEqual(observe(join(root, 'note.txt')), { resolved: join(root, 'note.txt'), exists: true, file: true, directory: false });
+    const observe = async (target: string) => JSON.parse(await reported(() => runParameterValidators(probe, { target }, { ...REQUEST, workingDirectory: root }))) as Record<string, unknown>;
+    assert.deepEqual(await observe('note.txt'), { resolved: join(root, 'note.txt'), exists: true, file: true, directory: false });
+    assert.deepEqual(await observe('folder'), { resolved: join(root, 'folder'), exists: true, file: false, directory: true });
+    assert.deepEqual(await observe('missing'), { resolved: join(root, 'missing'), exists: false, file: false, directory: false });
+    assert.deepEqual(await observe(join(root, 'note.txt')), { resolved: join(root, 'note.txt'), exists: true, file: true, directory: false });
 
     const read = objectSchema({ target: { type: 'string', ...validation("(value, context) => context.fs.readText(value) === 'hello validator'") } });
-    runParameterValidators(read, { target: 'note.txt' }, { ...REQUEST, workingDirectory: root });
-    assert.match(reported(() => runParameterValidators(read, { target: 'large.txt' }, { ...REQUEST, workingDirectory: root })), /exceeds the 1048576-byte read limit/u);
-    assert.match(reported(() => runParameterValidators(read, { target: 'folder' }, { ...REQUEST, workingDirectory: root })), /Not a regular file/u);
+    await runParameterValidators(read, { target: 'note.txt' }, { ...REQUEST, workingDirectory: root });
+    assert.match(await reported(() => runParameterValidators(read, { target: 'large.txt' }, { ...REQUEST, workingDirectory: root })), /exceeds the 1048576-byte read limit/u);
+    assert.match(await reported(() => runParameterValidators(read, { target: 'folder' }, { ...REQUEST, workingDirectory: root })), /Not a regular file/u);
 
     const write = objectSchema({ target: { type: 'string', ...validation("(value, context) => { context.fs.writeText = () => 1; }") } });
-    assert.match(reported(() => runParameterValidators(write, { target: 'note.txt' }, { ...REQUEST, workingDirectory: root })), /not extensible|Cannot add property/u);
+    assert.match(await reported(() => runParameterValidators(write, { target: 'note.txt' }, { ...REQUEST, workingDirectory: root })), /not extensible|Cannot add property/u);
     assert.equal(await readFile(join(root, 'note.txt'), 'utf8'), 'hello validator');
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -206,33 +231,49 @@ test('WI-0023-10000000_TC-FILESYSTEM-HELPERS resolves from the working directory
 });
 
 // SDLC-TEST-CASE: WI-0023-10000000_TC-RESULT-SEMANTICS
-test('WI-0023-10000000_TC-RESULT-SEMANTICS maps results, errors, and timeouts to bounded outcomes in an isolated context', () => {
+test('WI-0023-10000000_TC-RESULT-SEMANTICS maps results, errors, and timeouts to bounded outcomes in an isolated context', async () => {
   const run = (source: string, message?: string) => () => runParameterValidators(objectSchema({ name: { type: 'string', ...validation(source, message) } }), { name: 'Ada' }, REQUEST);
+  const invalidResult = /must synchronously return true, false, undefined, or a non-empty failure message; asynchronous validators are not supported/u;
 
-  run('() => true')();
-  run('() => undefined')();
-  run('() => {}')();
-  assert.equal(reported(run('() => false')), 'the value was rejected by its validation function.');
-  assert.equal(reported(run('() => false', 'name must be approved')), 'name must be approved');
-  assert.equal(reported(run('(value) => `unknown name: ${value}`')), 'unknown name: Ada');
-  assert.equal(reported(run("() => { throw new Error('lookup failed'); }")), 'lookup failed');
-  assert.equal(reported(run("() => { throw 'plain text'; }")), 'plain text');
-  assert.match(failureMessage(run('() => 1')), /must return true, false, undefined, or a non-empty failure message/u);
-  assert.match(failureMessage(run("() => ''")), /must return true, false, undefined, or a non-empty failure message/u);
-  assert.match(failureMessage(run('async () => true')), /must return synchronously/u);
-  assert.match(failureMessage(run('() => ({ then() {} })')), /must return synchronously/u);
+  await run('() => true')();
+  await run('() => undefined')();
+  await run('() => {}')();
+  assert.equal(await reported(run('() => false')), 'the value was rejected by its validation function.');
+  assert.equal(await reported(run('() => false', 'name must be approved')), 'name must be approved');
+  assert.equal(await reported(run('(value) => `unknown name: ${value}`')), 'unknown name: Ada');
+  assert.equal(await reported(run("() => { throw new Error('lookup failed'); }")), 'lookup failed');
+  assert.equal(await reported(run("() => { throw 'plain text'; }")), 'plain text');
+  for (const source of ['() => 1', "() => ''", 'async () => true', '() => ({ then() {} })']) {
+    assert.match(await failureMessage(run(source)), invalidResult, source);
+  }
 
+  // Rejected promises created by a validator become bounded failures instead of terminating the process.
+  assert.match(await failureMessage(run("async () => { throw new Error('async boom'); }")), invalidResult);
+  assert.equal(await reported(run("() => { Promise.reject(new Error('late')); return true; }")), 'the validation function left a rejected promise: late');
+  assert.equal(await reported(run("() => { (async () => { throw new Error('inner'); })(); }")), 'the validation function left a rejected promise: inner');
+
+  // Host-side inspection never runs validator getters, so nothing escapes the timeout.
   const started = Date.now();
-  assert.equal(reported(run('() => { for (;;) {} }')), `the validation function exceeded the ${PARAMETER_VALIDATION_TIMEOUT_MS} ms timeout.`);
+  assert.match(await failureMessage(run('() => ({ get then() { for (;;) {} } })')), invalidResult);
+  assert.equal(await reported(run('() => { throw { get message() { for (;;) {} } }; }')), 'the validation function threw an error.');
+  assert.equal(await reported(run('() => { for (;;) {} }')), `the validation function exceeded the ${PARAMETER_VALIDATION_TIMEOUT_MS} ms timeout.`);
+  // A loop inside a promise job is also bounded. Node aborts natively when that timeout fires while async-context
+  // tracking is active (as under node:test), so this case runs in a plain child process like the CLI.
+  const { stdout } = await execFileAsync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', [
+    "import { runParameterValidators } from './src/request-parameter-validation.ts';",
+    "const schema = { type: 'object', properties: { name: { type: 'string', 'x-llm-req-parameter': { validation: { function: '() => { Promise.resolve().then(function spin() { for (;;) {} }); }' } } } } };",
+    "await runParameterValidators(schema, { name: 'x' }, { name: 'r', directory: '/r' }).then(() => console.log('passed'), (error) => console.log(error.message));",
+  ].join('\n')], { cwd: process.cwd() });
+  assert.match(stdout, new RegExp(`exceeded the ${PARAMETER_VALIDATION_TIMEOUT_MS} ms timeout`, 'u'));
   assert.ok(Date.now() - started < PARAMETER_VALIDATION_TIMEOUT_MS * 5);
 
-  assert.equal(JSON.parse(reported(run("() => JSON.stringify([typeof require, typeof process, typeof setTimeout, typeof globalThis.fetch, typeof module])"))).join(','), 'undefined,undefined,undefined,undefined,undefined');
-  assert.match(reported(run("() => eval('1')")), /Code generation from strings disallowed/u);
-  assert.match(reported(run("() => Function('return 1')()")), /Code generation from strings disallowed/u);
-  run('() => { globalThis.leak = 1; }')();
-  run("() => typeof globalThis.leak === 'undefined' || 'state leaked between calls'")();
+  assert.equal(JSON.parse(await reported(run("() => JSON.stringify([typeof require, typeof process, typeof setTimeout, typeof globalThis.fetch, typeof module])"))).join(','), 'undefined,undefined,undefined,undefined,undefined');
+  assert.match(await reported(run("() => eval('1')")), /Code generation from strings disallowed/u);
+  assert.match(await reported(run("() => Function('return 1')()")), /Code generation from strings disallowed/u);
+  await run('() => { globalThis.leak = 1; }')();
+  await run("() => typeof globalThis.leak === 'undefined' || 'state leaked between calls'")();
   assert.equal((globalThis as Record<string, unknown>).leak, undefined);
-  assert.ok(reported(run(`() => '${'x'.repeat(2000)}'`)).length < 600);
+  assert.ok((await reported(run(`() => '${'x'.repeat(2000)}'`))).length < 600);
 });
 
 // SDLC-TEST-CASE: WI-0023-10000000_TC-PIPELINE-ORDER

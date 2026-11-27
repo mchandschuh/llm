@@ -195,6 +195,18 @@ task:
         - requests/decisions.md
         - README.md
         - SKILL.md
+      - id: WI-0023-20000000_CHANGE-005
+        type: production-code
+        summary: 'Rework for the independent review. Promises created in validator contexts are captured with v8 promiseHooks and handled, so a stray rejection becomes a bounded validation failure instead of an unhandled rejection that terminates the process; runParameterValidators is now async. Every draft-07 and 2020-12 subschema keyword is walked, so validation in contains, propertyNames, dependencies, additionalItems, unevaluated*, or tuple items fails closed. Cross-realm errors keep their message and timeout detection uses own data properties. Class expressions are rejected at compile time. Returned and thrown values are inspected without running getters. Non-identifier property names are bracket-quoted in paths.'
+        objectiveRefs:
+        - WI-0023-20000000_OBJ-001
+        - WI-0023-20000000_OBJ-002
+        - WI-0023-20000000_OBJ-003
+        paths:
+        - src/request-parameter-validation.ts
+        - src/request.ts
+        - tests/request-parameter-validation.test.ts
+        - requests/README.md
       testImplementations:
       - testCaseRef: WI-0023-10000000#test-case/WI-0023-10000000_TC-METADATA-CONTRACT
         path: tests/request-parameter-validation.test.ts
@@ -240,7 +252,7 @@ task:
         - WI-0023-10000000#test-case/WI-0023-10000000_TC-CONTRACT-DOCUMENTATION
         command: node --import tsx --test tests/request-parameter-validation.test.ts
         status: passed
-        result: All six provider-free WI-0023 strategy cases passed.
+        result: All six provider-free WI-0023 strategy cases passed after the review rework, including the new rejection, position, class, getter, and path-quoting assertions.
       - id: WI-0023-20000000_EXEC-PACKAGE
         type: cli-audit
         testCaseRefs:
@@ -262,4 +274,6 @@ task:
         result: 'The compiled CLI exited 1 and wrote a CONFIGURATION_INVALID JSON error with the message "Request parameters are invalid. Validation of ''path'' failed: not a file: does-not-exist.md". No provider call was made; OPENROUTER_API_KEY was unset.'
     limitations:
     - The node:vm isolation is not a security sandbox; no sandbox-security evidence is claimed.
+    - On Node v24.21.0, a vm timeout that fires inside a promise job aborts the process natively when async-context tracking is active, for example under node:test, even without promise hooks. The case is therefore verified in a plain child process, and the limitation is documented in requests/README.md.
+    - Validators in schemas reached only through an external $ref are not discovered; this is documented.
     - Provider-free local evidence does not establish authenticated provider behavior, network transport, deployment, publication, downstream integration, or production readiness.

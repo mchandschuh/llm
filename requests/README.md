@@ -236,9 +236,12 @@ Malformed `file` metadata fails before provider invocation.
 
 `validation` declares bespoke validation that JSON Schema cannot express. It may
 appear on the parameter schema root, on any node reached through `properties`,
-and on array `items`, where it runs once per element. It is rejected in other
-positions, such as `oneOf`, `anyOf`, `allOf`, `$defs`, or `additionalProperties`.
-It may share a node with `file`.
+and on array `items`, where it runs once per element. It is rejected under every
+other subschema keyword, such as `oneOf`, `anyOf`, `allOf`, `not`,
+`if`/`then`/`else`, `contains`, `propertyNames`, `additionalProperties`,
+`patternProperties`, `$defs`, or tuple-form `items`. It may share a node with
+`file`. Schemas reached only through an external `$ref` are not inspected, so
+declare validators in the parameter schema itself.
 
 ```json
 {
@@ -253,7 +256,8 @@ It may share a node with `file`.
 
 - `function` is required. It is a JavaScript function expression, either as one
   string or as an array of strings joined with newlines. It must compile and
-  evaluate to a function before any value is validated.
+  evaluate to a callable function, not a class, before any value is
+  validated.
 - `message` is optional and must be a non-empty string.
 - No other members are accepted.
 
@@ -264,7 +268,7 @@ the resolved parameters are skipped. `context` is frozen and contains:
 
 | Member | Value |
 | --- | --- |
-| `path` | Concrete parameter path, such as `sections[0].title`; `''` for the root |
+| `path` | Concrete parameter path, such as `sections[0].title`; `''` for the root. Property names that are not identifiers are quoted, as in `["a.b"]` |
 | `value` | The validated value, the same as the first argument |
 | `parameters` | A deep-frozen copy of the complete resolved parameter object |
 | `schema` | A deep-frozen copy of the declaring schema node |
@@ -284,14 +288,22 @@ The return value decides the outcome:
 - A thrown error fails with the error's message.
 - Any other result, including a promise or other thenable, is a configuration
   error. Validators must be synchronous.
+- A promise that the function creates and that rejects without a handler
+  fails validation with the rejection message. It does not surface as an
+  unhandled rejection.
 
 A failure stops the request with a bounded `CONFIGURATION_INVALID` error naming
 the parameter path, before file materialization, placeholder substitution, and
 provider invocation.
 
-Each call runs in a fresh `node:vm` context with a 1000 ms timeout. The context
-has no `require`, `process`, `module`, timers, or `fetch`, and string code
-generation (`eval`, `Function`) is disabled. This isolation prevents
+Each call runs in a fresh `node:vm` context with a 1000 ms timeout that also
+covers the context's promise jobs. The context has no `require`, `process`,
+`module`, timers, or `fetch`, and string code generation (`eval`, `Function`)
+is disabled. Returned and thrown values are inspected without running their
+getters outside the timeout. Known Node limitation: when the timeout fires
+inside a promise job while the host process tracks async context (for example
+under `node:test` or with `AsyncLocalStorage`), Node 24 may abort the process
+instead of reporting the timeout. The `llm` CLI is not affected. This isolation prevents
 accidental use of Node APIs; it is not a security boundary. Treat request
 bundles as trusted code with the same privileges as the `llm` process, and
 only configure a `requestsDirectory` whose contents you trust.

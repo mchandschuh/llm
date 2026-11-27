@@ -1,11 +1,13 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { createContext, Script } from 'node:vm';
+import { promiseHooks } from 'node:v8';
+import { createContext, Script, type Context } from 'node:vm';
 import { boundedMessage, LlmFailure } from './errors.js';
 import type { InlineJsonSchema, JsonObject } from './types.js';
 
 const METADATA = 'x-llm-req-parameter';
 const VALIDATION_KEYS = new Set(['function', 'message']);
+const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_-]*$/u;
 
 /** Maximum synchronous run time of one validation function call. */
 export const PARAMETER_VALIDATION_TIMEOUT_MS = 1000;
@@ -42,9 +44,9 @@ export interface ParameterValidationRequest {
   readonly workingDirectory?: string;
 }
 
-/** One validation path segment: a property name, or `[]` for every array element. */
-type ValidatorSegment = string | typeof ARRAY_ITEMS;
+/** One validation path segment: a property name, or every array element. */
 const ARRAY_ITEMS = Symbol('array-items');
+type ValidatorSegment = string | typeof ARRAY_ITEMS;
 
 interface ParameterValidator {
   readonly location: string;
@@ -66,16 +68,42 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
+/** Append a property name using the parameter path grammar; names that are not identifiers use `["name"]`. */
+function appendProperty(path: string, property: string): string {
+  if (!IDENTIFIER.test(property)) return `${path}[${JSON.stringify(property)}]`;
+  return path ? `${path}.${property}` : property;
+}
+
 function displayLocation(segments: readonly ValidatorSegment[]): string {
   let location = '';
-  for (const segment of segments) {
-    location += segment === ARRAY_ITEMS ? '[]' : location ? `.${segment}` : segment;
-  }
+  for (const segment of segments) location = segment === ARRAY_ITEMS ? `${location}[]` : appendProperty(location, segment);
   return location || '<root>';
 }
 
-function isolatedContext(globals: Record<string, unknown>) {
+function isolatedContext(globals: Record<string, unknown>): Context {
   return createContext(globals, { codeGeneration: { strings: false, wasm: false }, microtaskMode: 'afterEvaluate' });
+}
+
+/** The vm timeout error is created in the context realm, so match its own `code` data property. */
+function isTimeout(error: unknown): boolean {
+  return typeof error === 'object' && error !== null
+    && Object.getOwnPropertyDescriptor(error, 'code')?.value === 'ERR_SCRIPT_EXECUTION_TIMEOUT';
+}
+
+/**
+ * Read a thrown value's message without running validator code on the host:
+ * only own data properties are read, so getters never execute outside the
+ * vm timeout. Errors from the vm realm fail `instanceof Error`, so this does
+ * not depend on it.
+ */
+function thrownMessage(error: unknown, fallback: string): string {
+  if (isTimeout(error)) return `the validation function exceeded the ${PARAMETER_VALIDATION_TIMEOUT_MS} ms timeout.`;
+  if (typeof error === 'string') return error || fallback;
+  if ((typeof error === 'object' || typeof error === 'function') && error !== null) {
+    const descriptor = Object.getOwnPropertyDescriptor(error, 'message');
+    if (descriptor !== undefined && typeof descriptor.value === 'string' && descriptor.value.length > 0) return descriptor.value;
+  }
+  return fallback;
 }
 
 function functionSource(value: unknown, location: string): string {
@@ -85,21 +113,29 @@ function functionSource(value: unknown, location: string): string {
 }
 
 function compileValidator(source: string, location: string): Script {
+  const filename = `validation.function at ${location}`;
   let definition: Script;
   let invocation: Script;
   try {
-    definition = new Script(`'use strict'; typeof (${source}\n);`, { filename: `validation.function at ${location}` });
-    invocation = new Script(`'use strict'; (${source}\n)(__llmValue, __llmContext);`, { filename: `validation.function at ${location}` });
+    // The array literal makes a stray `)` or `;` in the source a syntax error.
+    definition = new Script(`'use strict'; [(${source}\n)];`, { filename });
+    invocation = new Script(`'use strict'; (${source}\n)(__llmValue, __llmContext);`, { filename });
   } catch (error) {
-    throw metadataFailure(location, `validation.function is not valid JavaScript: ${error instanceof Error ? error.message : 'syntax error'}.`);
+    throw metadataFailure(location, `validation.function is not valid JavaScript: ${thrownMessage(error, 'syntax error')}.`);
   }
-  let kind: unknown;
+  let evaluated: unknown;
   try {
-    kind = definition.runInContext(isolatedContext({}), { timeout: PARAMETER_VALIDATION_TIMEOUT_MS });
+    evaluated = runHandlingPromises(definition, isolatedContext({}), () => undefined);
   } catch (error) {
-    throw metadataFailure(location, `validation.function could not be evaluated: ${error instanceof Error ? error.message : 'evaluation error'}.`);
+    throw metadataFailure(location, `validation.function could not be evaluated: ${thrownMessage(error, 'evaluation error')}`);
   }
-  if (kind !== 'function') throw metadataFailure(location, 'validation.function must be a JavaScript function expression.');
+  const candidate = Array.isArray(evaluated) || (typeof evaluated === 'object' && evaluated !== null)
+    ? Object.getOwnPropertyDescriptor(evaluated, '0')?.value
+    : undefined;
+  if (typeof candidate !== 'function') throw metadataFailure(location, 'validation.function must be a JavaScript function expression.');
+  if (/^class\b/u.test(Function.prototype.toString.call(candidate))) {
+    throw metadataFailure(location, 'validation.function must be a callable function expression, not a class.');
+  }
   return invocation;
 }
 
@@ -125,22 +161,27 @@ function parseValidation(node: Record<string, unknown>, segments: readonly Valid
   };
 }
 
-/** Keywords whose value is one subschema or an array of subschemas. */
-const UNSUPPORTED_SUBSCHEMA_KEYWORDS = ['additionalProperties', 'prefixItems', 'oneOf', 'anyOf', 'allOf', 'not', 'if', 'then', 'else'] as const;
-/** Keywords whose value maps names to subschemas. */
-const UNSUPPORTED_SUBSCHEMA_MAP_KEYWORDS = ['patternProperties', 'dependentSchemas', '$defs', 'definitions'] as const;
+/** JSON Schema keywords (draft-07 and 2020-12) whose value is one subschema or an array of subschemas. */
+const SUBSCHEMA_KEYWORDS = [
+  'additionalItems', 'additionalProperties', 'allOf', 'anyOf', 'contains', 'else', 'if', 'not', 'oneOf',
+  'prefixItems', 'propertyNames', 'then', 'unevaluatedItems', 'unevaluatedProperties',
+] as const;
+/** JSON Schema keywords whose value maps names to subschemas. */
+const SUBSCHEMA_MAP_KEYWORDS = ['$defs', 'definitions', 'dependencies', 'dependentSchemas', 'patternProperties'] as const;
 
+/** Subschemas in positions where validators are not supported, including tuple-form `items`. */
 function unsupportedPositionChildren(node: Record<string, unknown>): readonly unknown[] {
   const children: unknown[] = [];
-  for (const keyword of UNSUPPORTED_SUBSCHEMA_KEYWORDS) {
+  for (const keyword of SUBSCHEMA_KEYWORDS) {
     const value = node[keyword];
     if (Array.isArray(value)) children.push(...value);
     else if (isRecord(value)) children.push(value);
   }
-  for (const keyword of UNSUPPORTED_SUBSCHEMA_MAP_KEYWORDS) {
+  for (const keyword of SUBSCHEMA_MAP_KEYWORDS) {
     const value = node[keyword];
     if (isRecord(value)) children.push(...Object.values(value));
   }
+  if (Array.isArray(node.items)) children.push(...node.items);
   return children;
 }
 
@@ -160,8 +201,9 @@ function walk(node: Record<string, unknown>, segments: readonly ValidatorSegment
 
 /**
  * Discover and compile every `x-llm-req-parameter.validation` declaration in
- * schema declaration order. Malformed metadata fails closed before any value is
- * validated.
+ * schema declaration order. Malformed metadata and unsupported positions fail
+ * closed before any value is validated. Schemas reached only through an
+ * external `$ref` are not inspected.
  */
 export function discoverParameterValidators(schema: InlineJsonSchema | undefined): readonly ParameterValidator[] {
   if (schema === undefined) return [];
@@ -184,7 +226,7 @@ function instances(parameters: JsonObject, segments: readonly ValidatorSegment[]
         if (!Array.isArray(instance.value)) continue;
         instance.value.forEach((value, index) => next.push({ path: `${instance.path}[${index}]`, value }));
       } else if (isRecord(instance.value) && Object.prototype.hasOwnProperty.call(instance.value, segment)) {
-        next.push({ path: instance.path ? `${instance.path}.${segment}` : segment, value: instance.value[segment] });
+        next.push({ path: appendProperty(instance.path, segment), value: instance.value[segment] });
       }
     }
     current = next;
@@ -209,7 +251,7 @@ function fileSystem(workingDirectory: string): ParameterValidationFileSystem {
     if (typeof path !== 'string' || path.length === 0) throw new TypeError('A path must be a non-empty string.');
     return resolve(workingDirectory, path);
   };
-  const kind = (path: string) => {
+  const stats = (path: string) => {
     try {
       return statSync(resolvePath(path));
     } catch {
@@ -219,47 +261,70 @@ function fileSystem(workingDirectory: string): ParameterValidationFileSystem {
   return Object.freeze({
     resolve: resolvePath,
     exists: (path: string) => existsSync(resolvePath(path)),
-    isFile: (path: string) => kind(path)?.isFile() === true,
-    isDirectory: (path: string) => kind(path)?.isDirectory() === true,
+    isFile: (path: string) => stats(path)?.isFile() === true,
+    isDirectory: (path: string) => stats(path)?.isDirectory() === true,
     readText: (path: string) => {
       const absolute = resolvePath(path);
-      const stats = statSync(absolute);
-      if (!stats.isFile()) throw new Error(`Not a regular file: ${path}`);
-      if (stats.size > PARAMETER_VALIDATION_READ_LIMIT_BYTES) throw new Error(`File exceeds the ${PARAMETER_VALIDATION_READ_LIMIT_BYTES}-byte read limit: ${path}`);
+      const file = statSync(absolute);
+      if (!file.isFile()) throw new Error(`Not a regular file: ${path}`);
+      if (file.size > PARAMETER_VALIDATION_READ_LIMIT_BYTES) throw new Error(`File exceeds the ${PARAMETER_VALIDATION_READ_LIMIT_BYTES}-byte read limit: ${path}`);
       return readFileSync(absolute, 'utf8');
     },
   });
 }
 
-function isThenable(value: unknown): boolean {
-  return (typeof value === 'object' || typeof value === 'function') && value !== null && typeof (value as { then?: unknown }).then === 'function';
+/**
+ * Run a script synchronously and handle every promise it created.
+ *
+ * Promises created inside a validator context are still tracked by the
+ * process-wide rejection tracker, so an unhandled rejection would otherwise
+ * surface after validation returned and could terminate the process. While the
+ * script runs, `promiseHooks.onInit` collects each promise it creates. Once it
+ * returns, a rejection handler is attached to each one, which suppresses the
+ * unhandled-rejection event and reports the reason to `onRejected`.
+ */
+function runHandlingPromises(script: Script, context: Context, onRejected: (reason: unknown) => void): unknown {
+  const created: Promise<unknown>[] = [];
+  const stop = promiseHooks.onInit((promise) => { created.push(promise); });
+  try {
+    return script.runInContext(context, { timeout: PARAMETER_VALIDATION_TIMEOUT_MS });
+  } finally {
+    stop();
+    for (const promise of created) {
+      try {
+        Promise.prototype.then.call(promise, undefined, onRejected);
+      } catch {
+        // A promise whose `constructor` was tampered with cannot be observed; it is trusted bundle code.
+      }
+    }
+  }
 }
 
-function thrownMessage(error: unknown): string {
-  if (error && typeof error === 'object' && typeof (error as { message?: unknown }).message === 'string') {
-    const message = (error as { message: string }).message;
-    if (/Script execution timed out/u.test(message)) return `the validation function exceeded the ${PARAMETER_VALIDATION_TIMEOUT_MS} ms timeout.`;
-    return message || 'the validation function threw an error.';
-  }
-  return typeof error === 'string' && error ? error : 'the validation function threw an error.';
+function outcome(result: unknown, validator: ParameterValidator, path: string): LlmFailure | undefined {
+  if (result === true || result === undefined) return undefined;
+  if (result === false) return validationFailure(path, validator.message ?? 'the value was rejected by its validation function.');
+  if (typeof result === 'string' && result.length > 0) return validationFailure(path, result);
+  return metadataFailure(validator.location, 'validation.function must synchronously return true, false, undefined, or a non-empty failure message; asynchronous validators are not supported.');
 }
 
 /**
  * Run every declared validation function against the resolved parameters in
  * schema declaration order. Values absent from `parameters` are skipped. The
- * first failure throws a bounded `CONFIGURATION_INVALID` error.
+ * first failure rejects with a bounded `CONFIGURATION_INVALID` error.
  *
  * Each call runs synchronously in a fresh `node:vm` context without Node
  * globals or string code generation. This limits accidental access; it is not
  * a security boundary, so request bundles must be trusted.
  */
-export function runParameterValidators(schema: InlineJsonSchema | undefined, parameters: JsonObject, request: ParameterValidationRequest): void {
+export async function runParameterValidators(schema: InlineJsonSchema | undefined, parameters: JsonObject, request: ParameterValidationRequest): Promise<void> {
   const validators = discoverParameterValidators(schema);
   if (validators.length === 0) return;
   const workingDirectory = resolve(request.workingDirectory ?? process.cwd());
   const frozenParameters = frozenCopy(parameters);
   const fs = fileSystem(workingDirectory);
   const requestIdentity = Object.freeze({ name: request.name, directory: request.directory });
+  let rejection: LlmFailure | undefined;
+  let failure: LlmFailure | undefined;
   for (const validator of validators) {
     const schemaNode = frozenCopy(validator.node) as JsonObject;
     for (const instance of instances(frozenParameters, validator.segments)) {
@@ -272,18 +337,21 @@ export function runParameterValidators(schema: InlineJsonSchema | undefined, par
         workingDirectory,
         fs,
       });
-      let result: unknown;
+      const onRejected = (reason: unknown): void => {
+        rejection ??= validationFailure(instance.path, `the validation function left a rejected promise: ${thrownMessage(reason, 'a promise was rejected.')}`);
+      };
       try {
-        result = validator.script.runInContext(isolatedContext({ __llmValue: instance.value, __llmContext: context }), { timeout: PARAMETER_VALIDATION_TIMEOUT_MS });
+        const result = runHandlingPromises(validator.script, isolatedContext({ __llmValue: instance.value, __llmContext: context }), onRejected);
+        failure = outcome(result, validator, instance.path);
       } catch (error) {
-        throw validationFailure(instance.path, thrownMessage(error));
+        failure = validationFailure(instance.path, thrownMessage(error, 'the validation function threw an error.'));
       }
-      if (result === true || result === undefined) continue;
-      if (result === false) throw validationFailure(instance.path, validator.message ?? 'the value was rejected by its validation function.');
-      if (typeof result === 'string' && result.length > 0) throw validationFailure(instance.path, result);
-      throw metadataFailure(validator.location, isThenable(result)
-        ? 'validation.function must return synchronously; asynchronous validators are not supported.'
-        : 'validation.function must return true, false, undefined, or a non-empty failure message.');
+      if (failure !== undefined) break;
     }
+    if (failure !== undefined) break;
   }
+  // Rejection handlers attached by runHandlingPromises run on a later turn.
+  await new Promise<void>((done) => setImmediate(done));
+  failure ??= rejection;
+  if (failure !== undefined) throw failure;
 }
