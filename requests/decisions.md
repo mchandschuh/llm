@@ -182,3 +182,28 @@ local refs. Each completion has a 10-minute default timeout
 openrouter pins changes `llm summarize --provider openrouter` from
 `openai/gpt-5-nano` to `openai/gpt-5.6-luna`; pass `--model` to keep the old
 model.
+
+## D20 — Multiple request directories
+
+Requested for WI-0029
+(`/home/michael/src/github/llm/.docs/work-items/WI-0029/work-item-request.md`).
+The human operator explicitly confirmed this `requests/README.md` edit, as D12
+requires, for the `requestsDirectory` passages only: the configured root and
+bundle layout, the trust note, processing-order steps 1 and 2, and the
+summarize adapter.
+
+The layered `config.json` keeps `requestsDirectory` (one path) and adds
+`requestDirectories` (a non-empty array of paths); either or both may be set.
+Directories are searched with `requestsDirectory` first, then
+`requestDirectories` in array order, and entries that resolve to the same real
+directory are searched once. Each entry must be an existing absolute directory
+without `..`; a malformed value is a `CONFIGURATION_INVALID` failure naming the
+key or index, and the guidance names both keys. Layers combine per key, and a
+later layer's array replaces an earlier one.
+
+The operator decided that duplicate names are ambiguous: a request name present
+in more than one configured directory, even as a broken bundle, fails with a
+configuration error naming every matching directory, and `llm req -h` lists it
+under "Duplicate requests". One directory never silently shadows another. A
+request's parameter schemas resolve only within the configured directory that
+contains it, so one repository's schemas cannot affect another's requests.

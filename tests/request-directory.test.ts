@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { LlmFailure } from '../src/errors.js';
 import { loadRequestDirectory } from '../src/request-directory.js';
-import { resolveRequestsDirectory } from '../src/requests-config.js';
+import { resolveRequestDirectories } from '../src/requests-config.js';
 
 const taskSchema = JSON.stringify({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -148,9 +148,9 @@ test('WI-0015-10000000_TC-CONFIGURATION-REUSE uses the shared requestsDirectory 
     await mkdir(join(homeRoot, '.llm'), { recursive: true });
     await writeFile(join(homeRoot, '.llm', 'config.json'), JSON.stringify({ requestsDirectory: homeRequests }));
     await writeFile(join(environmentRoot, 'config.json'), JSON.stringify({ requestsDirectory: environmentRequests }));
-    assert.equal(await resolveRequestsDirectory({ applicationSourceDirectory: applicationRoot, homeDirectory: homeRoot, environment: { LLM_CONFIG: environmentRoot } }), environmentRequests);
-    assert.equal(await resolveRequestsDirectory({ applicationSourceDirectory: applicationRoot, homeDirectory: homeRoot, environment: {} }), homeRequests);
-    await assert.rejects(() => resolveRequestsDirectory({ applicationSourceDirectory: missingApplicationRoot, homeDirectory: join(homeRoot, 'missing'), environment: {} }), /Configure ~\/\.llm\/config\.json:requestsDirectory/u);
+    assert.deepEqual(await resolveRequestDirectories({ applicationSourceDirectory: applicationRoot, homeDirectory: homeRoot, environment: { LLM_CONFIG: environmentRoot } }), [environmentRequests]);
+    assert.deepEqual(await resolveRequestDirectories({ applicationSourceDirectory: applicationRoot, homeDirectory: homeRoot, environment: {} }), [homeRequests]);
+    await assert.rejects(() => resolveRequestDirectories({ applicationSourceDirectory: missingApplicationRoot, homeDirectory: join(homeRoot, 'missing'), environment: {} }), /Configure ~\/\.llm\/config\.json:requestsDirectory/u);
   } finally {
     await Promise.all([applicationRoot, homeRoot, environmentRoot, applicationRequests, homeRequests, environmentRequests, missingApplicationRoot].map((path) => rm(path, { recursive: true, force: true })));
   }

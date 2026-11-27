@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs';
 import { extname, resolve } from 'node:path';
 import type { Thinking } from '../types.js';
-import { resolveRequestsDirectory } from '../requests-config.js';
-import { loadRequestDirectory } from '../request-directory.js';
+import { resolveRequestDirectories } from '../requests-config.js';
+import { AmbiguousRequestFailure, loadRequestDirectory, locateRequest } from '../request-directory.js';
 import type { RequestParameterAssignment } from '../request-parameters.js';
 
 export type ResponseFormat = 'full' | 'raw';
@@ -24,6 +24,8 @@ export interface ParsedCliArguments {
   readonly requestParameters?: string;
   readonly requestAssignments?: readonly RequestParameterAssignment[];
   readonly usageError?: string;
+  /** A request-directory configuration failure or ambiguous request name found while parsing `llm req <request-name>`. */
+  readonly configurationError?: string;
   readonly exitCode?: number;
 }
 
@@ -160,12 +162,17 @@ async function parseRequestArguments(args: readonly string[], common: { readonly
   if (args.length >= 3 && isHelpToken(args[2]!)) return { ...common, command: 'req-help', requestName: args[1]! };
   if (common.printChatId) return { ...common, command: 'req', exitCode: 2 };
   const requestName = args[1]!;
-  let requestsDirectory: string;
+  let requestsDirectories: readonly string[];
+  try {
+    requestsDirectories = await resolveRequestDirectories();
+  } catch (error) {
+    return { ...common, command: 'req', requestName, configurationError: error instanceof Error ? error.message : 'The llm request configuration is invalid.' };
+  }
   let loaded;
   try {
-    requestsDirectory = await resolveRequestsDirectory();
-    loaded = await loadRequestDirectory(requestsDirectory, requestName);
-  } catch {
+    loaded = await loadRequestDirectory(await locateRequest(requestsDirectories, requestName), requestName);
+  } catch (error) {
+    if (error instanceof AmbiguousRequestFailure) return { ...common, command: 'req', requestName, configurationError: error.message };
     return { ...common, command: 'req', exitCode: 2 };
   }
   const roots = parameterRoots(loaded.assets.parametersSchema?.value);

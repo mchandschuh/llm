@@ -1,8 +1,8 @@
 import { readdir } from 'node:fs/promises';
 import { basename } from 'node:path';
 import { boundedMessage, LlmFailure } from '../errors.js';
-import { loadRequestDirectory, type LoadedRequestDirectory } from '../request-directory.js';
-import { resolveRequestsDirectory } from '../requests-config.js';
+import { loadRequestDirectory, locateRequest, type LoadedRequestDirectory } from '../request-directory.js';
+import { resolveRequestDirectories } from '../requests-config.js';
 import type { OutputWriter } from './output.js';
 
 /** Usage lines shared by `llm --help`, `llm req -h`, and request help. */
@@ -26,10 +26,23 @@ export interface UnavailableRequestEntry {
   readonly reason: string;
 }
 
+/** A request name found in more than one configured request directory. */
+export interface DuplicateRequestEntry {
+  readonly name: string;
+  readonly directories: readonly string[];
+}
+
+export interface DiscoveredRequests {
+  readonly available: readonly RequestListingEntry[];
+  readonly unavailable: readonly UnavailableRequestEntry[];
+  readonly duplicates: readonly DuplicateRequestEntry[];
+}
+
 export interface RequestHelpCommandOptions {
   /** Absent for the request listing; present for one request's parameter help. */
   readonly requestName?: string;
-  readonly requestsDirectory?: string;
+  /** Injected request directories; the configured directories are used when absent. */
+  readonly requestsDirectories?: readonly string[];
   readonly write?: OutputWriter;
   readonly writeError?: OutputWriter;
 }
@@ -60,23 +73,37 @@ function reason(error: unknown): string {
   return boundedMessage(error instanceof Error ? error.message : 'The request could not be loaded.');
 }
 
-/** Load every request directory under `requestsDirectory`, separating loadable from unavailable requests. */
-export async function discoverRequests(requestsDirectory: string): Promise<{ readonly available: readonly RequestListingEntry[]; readonly unavailable: readonly UnavailableRequestEntry[] }> {
-  const entries = await readdir(requestsDirectory, { withFileTypes: true });
-  const names = entries
-    .filter((entry) => !entry.name.startsWith('.') && (entry.isDirectory() || entry.isSymbolicLink()))
-    .map((entry) => entry.name)
-    .sort(compareNames);
+/**
+ * Load every request directory under each configured request directory,
+ * separating loadable from unavailable requests. A name present in more than
+ * one directory is reported only as a duplicate, because `llm req <name>`
+ * rejects it as ambiguous.
+ */
+export async function discoverRequests(requestsDirectories: readonly string[]): Promise<DiscoveredRequests> {
+  const locations = new Map<string, string[]>();
+  for (const directory of requestsDirectories) {
+    const entries = await readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.name.startsWith('.') || !(entry.isDirectory() || entry.isSymbolicLink())) continue;
+      locations.set(entry.name, [...(locations.get(entry.name) ?? []), directory]);
+    }
+  }
   const available: RequestListingEntry[] = [];
   const unavailable: UnavailableRequestEntry[] = [];
-  for (const name of names) {
+  const duplicates: DuplicateRequestEntry[] = [];
+  for (const name of [...locations.keys()].sort(compareNames)) {
+    const directories = locations.get(name)!;
+    if (directories.length > 1) {
+      duplicates.push({ name, directories });
+      continue;
+    }
     try {
-      available.push({ name, description: requestDescription(await loadRequestDirectory(requestsDirectory, name)) });
+      available.push({ name, description: requestDescription(await loadRequestDirectory(directories[0]!, name)) });
     } catch (error) {
       unavailable.push({ name, reason: reason(error) });
     }
   }
-  return { available, unavailable };
+  return { available, unavailable, duplicates };
 }
 
 function aligned(entries: readonly { readonly name: string; readonly text: string }[]): string[] {
@@ -84,20 +111,31 @@ function aligned(entries: readonly { readonly name: string; readonly text: strin
   return entries.map((entry) => `  ${entry.name.padEnd(width)}  ${entry.text}`);
 }
 
-export function renderRequestListing(requestsDirectory: string, available: readonly RequestListingEntry[], unavailable: readonly UnavailableRequestEntry[]): string {
+export function renderRequestListing(requestsDirectories: readonly string[], discovered: DiscoveredRequests): string {
+  const { available, unavailable, duplicates } = discovered;
+  const single = requestsDirectories.length === 1;
   const lines = [
     `Usage: ${REQUEST_USAGE_LINES[0]}`,
     ...REQUEST_USAGE_LINES.slice(1).map((line) => `       ${line}`),
     '',
-    'Run a named request bundle from the configured request directory.',
+    `Run a named request bundle from the configured request ${single ? 'directory' : 'directories'}.`,
     '',
-    `Requests directory: ${requestsDirectory}`,
+    ...(single
+      ? [`Requests directory: ${requestsDirectories[0]}`]
+      : ['Request directories:', ...requestsDirectories.map((directory) => `  ${directory}`)]),
     '',
   ];
   if (available.length === 0) lines.push('No requests are available.');
   else lines.push('Available requests:', ...aligned(available.map((entry) => ({ name: entry.name, text: entry.description }))));
   if (unavailable.length > 0) {
     lines.push('', 'Unavailable requests:', ...aligned(unavailable.map((entry) => ({ name: entry.name, text: entry.reason }))));
+  }
+  if (duplicates.length > 0) {
+    lines.push(
+      '',
+      "Duplicate requests (ambiguous; 'llm req <name>' fails until only one directory provides the name):",
+      ...aligned(duplicates.map((entry) => ({ name: entry.name, text: entry.directories.join(', ') }))),
+    );
   }
   lines.push('', "Run 'llm req <request-name> -h' to list a request's parameters.");
   return `${lines.join('\n')}\n`;
@@ -244,11 +282,11 @@ export async function runRequestHelpCommand(options: RequestHelpCommandOptions =
   const write = options.write ?? ((text: string) => process.stdout.write(text));
   const writeError = options.writeError ?? ((text: string) => process.stderr.write(text));
   try {
-    const requestsDirectory = options.requestsDirectory ?? await resolveRequestsDirectory();
+    const requestsDirectories = options.requestsDirectories ?? await resolveRequestDirectories();
     if (options.requestName === undefined) {
-      const { available, unavailable } = await discoverRequests(requestsDirectory);
-      write(renderRequestListing(requestsDirectory, available, unavailable));
+      write(renderRequestListing(requestsDirectories, await discoverRequests(requestsDirectories)));
     } else {
+      const requestsDirectory = await locateRequest(requestsDirectories, options.requestName);
       write(renderRequestHelp(await loadRequestDirectory(requestsDirectory, options.requestName)));
     }
     return 0;

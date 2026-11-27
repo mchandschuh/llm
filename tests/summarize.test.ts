@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { parseCliArguments, parseCliArgumentsAsync } from '../src/cli/arguments.js';
 import { runRequestCommand } from '../src/cli/request-command.js';
 import { runSummarizeCommand } from '../src/cli/summarize-command.js';
-import { resolveRequestsDirectory } from '../src/requests-config.js';
+import { resolveRequestDirectories } from '../src/requests-config.js';
 import type { LlmProvider, ProviderCompletionRequest } from '../src/types.js';
 
 const requestsDirectory = resolve(process.cwd(), 'requests');
@@ -387,8 +387,8 @@ test('requestsDirectory uses shared configuration precedence and missing configu
     await mkdir(join(home, '.llm'), { recursive: true });
     await writeFile(join(home, '.llm', 'config.json'), JSON.stringify({ requestsDirectory: homeRequests }));
     await writeFile(join(environmentRoot, 'config.json'), JSON.stringify({ requestsDirectory: environmentRequests }));
-    assert.equal(await resolveRequestsDirectory({ applicationSourceDirectory: root, homeDirectory: home, environment: { LLM_CONFIG: environmentRoot } }), environmentRequests);
-    assert.equal(await resolveRequestsDirectory({ applicationSourceDirectory: root, homeDirectory: home, environment: {} }), homeRequests);
+    assert.deepEqual(await resolveRequestDirectories({ applicationSourceDirectory: root, homeDirectory: home, environment: { LLM_CONFIG: environmentRoot } }), [environmentRequests]);
+    assert.deepEqual(await resolveRequestDirectories({ applicationSourceDirectory: root, homeDirectory: home, environment: {} }), [homeRequests]);
   } finally {
     await Promise.all([root, home, environmentRoot, applicationRequests, homeRequests, environmentRequests].map((path) => rm(path, { recursive: true, force: true })));
   }

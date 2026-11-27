@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0029",
-  "status": "planned",
+  "status": "complete",
   "title": "Support multiple request directories",
   "type": "feature",
   "objective": "Let `~/.llm/config.json` name request directories through the existing `requestsDirectory` string, a new `requestDirectories` string array, or both, and make `llm req <request-name>`, `llm req -h`, `llm req <request-name> -h`, `llm summarize`, and `completeRequest` search every configured directory, failing closed when a request name exists in more than one directory.",
@@ -15,7 +15,7 @@
     },
     "branch": {
       "name": "WI-0029-multiple-request-directories",
-      "created": false,
+      "created": true,
       "rationale": "Each work item is processed on its own branch."
     }
   },

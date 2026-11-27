@@ -1,6 +1,6 @@
 import { rm } from 'node:fs/promises';
-import { resolveRequestsDirectory } from './requests-config.js';
-import { loadRequestDirectory, type RequestDirectoryAssets } from './request-directory.js';
+import { resolveRequestDirectories } from './requests-config.js';
+import { loadRequestDirectory, locateRequest, type RequestDirectoryAssets } from './request-directory.js';
 import { constructRequestParameters } from './request-parameters.js';
 import { materializeParameterFiles } from './request-parameter-files.js';
 import { runParameterValidators } from './request-parameter-validation.js';
@@ -92,7 +92,9 @@ function providerFor(options: CompleteRequestOptions, providerName: string): Llm
  * owned by `complete`; this boundary returns the provider-neutral raw result.
  */
 export async function completeRequest(options: CompleteRequestOptions): Promise<ProviderCompletionResponse> {
-  const requestsDirectory = options.requestsDirectory ?? await resolveRequestsDirectory({ applicationSourceDirectory: options.configurationRoot });
+  // The one configured directory that holds this request; its schemas resolve only within it.
+  const requestsDirectory = options.requestsDirectory
+    ?? await locateRequest(await resolveRequestDirectories({ applicationSourceDirectory: options.configurationRoot }), options.requestName);
   const loaded = await loadRequestDirectory(requestsDirectory, options.requestName);
   const defaults = replaceAsset(loaded.assets.defaults, {}) as JsonObject | undefined;
   const parameters = constructRequestParameters({

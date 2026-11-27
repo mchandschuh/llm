@@ -1,0 +1,193 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0029
+taskUid: WI-0029-90000000
+orderKey: "90000000"
+parentTaskUid: WI-0029-20000000
+taskType: review
+processingStatus: processing_completed
+title: Review multiple request directories
+objective: Review the WI-0029 implementation, tests, documentation, and contract change against its requirements and non-goals.
+references:
+  required:
+    - .docs/work-items/WI-0029/work-item.json
+    - .docs/work-items/WI-0029/work-item-request.md
+    - src/requests-config.ts
+    - src/request-directory.ts
+    - src/request.ts
+    - src/cli/arguments.ts
+    - src/cli.ts
+    - src/cli/request-help.ts
+    - src/cli/summarize-command.ts
+    - tests/request-directories.test.ts
+    - requests/README.md
+    - requests/decisions.md
+    - .docs/work-items/WI-0029/steps/WI-0029-10000000-test-strategy.yaml
+    - .docs/work-items/WI-0029/steps/WI-0029-20000000-implementation.yaml
+    - .docs/work-items/WI-0029/steps/WI-0029-80000000-validation.yaml
+  informational:
+    - README.md
+    - SKILL.md
+dependsOn:
+  - WI-0029-20000000
+  - WI-0029-80000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0029/steps/WI-0029-90000000-review.yaml
+  commitSubject: "WI-0029: plan: define review evidence"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: schema-audit
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: full-suite
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review directory configuration, resolution across directories, help across directories, documentation, the confirmed contract change, and test traceability.
+    reviewKind: code
+    target:
+      taskType: implementation
+      taskRef: WI-0029-20000000
+      result:
+        ref: WI-0029-20000000#result/implementation
+        sha256: null
+    gateId: implementation-result
+    policyRef:
+      ref: repository-local-review-policy
+      sha256: null
+    criteria:
+      - id: CRIT-001
+        statement: "`requestsDirectory`, `requestDirectories`, or both resolve to an ordered, de-duplicated list; every malformed shape and entry fails with CONFIGURATION_INVALID naming its key or index, with guidance naming both keys; a string-only configuration behaves as before."
+        purpose: Verify WI-0029_REQ_001.
+        required: true
+        evidenceRefs:
+          - WI-0029-20000000#result/implementation
+      - id: CRIT-002
+        statement: llm req, completeRequest, and llm summarize find a request in any configured directory, fail closed on duplicate names naming every directory, validate names before probing, keep schema roots at the owning directory, and never start a provider on a configuration failure.
+        purpose: Verify WI-0029_REQ_002.
+        required: true
+        evidenceRefs:
+          - WI-0029-20000000#result/implementation
+      - id: CRIT-003
+        statement: "`llm req -h` lists every directory and reports duplicates; `llm req <name> -h` resolves across directories and rejects duplicates; single-directory output is unchanged."
+        purpose: Verify WI-0029_REQ_003.
+        required: true
+        evidenceRefs:
+          - WI-0029-20000000#result/implementation
+      - id: CRIT-004
+        statement: README.md and SKILL.md document both keys and the naming convention, requests/README.md changes only in the confirmed passages, D20 cites WI-0029 and the operator confirmation, every test case is trace-marked, and no non-goal was implemented.
+        purpose: Verify WI-0029_REQ_004 and WI-0029_REQ_005.
+        required: true
+        evidenceRefs:
+          - WI-0029-20000000#result/implementation
+    evidenceRequirements:
+      - id: EVID-001
+        kind: diff
+        ref: WI-0029-20000000#result/implementation
+        purpose: Inspect the resolver, locator, consumers, help, documentation, contract, and tests.
+        required: true
+        minimumTier: inspection
+    nonGoals:
+      - id: NON-001
+        statement: This review does not approve deployment, remote publication, or production readiness.
+    context:
+      - id: CTX-001
+        kind: other
+        ref: requests/README.md
+        purpose: Check the implementation against the request-bundle contract and the D12 confirmation gate.
+        required: true
+  result:
+    status: complete
+    decision: accepted
+    summary: Multiple request directories satisfy every WI-0029 criterion; all 16 trace-marked cases and the full suite pass, configuration failures are provider-free, and the contract change stays within the confirmed passages. One advisory finding is recorded for follow-up.
+    actor:
+      id: code-review-agent
+      role: code-reviewer
+      authorityRef: repository-local-review-policy
+    criteriaEvaluations:
+      - criterionRef: "#criterion/CRIT-001"
+        status: satisfied
+        summary: resolveRequestDirectories collects requestsDirectory then each requestDirectories entry, validates each through one helper whose label is the key or `requestDirectories[<index>]`, rejects a non-array or empty array before any entry, and de-duplicates by realpath while returning the first resolved spelling. The guidance constant names both keys and is appended to every failure. TC-STRING-ONLY-REGRESSION, TC-ARRAY-ONLY, TC-BOTH-KEYS-ORDER-AND-LAYERS, TC-SAME-DIRECTORY-DEDUPLICATED, TC-INVALID-ARRAY-SHAPE, TC-INVALID-ARRAY-ENTRIES, and TC-NEITHER-KEY cover each path; the existing requestsDirectory messages are kept.
+        evidenceRefs:
+          - WI-0029-20000000#result/implementation
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-002"
+        status: satisfied
+        summary: locateRequest asserts the request name first, short-circuits a single directory to the unchanged loader path, counts a child directory or symlink (even a broken bundle) as a match, and throws AmbiguousRequestFailure listing every match. completeRequest, parseRequestArguments, runSummarizeCommand, and request help all use it, and completeRequest passes the owning directory as the only schema root. parseRequestArguments now returns configurationError for resolver failures and ambiguous names, which main() prints as configuration_error with exit 1 before any provider; TC-CLI-CONFIGURATION-ERROR-PROVIDER-FREE proves this with the fake-claude log and a positive control.
+        evidenceRefs:
+          - WI-0029-20000000#result/implementation
+        findingRefs:
+          - "#finding/WI-0029-90000000_FIND-001"
+      - criterionRef: "#criterion/CRIT-003"
+        status: satisfied
+        summary: discoverRequests groups candidate names across directories, routes names found in more than one directory to duplicates without loading them, and renderRequestListing keeps the single-directory heading and text byte-identical while printing every directory and a duplicate section otherwise. TC-HELP-LISTING-MULTI, TC-REQUEST-HELP-MULTI, and the unchanged WI-0028 listing tests cover this.
+        evidenceRefs:
+          - WI-0029-20000000#result/implementation
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-004"
+        status: satisfied
+        summary: README.md and SKILL.md describe both keys, order, de-duplication, layering, and the duplicate error; SKILL.md adds the repository-prefix naming guidance with `sdlc-work-item-expand` and the `summarize` exception. The requests/README.md diff is limited to the configured-root and layout, trust, processing-order, and summarize-adapter passages, and D20 cites the WI-0029 request and the operator confirmation; TC-DOCUMENTATION-AND-CONTRACT enforces both bounds. The WI-0028 documentation test now checks WI-0028's own merge commit instead of the working tree, which keeps its claim true. Changed paths match the implementation owned paths.
+        evidenceRefs:
+          - WI-0029-20000000#result/implementation
+        findingRefs: []
+    findings:
+      - id: WI-0029-90000000_FIND-001
+        severity: advisory
+        status: open
+        message: "`llm req <unknown-name>` with several configured directories still exits 2 with the generic usage error during argument parsing, as it did with one directory, so the CLI user does not see the new message naming the searched directories; completeRequest, request help, and llm summarize do show it."
+        requestedChange: In a follow-up work item, consider reporting request-not-found and invalid-bundle loader failures from llm req parsing as configuration_error, as this work item now does for configuration failures and ambiguous names.
+        criterionRefs:
+          - "#criterion/CRIT-002"
+        affectedRefs:
+          - WI-0029-20000000#result/implementation
+        evidenceRefs:
+          - WI-0029-20000000#result/implementation
+    evidence:
+      - id: EVID-001
+        kind: diff
+        ref: WI-0029-20000000#result/implementation
+        claim: The diff adds the multi-directory resolver and locator, routes the four consumers through them, extends help, updates the docs and confirmed contract passages, adds D20, and adds tests, all within the owned paths.
+        tier: inspection
+        source: repository
+      - id: EVID-002
+        kind: validation
+        ref: WI-0029-20000000#result/implementation
+        claim: Typecheck, build, and 204 tests passed, with no claude invocation during the WI-0029 and WI-0028 help tests.
+        tier: cli-audit
+        source: host
+    limitations:
+      - The review was a separate pass by the implementing agent, not an independent reviewer.
+      - Cross-file schema references are rejected by the loader before resolution, so the owning-directory schema root is not exercised for them.
+    nonClaims:
+      - This review is not an approval for deployment or remote publication.
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: WI-0029-90000000_EXEC-REVIEW
+      status: succeeded
+      startedAt: 2026-11-27T21:16:38Z
+      finishedAt: 2026-11-27T21:26:38Z
