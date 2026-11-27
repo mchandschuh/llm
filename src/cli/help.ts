@@ -14,6 +14,8 @@ export function printHelp(): number {
   console.log('       llm summarize --path <path> [--provider <provider>] [--model <model>] [--thinking <thinking>] [--format=full|raw]');
   console.log('       llm summarize --content <text> [--provider <provider>] [--model <model>] [--thinking <thinking>] [--format=full|raw]');
   console.log('       llm req <request-name> [--parameters <json>] [--p-<path> <value>] [--format=full|raw] [--debug]');
+  console.log('       llm req <request-name> -h|--help  # list the request parameters and how to set them');
+  console.log('       llm req -h|--help  # list the available requests');
   console.log('       llm <prompt>  # continue the LLM_CHAT_ID session [--format=full|raw]');
   console.log('       llm --debug <request.json>');
   console.log('       llm --help');

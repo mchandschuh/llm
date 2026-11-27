@@ -156,7 +156,22 @@ fails.
 
 ```text
 llm req <request-name> [--parameters <json>] [--p-<path> <value>] [--format=full|raw] [--debug]
+llm req <request-name> -h|--help
+llm req -h|--help
 ```
+
+`llm req -h` lists every resolvable request in the configured request directory
+with its parameters-schema description, and lists request directories that fail
+to load under "Unavailable requests" with the loader reason.
+`llm req <request-name> -h` prints that request's parameters: each one as
+`--p-<path> <value>` with its type or allowed values, required or optional
+status, `defaults.json` default, description, and examples; nested
+`--p-<parent>.<child>` and `--p-<array>[<index>]` paths; `oneOf`/`anyOf`
+requirement groups; `x-llm-req-parameter` annotations such as file bindings
+(mode, MIME type, purpose) and validation functions; and the request settings
+from `defaults.json`. Help is read-only and never starts a provider. It is
+recognized only immediately after `req` or after the request name; an unknown
+or invalid request prints a `configuration_error` JSON entry and exits 1.
 
 The request directory is the `requestsDirectory` value in the layered
 `config.json` (`.config` in the current directory, then `~/.llm`, then the

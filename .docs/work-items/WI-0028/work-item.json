@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0028",
-  "status": "planned",
+  "status": "complete",
   "title": "Improve llm req -h response",
   "type": "feature",
   "objective": "Make `llm req -h` print usage and a listing of every resolvable request in the configured request directory, and make `llm req <request-name> -h` print that request's parameters with their --p- command-line form, types, defaults, constraints, and x-llm-req-parameter annotations such as file bindings, without initializing a provider.",
@@ -15,7 +15,7 @@
     },
     "branch": {
       "name": "WI-0028-request-help",
-      "created": false,
+      "created": true,
       "rationale": "Each work item is processed on its own branch."
     }
   },

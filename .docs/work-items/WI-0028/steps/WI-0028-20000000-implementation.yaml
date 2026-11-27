@@ -4,7 +4,7 @@ taskUid: WI-0028-20000000
 orderKey: "20000000"
 parentTaskUid: WI-0028-10000000
 taskType: implementation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Implement llm req help
 objective: Add request listing and request parameter help to llm req, document both forms, and implement every WI-0028 test case with trace markers.
 references:
@@ -66,7 +66,7 @@ governance:
       expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-implementation/v1#/properties/result
@@ -161,4 +161,130 @@ task:
       - Dispatch the help commands from src/cli.ts, writing failures as configuration_error JSON on stderr with exit 1.
       - Document both forms in printHelp, README.md, and SKILL.md.
       - Implement every WI-0028 test case in tests/request-help.test.ts with a `// SDLC-TEST-CASE:` marker and the id in the test name.
-  result: null
+  result:
+    status: implemented
+    implementation:
+      summary: "`llm req -h|--help` prints req usage, the resolved requests directory, and the resolvable and unavailable request listing; `llm req <request-name> -h|--help` prints the request parameters with their --p- forms, types, defaults, constraints, settings, and x-llm-req-parameter file and validation annotations. Help is provider-free and fails closed with a configuration_error entry."
+      changes:
+        - id: WI-0028-20000000_CHANGE-001
+          type: production-code
+          summary: Added src/cli/request-help.ts (request discovery, listing and parameter-help rendering, and runRequestHelpCommand), recognized help immediately after `req` or the request name in parseRequestArguments, and dispatched req-help from main().
+          objectiveRefs:
+            - WI-0028-20000000_OBJ-001
+            - WI-0028-20000000_OBJ-002
+            - WI-0028-20000000_OBJ-003
+          paths:
+            - src/cli/request-help.ts
+            - src/cli/arguments.ts
+            - src/cli.ts
+        - id: WI-0028-20000000_CHANGE-002
+          type: documentation
+          summary: Added both help forms to printHelp, README.md, and SKILL.md; requests/README.md is unchanged.
+          objectiveRefs:
+            - WI-0028-20000000_OBJ-004
+          paths:
+            - src/cli/help.ts
+            - README.md
+            - SKILL.md
+        - id: WI-0028-20000000_CHANGE-003
+          type: test-code
+          summary: Added tests/request-help.test.ts with one SDLC-TEST-CASE-marked test per WI-0028 test case, using temporary request directories with LLM_CONFIG and HOME isolated from the operator configuration.
+          objectiveRefs: &a1
+            - WI-0028-20000000_OBJ-001
+            - WI-0028-20000000_OBJ-002
+            - WI-0028-20000000_OBJ-003
+            - WI-0028-20000000_OBJ-004
+            - WI-0028-20000000_OBJ-005
+          paths:
+            - tests/request-help.test.ts
+      testImplementations:
+        - testCaseRef: WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-OUTPUT
+          path: tests/request-help.test.ts
+          selector: WI-0028-10000000_TC-LISTING-OUTPUT
+          traceMarker: WI-0028-10000000_TC-LISTING-OUTPUT
+        - testCaseRef: WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-UNAVAILABLE
+          path: tests/request-help.test.ts
+          selector: WI-0028-10000000_TC-LISTING-UNAVAILABLE
+          traceMarker: WI-0028-10000000_TC-LISTING-UNAVAILABLE
+        - testCaseRef: WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-EMPTY
+          path: tests/request-help.test.ts
+          selector: WI-0028-10000000_TC-LISTING-EMPTY
+          traceMarker: WI-0028-10000000_TC-LISTING-EMPTY
+        - testCaseRef: WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-CONFIG-ERROR
+          path: tests/request-help.test.ts
+          selector: WI-0028-10000000_TC-LISTING-CONFIG-ERROR
+          traceMarker: WI-0028-10000000_TC-LISTING-CONFIG-ERROR
+        - testCaseRef: WI-0028-10000000#test-case/WI-0028-10000000_TC-PARAMETER-LINES
+          path: tests/request-help.test.ts
+          selector: WI-0028-10000000_TC-PARAMETER-LINES
+          traceMarker: WI-0028-10000000_TC-PARAMETER-LINES
+        - testCaseRef: WI-0028-10000000#test-case/WI-0028-10000000_TC-ANNOTATIONS
+          path: tests/request-help.test.ts
+          selector: WI-0028-10000000_TC-ANNOTATIONS
+          traceMarker: WI-0028-10000000_TC-ANNOTATIONS
+        - testCaseRef: WI-0028-10000000#test-case/WI-0028-10000000_TC-NESTED-ARRAYS-ENUMS
+          path: tests/request-help.test.ts
+          selector: WI-0028-10000000_TC-NESTED-ARRAYS-ENUMS
+          traceMarker: WI-0028-10000000_TC-NESTED-ARRAYS-ENUMS
+        - testCaseRef: WI-0028-10000000#test-case/WI-0028-10000000_TC-CONSTRAINTS-AND-SETTINGS
+          path: tests/request-help.test.ts
+          selector: WI-0028-10000000_TC-CONSTRAINTS-AND-SETTINGS
+          traceMarker: WI-0028-10000000_TC-CONSTRAINTS-AND-SETTINGS
+        - testCaseRef: WI-0028-10000000#test-case/WI-0028-10000000_TC-NO-PARAMETERS-AND-SUMMARIZE
+          path: tests/request-help.test.ts
+          selector: WI-0028-10000000_TC-NO-PARAMETERS-AND-SUMMARIZE
+          traceMarker: WI-0028-10000000_TC-NO-PARAMETERS-AND-SUMMARIZE
+        - testCaseRef: WI-0028-10000000#test-case/WI-0028-10000000_TC-HELP-ERRORS
+          path: tests/request-help.test.ts
+          selector: WI-0028-10000000_TC-HELP-ERRORS
+          traceMarker: WI-0028-10000000_TC-HELP-ERRORS
+        - testCaseRef: WI-0028-10000000#test-case/WI-0028-10000000_TC-HELP-POSITIONS-PROVIDER-FREE
+          path: tests/request-help.test.ts
+          selector: WI-0028-10000000_TC-HELP-POSITIONS-PROVIDER-FREE
+          traceMarker: WI-0028-10000000_TC-HELP-POSITIONS-PROVIDER-FREE
+        - testCaseRef: WI-0028-10000000#test-case/WI-0028-10000000_TC-NON-HELP-UNCHANGED
+          path: tests/request-help.test.ts
+          selector: WI-0028-10000000_TC-NON-HELP-UNCHANGED
+          traceMarker: WI-0028-10000000_TC-NON-HELP-UNCHANGED
+        - testCaseRef: WI-0028-10000000#test-case/WI-0028-10000000_TC-HELP-DOCUMENTATION
+          path: tests/request-help.test.ts
+          selector: WI-0028-10000000_TC-HELP-DOCUMENTATION
+          traceMarker: WI-0028-10000000_TC-HELP-DOCUMENTATION
+        - testCaseRef: WI-0028-10000000#test-case/WI-0028-10000000_TC-QUALITY-GATES
+          path: tests/request-help.test.ts
+          selector: WI-0028-10000000_TC-QUALITY-GATES
+          traceMarker: WI-0028-10000000_TC-QUALITY-GATES
+    verification:
+      status: passed
+      objectiveRefs: *a1
+      tests:
+        - id: WI-0028-20000000_EXEC-FOCUSED
+          type: cli-audit
+          testCaseRefs:
+            - WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-OUTPUT
+            - WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-UNAVAILABLE
+            - WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-EMPTY
+            - WI-0028-10000000#test-case/WI-0028-10000000_TC-LISTING-CONFIG-ERROR
+            - WI-0028-10000000#test-case/WI-0028-10000000_TC-PARAMETER-LINES
+            - WI-0028-10000000#test-case/WI-0028-10000000_TC-ANNOTATIONS
+            - WI-0028-10000000#test-case/WI-0028-10000000_TC-NESTED-ARRAYS-ENUMS
+            - WI-0028-10000000#test-case/WI-0028-10000000_TC-CONSTRAINTS-AND-SETTINGS
+            - WI-0028-10000000#test-case/WI-0028-10000000_TC-NO-PARAMETERS-AND-SUMMARIZE
+            - WI-0028-10000000#test-case/WI-0028-10000000_TC-HELP-ERRORS
+            - WI-0028-10000000#test-case/WI-0028-10000000_TC-HELP-POSITIONS-PROVIDER-FREE
+            - WI-0028-10000000#test-case/WI-0028-10000000_TC-NON-HELP-UNCHANGED
+            - WI-0028-10000000#test-case/WI-0028-10000000_TC-HELP-DOCUMENTATION
+            - WI-0028-10000000#test-case/WI-0028-10000000_TC-QUALITY-GATES
+          command: tsx --import ./tests/support/claude-guard.ts --test tests/request-help.test.ts
+          status: passed
+          result: All 14 WI-0028 cases passed. Without the production change 12 of 14 fail; the non-help regression and trace cases pass by design.
+        - id: WI-0028-20000000_EXEC-PACKAGE
+          type: cli-audit
+          testCaseRefs:
+            - WI-0028-10000000#test-case/WI-0028-10000000_TC-QUALITY-GATES
+          command: npm run typecheck && npm run build && npm test && git diff --check
+          status: passed
+          result: Typecheck, build, the full 188-test suite, and the diff check passed.
+    limitations:
+      - Help output is verified against fixture request bundles and the shipped summarize request; it does not establish rendering for every JSON Schema construct, such as $ref targets, which are named rather than expanded.
+      - The request text is truncated in its source ("such as file."); file bindings were taken as the named annotation.

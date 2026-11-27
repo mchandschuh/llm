@@ -11,7 +11,7 @@ export interface ParsedCliArguments {
   readonly debug: boolean;
   readonly format: ResponseFormat;
   readonly printChatId: boolean;
-  readonly command: 'help' | 'version' | 'config' | 'prompt' | 'chat' | 'continue' | 'summarize' | 'req';
+  readonly command: 'help' | 'version' | 'config' | 'prompt' | 'chat' | 'continue' | 'summarize' | 'req' | 'req-help';
   readonly prompt?: string;
   readonly chatId?: string;
   readonly requestPath?: string;
@@ -149,8 +149,16 @@ function missingParameterPrefixError(token: string, path: string): string {
   return `Option '${token}' is a request parameter. Request parameters must use the '--p-' prefix; use '${suggestion}'.`;
 }
 
+function isHelpToken(token: string): boolean {
+  return token === '-h' || token === '--help';
+}
+
 async function parseRequestArguments(args: readonly string[], common: { readonly debug: boolean; readonly format: ResponseFormat; readonly printChatId: boolean }): Promise<ParsedCliArguments> {
-  if (common.printChatId || args.length < 2) return { ...common, command: 'req', exitCode: 2 };
+  if (args.length < 2) return { ...common, command: 'req', exitCode: 2 };
+  // Help is recognized only immediately after `req` (listing) or after the request name (request help).
+  if (isHelpToken(args[1]!)) return { ...common, command: 'req-help' };
+  if (args.length >= 3 && isHelpToken(args[2]!)) return { ...common, command: 'req-help', requestName: args[1]! };
+  if (common.printChatId) return { ...common, command: 'req', exitCode: 2 };
   const requestName = args[1]!;
   let requestsDirectory: string;
   let loaded;

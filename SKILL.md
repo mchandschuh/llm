@@ -155,9 +155,17 @@ exit interface, or promptless chat start.
 
 ```text
 llm req <request-name> [--parameters <json>] [--p-<path> <value>] [--format=full|raw] [--debug]
+llm req <request-name> -h|--help
+llm req -h|--help
 llm summarize --path <path> [--provider <provider>] [--model <model>] [--thinking <thinking>] [--format=full|raw]
 llm summarize --content <text> [--provider <provider>] [--model <model>] [--thinking <thinking>] [--format=full|raw]
 ```
+
+Run `llm req -h` to list the available requests, and `llm req <request-name> -h`
+to see a request's parameters, how to set each one with `--p-<path> <value>`, its
+defaults and constraints, and annotations such as file bindings, before invoking
+it. Help is provider-free and exits 1 with a `configuration_error` entry for an
+unknown or invalid request.
 
 `llm req` loads `<request-name>/` from the absolute `requestsDirectory` set in
 the layered `config.json`. Parameters come from `--parameters` and
