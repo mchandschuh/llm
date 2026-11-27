@@ -4,7 +4,7 @@ taskUid: WI-0025-80000000
 orderKey: '80000000'
 parentTaskUid: WI-0025-20000000
 taskType: validation
-processingStatus: unprocessed
+processingStatus: processing_completed
 title: Validate structured validation results
 objective: Validate structured validation results against every required strategy case and scope boundary.
 references:
@@ -44,7 +44,7 @@ governance:
     expectedExitCode: 0
   requiredForExecution: true
 task:
-  status: planned
+  status: complete
   taskSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1
   intentSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/intent
   resultSchema: https://schemas.handschuh.dev/sdlc/task-validation/v1#/properties/result
@@ -120,3 +120,51 @@ task:
     nonGoals:
     - Apply only the WI-0025 contract sections (requests/README.md#validation-functions and requests/README.md#schema-declared-files-and-librarycli-boundaries).
     - Do not claim authenticated provider, sandbox security, network, deployment, release, downstream, or production behavior.
+  result:
+    status: passed
+    summary: All four WI-0025 strategy cases, the declaration check, the compiled-CLI smoke run, the changed-path scope audit, and the complete provider-free package gate passed locally at dbbe9ea.
+    executions:
+    - id: WI-0025-80000000_EXEC-ALL
+      procedureRef: '#procedure/WI-0025-80000000_VAL-ALL'
+      status: passed
+      observed:
+        outcome: passed
+        exitCode: 0
+        summary: Four focused cases passed; the complete package gate passed 166 tests, typecheck, build, and whitespace checks.
+        assertions:
+        - The four strategy cases passed and carry SDLC-TEST-CASE trace markers; the WI-0022 matrix finds exactly one trace-named test per case.
+        - Validator result objects, false, string, thrown, and rejected-promise failures raise ParameterValidationFailure issues and make zero provider calls.
+        - Malformed and accessor-based result objects are configuration errors and run no validator getters.
+        - llm req printed one error entry per issue with parameterPath and remediation, and non-validation failures kept the single-entry shape.
+        - dist/index.d.ts exports ParameterValidationFailure after npm run build.
+        - The changed paths versus master are WI-0025 records, src/request-parameter-validation.ts, src/index.ts, src/cli/request-command.ts, tests/request-parameter-validation.test.ts, requests/README.md, requests/decisions.md, README.md, and SKILL.md, all owned by WI-0025-20000000.
+        - npm run typecheck exited zero.
+        - npm test passed 166 of 166 tests.
+        - npm run build exited zero.
+        - git diff --check exited zero.
+        - sdlc work-item validate --work-item WI-0025 reported valid.
+        - No provider, sandbox-security, or production claim was made.
+      evidenceTier: cli-audit
+      evidence:
+      - kind: test
+        source: tests/request-parameter-validation.test.ts
+        claim: All four focused WI-0025 tests passed.
+        command: node --import tsx --test --test-name-pattern WI-0025 tests/request-parameter-validation.test.ts
+      - kind: command
+        source: repository package gate
+        claim: The complete provider-free package gate passed.
+        command: npm run typecheck && npm test && npm run build && git diff --check
+      - kind: command
+        source: bin/cli.js
+        claim: The compiled CLI prints structured remediation entries before provider use.
+        command: LLM_CONFIG=<scratch> node ./bin/cli.js req check --p-path does-not-exist.md
+      - kind: command
+        source: .docs/work-items/WI-0025/work-item.json
+        claim: The work item, its references, and its tasks validated.
+        command: sdlc work-item validate --work-item WI-0025 --json
+    findings: []
+    evidenceTier: cli-audit
+    limitations:
+    - Provider-free local validation does not establish authenticated provider behavior, sandbox security, network transport, deployment, publication, downstream integration, or production readiness.
+    nonClaims:
+    - This validation does not authorize deployment, publication, or release.
