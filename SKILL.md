@@ -328,14 +328,29 @@ on `PATH`. If the executable cannot be found, the completion returns a bounded
 
 The JSON result envelope is checked together with the exit code. A non-zero
 exit, `is_error: true`, an `error_*` subtype, or invalid JSON is a bounded
-`PROVIDER_REQUEST_FAILED`. Cancellation through the `AbortSignal` stops the
-process.
+`PROVIDER_REQUEST_FAILED`.
+
+Each completion has a timeout: 10 minutes by default, changed with
+`LLM_CLAUDE_TIMEOUT_MS` or the `timeoutMs` option. When the timeout expires,
+cancellation fires through the `AbortSignal`, or output exceeds 32 MiB, the
+process gets SIGTERM, then SIGKILL after 5 seconds.
+
+On Windows, a bare `claude` is found through `PATHEXT` (`claude.exe`). `.cmd`
+and `.bat` shims are not run, because that would need a shell; point
+`LLM_CLAUDE_EXECUTABLE` at `claude.exe` instead.
 
 Structured output uses `--json-schema`. With an `outputSchema`, the validated
 `structured_output` is returned as JSON content and then validated by the
 runtime as usual. A schema whose root is not an object is wrapped as
 `{ value }` for the CLI and unwrapped again. A reply without `structured_output`
 is a provider failure.
+
+When a caller schema (an `outputSchema` or a tool `inputSchema`) is embedded in
+a generated envelope, it moves to `#/$defs/<key>` of that envelope. Its local
+`$ref`s, such as `#/$defs/item`, are rewritten so they keep resolving. A schema
+with its own `$id` is embedded unchanged and resolves its refs itself.
+Schemas reached only through an external `$ref` must be resolvable by Claude
+Code.
 
 Limitations: image attachments are not supported, because text stdin cannot
 carry image parts; use `provider: "openrouter"` for base64 image files.
@@ -349,7 +364,10 @@ through the existing tool schemas and structured output:
   (`name`, `description`, `inputSchema`, as in `llm/tool-definition/v1`) is
   listed in the `<tools>` section of the stdin prompt.
 - The output side carries the tool calls. `--json-schema` constrains every reply
-  to one of two envelopes:
+  to a flat object, `{ decision, output?, toolCalls? }`, with `decision` either
+  `"stop"` or `"continue"`. The root has no `oneOf`/`anyOf`, and the adapter
+  checks the combination rules when it reads the reply. In practice a reply is
+  one of two envelopes:
 
 ```json
 { "decision": "continue", "toolCalls": [{ "id": "call-1", "name": "lookup", "arguments": { "key": "a" } }] }
@@ -361,7 +379,9 @@ through the existing tool schemas and structured output:
 
 - Each `toolCalls` entry has the `llm/tool-call/v1` shape `{ id, name, arguments }`.
   `name` is constrained to a declared tool, and `arguments` to that tool's
-  `inputSchema`.
+  `inputSchema`, through an `anyOf` of one call schema per tool.
+- A `"continue"` reply without at least one complete tool call, a call naming an
+  undeclared tool, or a `"stop"` reply without `output` is a bounded error.
 - `"decision": "continue"` becomes one parallel tool-call batch
   (`decision: "continue"`). The runtime invokes the tools and calls claude again
   with the assistant tool calls and the tool results replayed in

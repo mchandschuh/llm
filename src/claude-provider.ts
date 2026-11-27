@@ -24,6 +24,15 @@ export const CLAUDE_INSTRUCTION = 'Complete the request provided on standard inp
 /** Claude Code caps piped stdin at 10 MB. */
 export const CLAUDE_MAX_STDIN_BYTES = 10 * 1024 * 1024;
 
+/** Environment variable that overrides the per-completion timeout in milliseconds. */
+export const CLAUDE_TIMEOUT_ENV = 'LLM_CLAUDE_TIMEOUT_MS';
+
+/** Default per-completion timeout, so a stalled CLI cannot hang a completion forever. */
+export const CLAUDE_DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
+
+/** Grace period between SIGTERM and SIGKILL when the process must be stopped. */
+const KILL_GRACE_MS = 5000;
+
 const MAX_STDOUT_BYTES = 32 * 1024 * 1024;
 const MAX_STDERR_BYTES = 64 * 1024;
 
@@ -34,6 +43,8 @@ export interface ClaudeProviderOptions {
   readonly executable?: string;
   /** Environment for executable resolution and the child process; defaults to `process.env`. */
   readonly environment?: NodeJS.ProcessEnv;
+  /** Per-completion timeout in milliseconds; defaults to `LLM_CLAUDE_TIMEOUT_MS`, then 10 minutes. */
+  readonly timeoutMs?: number;
 }
 
 /** The JSON result envelope printed by `claude -p --output-format json`. Only the members this adapter reads. */
@@ -67,16 +78,31 @@ export function resolveClaudeExecutable(options: ClaudeProviderOptions = {}): st
   const environment = options.environment ?? process.env;
   const configured = options.executable ?? environment[CLAUDE_EXECUTABLE_ENV] ?? 'claude';
   if (configured.length === 0) return undefined;
-  if (configured.includes('/')) {
+  if (isAbsolute(configured) || configured.includes('/') || configured.includes('\\')) {
     const path = isAbsolute(configured) ? configured : resolve(configured);
     return isExecutableFile(path) ? path : undefined;
   }
-  for (const directory of (environment.PATH ?? '').split(delimiter)) {
+  // On Windows a bare name is found through PATHEXT (claude.exe). Shell shims such as claude.cmd are not
+  // spawned, because that would need a shell; point LLM_CLAUDE_EXECUTABLE at claude.exe instead.
+  const extensions = process.platform === 'win32'
+    ? ['', ...(environment.PATHEXT ?? '.EXE').split(';').filter((extension) => extension && extension.toUpperCase() !== '.CMD' && extension.toUpperCase() !== '.BAT')]
+    : [''];
+  for (const directory of (environment.PATH ?? environment.Path ?? '').split(delimiter)) {
     if (!directory) continue;
-    const candidate = join(directory, configured);
-    if (isExecutableFile(candidate)) return candidate;
+    for (const extension of extensions) {
+      const candidate = join(directory, `${configured}${extension}`);
+      if (isExecutableFile(candidate)) return candidate;
+    }
   }
   return undefined;
+}
+
+function timeoutFor(options: ClaudeProviderOptions): number {
+  const configured = options.timeoutMs ?? Number((options.environment ?? process.env)[CLAUDE_TIMEOUT_ENV] ?? CLAUDE_DEFAULT_TIMEOUT_MS);
+  if (!Number.isInteger(configured) || configured <= 0) {
+    throw new LlmFailure('CONFIGURATION_INVALID', 'configuration', `${CLAUDE_TIMEOUT_ENV} must be a positive integer number of milliseconds.`);
+  }
+  return configured;
 }
 
 function cdata(value: string): string {
@@ -149,6 +175,40 @@ function isObjectRoot(schema: InlineJsonSchema): boolean {
   return schema.type === 'object';
 }
 
+/**
+ * Rewrite local JSON-pointer refs (`#`, `#/...`) so a schema keeps resolving
+ * after it is moved to `#/$defs/<key>` of a new root document.
+ */
+function relocateRefs(value: unknown, base: string): unknown {
+  if (Array.isArray(value)) return value.map((item) => relocateRefs(item, base));
+  if (!isRecord(value)) return value;
+  return Object.fromEntries(Object.entries(value).map(([key, child]) => {
+    if (key === '$ref' && typeof child === 'string' && (child === '#' || child.startsWith('#/'))) return [key, `${base}${child.slice(1)}`];
+    return [key, relocateRefs(child, base)];
+  }));
+}
+
+/**
+ * Collects caller schemas embedded in a generated `--json-schema` document.
+ * Each one moves to `#/$defs/<key>`: local refs are rewritten to the new
+ * location, while a schema with its own `$id` is its own resource and is kept
+ * as is. `$schema` is dropped from embedded copies because it is only valid at
+ * a resource root.
+ */
+class EmbeddedSchemas {
+  private readonly definitions: Record<string, unknown> = {};
+
+  embed(key: string, schema: InlineJsonSchema): InlineJsonSchema {
+    const { $schema: _dialect, ...rest } = schema;
+    this.definitions[key] = typeof schema.$id === 'string' ? schema : relocateRefs(rest, `#/$defs/${key}`);
+    return { $ref: `#/$defs/${key}` };
+  }
+
+  root(schema: InlineJsonSchema): InlineJsonSchema {
+    return Object.keys(this.definitions).length === 0 ? schema : { ...schema, $defs: this.definitions };
+  }
+}
+
 /** The schema passed as `--json-schema`, and how to turn `structured_output` back into a response. */
 interface ResponseShape {
   readonly schema?: InlineJsonSchema;
@@ -168,57 +228,62 @@ function finalContent(output: unknown, outputSchema: InlineJsonSchema | undefine
   return output;
 }
 
-function toolCallSchema(tool: ToolDefinition): InlineJsonSchema {
-  return {
+function toolCallInvalid(message: string): LlmFailure {
+  return new LlmFailure('TOOL_CALL_INVALID', 'provider', message);
+}
+
+/**
+ * The tool envelope keeps a flat object root (no root-level composition) and
+ * uses only widely supported keywords; the stop/continue combination rules are
+ * enforced when the reply is read.
+ */
+function toolShape(request: ProviderCompletionRequest): ResponseShape {
+  const outputSchema = request.outputSchema;
+  const definitions = tools(request);
+  const embedded = new EmbeddedSchemas();
+  const output = outputSchema === undefined ? { type: 'string' } : embedded.embed('output', outputSchema);
+  const callSchemas = definitions.map((tool, index) => ({
     type: 'object',
     additionalProperties: false,
     required: ['id', 'name', 'arguments'],
     properties: {
-      id: { type: 'string', minLength: 1 },
+      id: { type: 'string' },
       name: { const: tool.name },
-      arguments: parseToolInputSchema(tool),
+      arguments: embedded.embed(`tool${index}`, parseToolInputSchema(tool)),
+    },
+  }));
+  const properties: Record<string, unknown> = {
+    decision: { type: 'string', enum: definitions.length > 0 ? ['stop', 'continue'] : ['stop'] },
+    output,
+  };
+  if (definitions.length > 0) properties.toolCalls = { type: 'array', items: { anyOf: callSchemas } };
+  return {
+    schema: embedded.root({ type: 'object', additionalProperties: false, required: ['decision'], properties }),
+    read(envelope) {
+      const value = structuredOutput(envelope);
+      if (!isRecord(value)) throw toolCallInvalid('The claude CLI returned a tool envelope that is not an object.');
+      if (value.decision === 'stop') {
+        if (!Object.hasOwn(value, 'output')) throw failure('The claude CLI returned a stop decision without output.');
+        return { content: finalContent(value.output, outputSchema), toolCalls: [], decision: 'stop' };
+      }
+      if (value.decision !== 'continue' || !Array.isArray(value.toolCalls) || value.toolCalls.length === 0) {
+        throw toolCallInvalid('The claude CLI returned an invalid tool-call envelope.');
+      }
+      const known = new Set(definitions.map((tool) => tool.name));
+      const calls: ToolCall[] = value.toolCalls.map((call: unknown) => {
+        if (!isRecord(call) || typeof call.id !== 'string' || call.id.length === 0 || typeof call.name !== 'string' || !known.has(call.name) || !isRecord(call.arguments)) {
+          throw toolCallInvalid('The claude CLI returned an incomplete tool call.');
+        }
+        return { id: call.id, name: call.name, arguments: call.arguments };
+      });
+      return { content: null, toolCalls: [calls], decision: 'continue' };
     },
   };
 }
 
 function responseShape(request: ProviderCompletionRequest): ResponseShape {
   const outputSchema = request.outputSchema;
-  if (request.toolOptions !== undefined) {
-    const definitions = tools(request);
-    const stop = {
-      type: 'object',
-      additionalProperties: false,
-      required: ['decision', 'output'],
-      properties: { decision: { const: 'stop' }, output: outputSchema ?? { type: 'string' } },
-    };
-    const continueWithTools = {
-      type: 'object',
-      additionalProperties: false,
-      required: ['decision', 'toolCalls'],
-      properties: {
-        decision: { const: 'continue' },
-        toolCalls: { type: 'array', minItems: 1, items: { oneOf: definitions.map(toolCallSchema) } },
-      },
-    };
-    return {
-      schema: { type: 'object', oneOf: definitions.length > 0 ? [stop, continueWithTools] : [stop] },
-      read(envelope) {
-        const value = structuredOutput(envelope);
-        if (!isRecord(value)) throw failure('The claude CLI returned a tool envelope that is not an object.');
-        if (value.decision === 'stop') return { content: finalContent(value.output, outputSchema), toolCalls: [], decision: 'stop' };
-        if (value.decision !== 'continue' || !Array.isArray(value.toolCalls) || value.toolCalls.length === 0) {
-          throw new LlmFailure('TOOL_CALL_INVALID', 'provider', 'The claude CLI returned an invalid tool-call envelope.');
-        }
-        const calls: ToolCall[] = value.toolCalls.map((call: unknown) => {
-          if (!isRecord(call) || typeof call.id !== 'string' || typeof call.name !== 'string' || !isRecord(call.arguments)) {
-            throw new LlmFailure('TOOL_CALL_INVALID', 'provider', 'The claude CLI returned an incomplete tool call.');
-          }
-          return { id: call.id, name: call.name, arguments: call.arguments };
-        });
-        return { content: null, toolCalls: [calls], decision: 'continue' };
-      },
-    };
-  }
+  if (request.toolOptions !== undefined) return toolShape(request);
   if (outputSchema === undefined) {
     return {
       read(envelope) {
@@ -231,8 +296,9 @@ function responseShape(request: ProviderCompletionRequest): ResponseShape {
     return { schema: outputSchema, read: (envelope) => ({ content: JSON.stringify(structuredOutput(envelope)), toolCalls: [], decision: 'stop' }) };
   }
   // Structured output needs an object root; wrap other schemas and unwrap the value.
+  const embedded = new EmbeddedSchemas();
   return {
-    schema: { type: 'object', additionalProperties: false, required: ['value'], properties: { value: outputSchema } },
+    schema: embedded.root({ type: 'object', additionalProperties: false, required: ['value'], properties: { value: embedded.embed('value', outputSchema) } }),
     read(envelope) {
       const value = structuredOutput(envelope);
       if (!isRecord(value) || !Object.hasOwn(value, 'value')) throw failure('The claude CLI returned structured output without the wrapped value.');
@@ -271,13 +337,33 @@ function abortError(): Error {
   return error;
 }
 
-function run(executable: string, args: readonly string[], input: string, request: ProviderCompletionRequest, environment: NodeJS.ProcessEnv): Promise<ProcessResult> {
+function run(executable: string, args: readonly string[], input: string, request: ProviderCompletionRequest, environment: NodeJS.ProcessEnv, timeoutMs: number): Promise<ProcessResult> {
   return new Promise((resolvePromise, reject) => {
     if (request.signal?.aborted) {
       reject(abortError());
       return;
     }
     const child = spawn(executable, args, { stdio: ['pipe', 'pipe', 'pipe'], env: environment, signal: request.signal });
+    let killTimer: NodeJS.Timeout | undefined;
+    let timedOut = false;
+    // SIGTERM first; escalate to SIGKILL if the process ignores it.
+    const stop = (): void => {
+      if (killTimer !== undefined) return;
+      child.kill('SIGTERM');
+      killTimer = setTimeout(() => child.kill('SIGKILL'), KILL_GRACE_MS);
+      killTimer.unref();
+    };
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      stop();
+    }, timeoutMs);
+    timeout.unref();
+    request.signal?.addEventListener('abort', stop, { once: true });
+    const settle = (): void => {
+      clearTimeout(timeout);
+      if (killTimer !== undefined) clearTimeout(killTimer);
+      request.signal?.removeEventListener('abort', stop);
+    };
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
     let stdoutBytes = 0;
@@ -287,7 +373,7 @@ function run(executable: string, args: readonly string[], input: string, request
       stdoutBytes += chunk.length;
       if (stdoutBytes > MAX_STDOUT_BYTES) {
         overflow = true;
-        child.kill();
+        stop();
         return;
       }
       stdout.push(chunk);
@@ -297,10 +383,13 @@ function run(executable: string, args: readonly string[], input: string, request
       stderrBytes += chunk.length;
     });
     child.on('error', (error) => {
+      settle();
       reject(error.name === 'AbortError' || request.signal?.aborted ? abortError() : failure('The claude CLI could not be started.', error));
     });
     child.on('close', (code, signal) => {
+      settle();
       if (request.signal?.aborted) return reject(abortError());
+      if (timedOut) return reject(failure(`The claude CLI did not finish within ${timeoutMs} ms.`));
       if (overflow) return reject(failure('The claude CLI output exceeded the 32 MiB limit.'));
       resolvePromise({ code, signal, stdout: Buffer.concat(stdout).toString('utf8'), stderr: Buffer.concat(stderr).toString('utf8') });
     });
@@ -369,7 +458,7 @@ export class ClaudeProvider implements LlmProvider {
       throw new LlmFailure('CONFIGURATION_INVALID', 'configuration', 'The request exceeds the 10 MB stdin limit of the claude CLI.');
     }
     const shape = responseShape(request);
-    const result = await run(executable, claudeArguments(request, shape.schema), input, request, this.options.environment ?? process.env);
+    const result = await run(executable, claudeArguments(request, shape.schema), input, request, this.options.environment ?? process.env, timeoutFor(this.options));
     return shape.read(parseEnvelope(result));
   }
 }

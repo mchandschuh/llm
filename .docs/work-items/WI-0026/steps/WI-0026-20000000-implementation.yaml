@@ -234,6 +234,20 @@ task:
         - README.md
         - requests/README.md
         - requests/decisions.md
+      - id: WI-0026-20000000_CHANGE-007
+        type: production-code
+        summary: "Rework for the independent review. Embedded caller schemas move to #/$defs/<key> with local $refs rewritten ($id-scoped schemas are kept as is), and $schema is dropped from embedded copies. The tool envelope has a flat object root (decision enum, optional output and toolCalls, anyOf call schemas), with combination rules and declared tool names checked when the reply is read; a stop reply without output is an error. Added a 10-minute default timeout (LLM_CLAUDE_TIMEOUT_MS or timeoutMs) with SIGTERM-then-SIGKILL escalation for timeouts, aborts, and output overflow. Executable resolution handles Windows backslash paths and PATHEXT, excluding .cmd and .bat shims. Tests compile every emitted --json-schema with strict Ajv 2020, including $defs and $id cases. The summarize --provider openrouter model change is documented with the --model workaround."
+        objectiveRefs:
+        - WI-0026-20000000_OBJ-001
+        - WI-0026-20000000_OBJ-002
+        - WI-0026-20000000_OBJ-005
+        paths:
+        - src/claude-provider.ts
+        - tests/claude-provider.test.ts
+        - SKILL.md
+        - README.md
+        - requests/README.md
+        - requests/decisions.md
       testImplementations:
       - testCaseRef: WI-0026-10000000#test-case/WI-0026-10000000_TC-CLAUDE-INVOCATION
         path: tests/claude-provider.test.ts
@@ -279,7 +293,7 @@ task:
         - WI-0026-10000000#test-case/WI-0026-10000000_TC-DOCUMENTATION-AND-ISOLATION
         command: tsx --import ./tests/support/claude-guard.ts --test tests/claude-provider.test.ts
         status: passed
-        result: All six provider-free WI-0026 strategy cases passed against the fake claude CLI.
+        result: All six provider-free WI-0026 strategy cases passed against the fake claude CLI after the review rework, including strict Ajv 2020 compilation of every emitted --json-schema, $defs and $id embedding, malformed tool envelopes, and the timeout.
       - id: WI-0026-20000000_EXEC-PACKAGE
         type: cli-audit
         testCaseRefs:

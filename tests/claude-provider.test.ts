@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { Ajv2020 } from 'ajv/dist/2020.js';
 import {
   CLAUDE_INSTRUCTION,
   ClaudeProvider,
@@ -35,6 +36,13 @@ interface FakeResponse {
 interface Fake {
   readonly environment: NodeJS.ProcessEnv;
   invocations(): Promise<readonly Invocation[]>;
+}
+
+/** Compile an emitted --json-schema with Ajv 2020 (strict) and return a validator, proving the schema is self-contained. */
+function compileEmitted(schema: unknown): (value: unknown) => boolean {
+  const ajv = new Ajv2020({ allErrors: true, strict: true });
+  const validate = ajv.compile(schema as object);
+  return (value) => validate(value) as boolean;
 }
 
 const success = (fields: Record<string, unknown>): FakeResponse => ({ stdout: { subtype: 'success', is_error: false, ...fields } });
@@ -155,6 +163,14 @@ test('WI-0026-10000000_TC-CLAUDE-INVOCATION runs claude -p with the documented e
     assert.ok(Date.now() - started < 5_000);
   });
 
+  // A stalled CLI is stopped after the timeout instead of hanging the completion.
+  await withFake([{ ...success({ result: 'late' }), delayMs: 10_000 }], async (fake) => {
+    const started = Date.now();
+    await rejectsWith(() => new ClaudeProvider({ environment: fake.environment, timeoutMs: 150 }).complete(providerRequest()), 'PROVIDER_REQUEST_FAILED', /did not finish within 150 ms/u);
+    assert.ok(Date.now() - started < 5_000);
+  });
+  await rejectsWith(() => new ClaudeProvider({ executable: FAKE, environment: { ...process.env, LLM_CLAUDE_TIMEOUT_MS: 'soon' } }).complete(providerRequest()), 'CONFIGURATION_INVALID', /LLM_CLAUDE_TIMEOUT_MS must be a positive integer/u);
+
   // Requests the CLI cannot carry are rejected before any process starts.
   await withFake([success({ result: 'unused' })], async (fake) => {
     const provider = new ClaudeProvider({ environment: fake.environment });
@@ -179,9 +195,21 @@ test('WI-0026-10000000_TC-STRUCTURED-OUTPUT maps outputSchema to --json-schema a
     const response = await new ClaudeProvider({ environment: fake.environment }).complete(providerRequest({ outputSchema: { type: 'string' } }));
     assert.equal(response.content, '"plain text"');
     assert.deepEqual(JSON.parse(flagValue((await fake.invocations())[0]!.argv, '--json-schema')!), {
-      type: 'object', additionalProperties: false, required: ['value'], properties: { value: { type: 'string' } },
+      type: 'object', additionalProperties: false, required: ['value'], properties: { value: { $ref: '#/$defs/value' } }, $defs: { value: { type: 'string' } },
     });
   });
+
+  // Wrapped schemas keep resolving their own local $refs, and $id-scoped schemas are embedded unchanged.
+  const listSchema = { $schema: 'https://json-schema.org/draft/2020-12/schema', type: 'array', items: { $ref: '#/$defs/item' }, $defs: { item: { type: 'object', required: ['n'], properties: { n: { type: 'integer' } } } } };
+  const scoped = { $id: 'https://example.test/scoped', type: 'array', items: { $ref: '#/$defs/item' }, $defs: { item: { type: 'string' } } };
+  for (const [outputSchema, valid, invalid] of [[listSchema, [{ n: 1 }], [{ n: 'x' }]], [scoped, ['a'], [1]]] as const) {
+    await withFake([success({ structured_output: { value: valid } })], async (fake) => {
+      await new ClaudeProvider({ environment: fake.environment }).complete(providerRequest({ outputSchema: outputSchema as never }));
+      const validate = compileEmitted(JSON.parse(flagValue((await fake.invocations())[0]!.argv, '--json-schema')!));
+      assert.equal(validate({ value: valid }), true, JSON.stringify(outputSchema));
+      assert.equal(validate({ value: invalid }), false, JSON.stringify(outputSchema));
+    });
+  }
 
   await withFake([success({ result: 'no structured output' })], async (fake) => {
     await rejectsWith(() => new ClaudeProvider({ environment: fake.environment }).complete(providerRequest({ outputSchema: objectSchema })), 'PROVIDER_REQUEST_FAILED', /no structured output/u);
@@ -221,13 +249,24 @@ test('WI-0026-10000000_TC-TOOL-CALLING runs the complete tool loop through the s
     assert.deepEqual(invoked, [{ id: 'call-1', name: 'lookup', arguments: { key: 'a' } }]);
 
     const [first, second] = await fake.invocations();
-    const schema = JSON.parse(flagValue(first!.argv, '--json-schema')!) as { oneOf: Record<string, any>[] };
-    assert.deepEqual(schema.oneOf.map((branch) => branch.properties.decision), [{ const: 'stop' }, { const: 'continue' }]);
-    assert.deepEqual(schema.oneOf[0]!.properties.output, { type: 'string' });
-    const callSchema = schema.oneOf[1]!.properties.toolCalls.items.oneOf[0];
+    const schema = JSON.parse(flagValue(first!.argv, '--json-schema')!) as Record<string, any>;
+    // A flat object root without root-level composition keywords.
+    assert.equal(schema.type, 'object');
+    assert.deepEqual(schema.required, ['decision']);
+    for (const keyword of ['oneOf', 'anyOf', 'allOf']) assert.equal(schema[keyword], undefined, keyword);
+    assert.deepEqual(schema.properties.decision, { type: 'string', enum: ['stop', 'continue'] });
+    assert.deepEqual(schema.properties.output, { type: 'string' });
+    const callSchema = schema.properties.toolCalls.items.anyOf[0];
     assert.deepEqual(callSchema.required, ['id', 'name', 'arguments']);
     assert.deepEqual(callSchema.properties.name, { const: 'lookup' });
-    assert.deepEqual(callSchema.properties.arguments, lookupSchema);
+    assert.deepEqual(callSchema.properties.arguments, { $ref: '#/$defs/tool0' });
+    assert.deepEqual(schema.$defs.tool0, lookupSchema);
+    const validate = compileEmitted(schema);
+    assert.equal(validate({ decision: 'continue', toolCalls: [{ id: 'c', name: 'lookup', arguments: { key: 'a' } }] }), true);
+    assert.equal(validate({ decision: 'continue', toolCalls: [{ id: 'c', name: 'lookup', arguments: { key: 1 } }] }), false);
+    assert.equal(validate({ decision: 'continue', toolCalls: [{ id: 'c', name: 'other', arguments: {} }] }), false);
+    assert.equal(validate({ decision: 'stop', output: 'done' }), true);
+    assert.equal(validate({ decision: 'halt' }), false);
 
     assert.match(first!.stdin, /<tools><!\[CDATA\[\[\{"name":"lookup","description":"Look up a value by key\.","inputSchema":\{/u);
     assert.match(first!.stdin, /<responseInstructions>/u);
@@ -237,11 +276,44 @@ test('WI-0026-10000000_TC-TOOL-CALLING runs the complete tool loop through the s
     assert.doesNotMatch(second!.stdin, /^<toolResults>/mu, 'tool results travel in the conversation, not twice');
   });
 
-  // Malformed envelopes fail as tool-call errors rather than being guessed at.
-  await withFake([success({ structured_output: { decision: 'continue', toolCalls: [] } })], async (fake) => {
-    const provider = new ClaudeProvider({ environment: fake.environment });
-    const normalized = providerRequest({ toolOptions: { tools: request.toolOptions!.tools!, autoInvoke: false, maxRounds: 1, maxCalls: 8 } });
-    await rejectsWith(() => provider.complete(normalized), 'TOOL_CALL_INVALID', /invalid tool-call envelope/u);
+  // Combination rules the flat schema cannot express are enforced when the reply is read.
+  const toolOptions = { tools: request.toolOptions!.tools!, autoInvoke: false, maxRounds: 1, maxCalls: 8 };
+  const malformed: readonly [unknown, string, RegExp][] = [
+    [{ decision: 'continue', toolCalls: [] }, 'TOOL_CALL_INVALID', /invalid tool-call envelope/u],
+    [{ decision: 'continue' }, 'TOOL_CALL_INVALID', /invalid tool-call envelope/u],
+    [{ decision: 'continue', toolCalls: [{ id: '', name: 'lookup', arguments: {} }] }, 'TOOL_CALL_INVALID', /incomplete tool call/u],
+    [{ decision: 'continue', toolCalls: [{ id: 'c', name: 'unknown', arguments: {} }] }, 'TOOL_CALL_INVALID', /incomplete tool call/u],
+    [{ decision: 'stop' }, 'PROVIDER_REQUEST_FAILED', /stop decision without output/u],
+  ];
+  for (const [structured, code, pattern] of malformed) {
+    await withFake([success({ structured_output: structured })], async (fake) => {
+      await rejectsWith(() => new ClaudeProvider({ environment: fake.environment }).complete(providerRequest({ toolOptions })), code, pattern);
+    });
+  }
+
+  // Tool inputSchemas and the outputSchema keep their local $refs after being embedded in the envelope.
+  const withDefs = { type: 'object', required: ['ids'], properties: { ids: { type: 'array', items: { $ref: '#/$defs/id' } } }, $defs: { id: { type: 'string', pattern: '^[a-z]+$' } } };
+  const outputWithDefs = { type: 'object', required: ['answer'], properties: { answer: { $ref: '#/definitions/text' } }, definitions: { text: { type: 'string' } } };
+  await withFake([success({ structured_output: { decision: 'stop', output: { answer: 'ok' } } })], async (fake) => {
+    const response = await new ClaudeProvider({ environment: fake.environment }).complete(providerRequest({
+      outputSchema: outputWithDefs,
+      toolOptions: { ...toolOptions, tools: [{ name: 'batch', description: 'Batch lookup.', inputSchema: JSON.stringify(withDefs) }] },
+    }));
+    assert.equal(response.content, '{"answer":"ok"}');
+    const validate = compileEmitted(JSON.parse(flagValue((await fake.invocations())[0]!.argv, '--json-schema')!));
+    assert.equal(validate({ decision: 'continue', toolCalls: [{ id: 'c', name: 'batch', arguments: { ids: ['ab'] } }] }), true);
+    assert.equal(validate({ decision: 'continue', toolCalls: [{ id: 'c', name: 'batch', arguments: { ids: ['AB'] } }] }), false);
+    assert.equal(validate({ decision: 'stop', output: { answer: 'ok' } }), true);
+    assert.equal(validate({ decision: 'stop', output: { answer: 1 } }), false);
+  });
+
+  // Without tools, the envelope still compiles and only allows stop.
+  await withFake([success({ structured_output: { decision: 'stop', output: 'done' } })], async (fake) => {
+    await new ClaudeProvider({ environment: fake.environment }).complete(providerRequest({ toolOptions: { ...toolOptions, tools: [] } }));
+    const schema = JSON.parse(flagValue((await fake.invocations())[0]!.argv, '--json-schema')!) as Record<string, any>;
+    assert.deepEqual(schema.properties.decision.enum, ['stop']);
+    assert.equal(schema.properties.toolCalls, undefined);
+    assert.equal(compileEmitted(schema)({ decision: 'stop', output: 'done' }), true);
   });
 });
 
