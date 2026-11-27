@@ -1,5 +1,5 @@
 ---
-status: planned
+status: complete
 workItemId: WI-0023
 recordType: work-item-summary
 ---
@@ -8,9 +8,13 @@ recordType: work-item-summary
 
 ## Status
 
-`planned`. This record defines a bounded planning slice. It does not claim
-implementation, test execution, provider availability, production readiness,
-release, or commit.
+`complete` for inline `x-llm-req-parameter.validation.function` validators,
+their provider-free validation, and an accepted review whose independent
+findings were fixed in rework commit 1913817. Two documented limitations are
+waived: Node v24 may abort when a vm timeout fires inside a promise job under
+async-context tracking, and validators behind an external `$ref` are not
+discovered. This status does not claim sandbox security, authenticated provider
+availability, production readiness, release, deployment, or publication.
 
 ## Authority
 

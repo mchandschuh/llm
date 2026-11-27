@@ -1,7 +1,7 @@
 {
   "schema": "https://schemas.handschuh.dev/sdlc/work-item/v2",
   "workItemId": "WI-0023",
-  "status": "planned",
+  "status": "complete",
   "title": "Define and implement x-llm-req-parameter.validation.function",
   "type": "feature",
   "objective": "Let request parameter schemas declare bespoke validation that JSON Schema cannot express, through x-llm-req-parameter.validation.function inline JavaScript functions that receive the parameter value and a read-only validation context, and run them in the shared completeRequest boundary before file materialization and provider use. Contract sections: requests/README.md#x-llm-req-parameter-metadata; requests/README.md#processing-order; requests/README.md#request-name-and-filesystem-safety; requests/README.md#evidence-boundary.",
