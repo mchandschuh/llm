@@ -1,0 +1,177 @@
+schema: https://schemas.handschuh.dev/sdlc/task-envelope/v1
+workItemId: WI-0028
+taskUid: WI-0028-90000000
+orderKey: "90000000"
+parentTaskUid: WI-0028-20000000
+taskType: review
+processingStatus: processing_completed
+title: Review llm req help
+objective: Review the WI-0028 implementation, tests, and documentation against its requirements and non-goals.
+references:
+  required:
+    - .docs/work-items/WI-0028/work-item.json
+    - .docs/work-items/WI-0028/work-item-request.md
+    - src/cli/request-help.ts
+    - src/cli/arguments.ts
+    - src/cli.ts
+    - src/cli/help.ts
+    - tests/request-help.test.ts
+    - requests/README.md
+    - .docs/work-items/WI-0028/steps/WI-0028-10000000-test-strategy.yaml
+    - .docs/work-items/WI-0028/steps/WI-0028-20000000-implementation.yaml
+    - .docs/work-items/WI-0028/steps/WI-0028-80000000-validation.yaml
+  informational:
+    - README.md
+    - SKILL.md
+dependsOn:
+  - WI-0028-20000000
+  - WI-0028-80000000
+governance:
+  schema: https://schemas.handschuh.dev/sdlc/task-governance/v1
+  ownedPaths:
+    - .docs/work-items/WI-0028/steps/WI-0028-90000000-review.yaml
+  commitSubject: "WI-0028: plan: define review evidence"
+  commitBody:
+    requiredSections:
+      - Why
+      - What
+      - How
+      - Decisions
+      - Validation
+      - Evidence
+      - Refs
+      - Next
+  validationProcedures:
+    - id: schema-audit
+      executable: npm
+      arguments:
+        - run
+        - typecheck
+      expectedExitCode: 0
+    - id: full-suite
+      executable: npm
+      arguments:
+        - test
+      expectedExitCode: 0
+  requiredForExecution: true
+task:
+  status: complete
+  taskSchema: https://schemas.handschuh.dev/sdlc/task-review/v1
+  intentSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/intent
+  resultSchema: https://schemas.handschuh.dev/sdlc/task-review/v1#/properties/result
+  intent:
+    summary: Review request listing help, request parameter help, help safety, documentation, and test traceability.
+    reviewKind: code
+    target:
+      taskType: implementation
+      taskRef: WI-0028-20000000
+      result:
+        ref: WI-0028-20000000#result/implementation
+        sha256: null
+    gateId: implementation-result
+    policyRef:
+      ref: repository-local-review-policy
+      sha256: null
+    criteria:
+      - id: CRIT-001
+        statement: "`llm req -h` lists resolvable requests with descriptions, separates unavailable requests with loader reasons, handles an empty directory, and fails closed on configuration errors."
+        purpose: Verify WI-0028_REQ_001.
+        required: true
+        evidenceRefs:
+          - WI-0028-20000000#result/implementation
+      - id: CRIT-002
+        statement: "`llm req <request-name> -h` prints every parameter with its --p- form, type, status, default, description, examples, nested and array paths, constraint groups, settings, and file and validation annotations."
+        purpose: Verify WI-0028_REQ_002.
+        required: true
+        evidenceRefs:
+          - WI-0028-20000000#result/implementation
+      - id: CRIT-003
+        statement: Help is recognized only at its two positions, is provider-free and read-only, fails closed for invalid requests, and leaves non-help invocations unchanged.
+        purpose: Verify WI-0028_REQ_003.
+        required: true
+        evidenceRefs:
+          - WI-0028-20000000#result/implementation
+      - id: CRIT-004
+        statement: Both help forms are documented, requests/README.md is unchanged, every test case is trace-marked, and no non-goal was implemented.
+        purpose: Verify WI-0028_REQ_004 and WI-0028_REQ_005.
+        required: true
+        evidenceRefs:
+          - WI-0028-20000000#result/implementation
+    evidenceRequirements:
+      - id: EVID-001
+        kind: diff
+        ref: WI-0028-20000000#result/implementation
+        purpose: Inspect the help module, argument handling, documentation, and tests.
+        required: true
+        minimumTier: inspection
+    nonGoals:
+      - id: NON-001
+        statement: This review does not approve deployment, remote publication, or production readiness.
+    context:
+      - id: CTX-001
+        kind: other
+        ref: requests/README.md
+        purpose: Check help against the parameter and x-llm-req-parameter contract.
+        required: true
+  result:
+    status: complete
+    decision: accepted
+    summary: Request listing and request parameter help satisfy every WI-0028 criterion; all 14 trace-marked cases and the full suite pass, and help is provider-free.
+    actor:
+      id: code-review-agent
+      role: code-reviewer
+      authorityRef: repository-local-review-policy
+    criteriaEvaluations:
+      - criterionRef: "#criterion/CRIT-001"
+        status: satisfied
+        summary: discoverRequests loads each non-dot child directory through loadRequestDirectory and records failures with their loader message; renderRequestListing prints the usage, directory, aligned available and unavailable sections, and the empty message; configuration failures go through the configuration_error envelope with exit 1. TC-LISTING-* cover the positive, broken-entry, empty, and three configuration-error paths.
+        evidenceRefs:
+          - WI-0028-20000000#result/implementation
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-002"
+        status: satisfied
+        summary: describeParameter recurses through object properties and object-valued array items with a depth bound, prints placeholders, type or enum labels, required status, defaults.json defaults by path, descriptions, shell-quoted examples, and fileBindingLines for file and validation metadata without printing validation source; requirementGroups renders oneOf/anyOf required groups. TC-PARAMETER-LINES, TC-ANNOTATIONS, TC-NESTED-ARRAYS-ENUMS, TC-CONSTRAINTS-AND-SETTINGS, and TC-NO-PARAMETERS-AND-SUMMARIZE cover each element, including the shipped summarize bundle.
+        evidenceRefs:
+          - WI-0028-20000000#result/implementation
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-003"
+        status: satisfied
+        summary: parseRequestArguments checks only args[1] and args[2] for -h/--help before loading parameters, so later tokens are not validated and `--p-content -h` keeps its value; the help path imports no provider and reads only request assets. TC-HELP-ERRORS, TC-HELP-POSITIONS-PROVIDER-FREE (with a missing --p-path file, an unknown option, and a broken claude executable), and TC-NON-HELP-UNCHANGED cover this; the guard log stayed empty.
+        evidenceRefs:
+          - WI-0028-20000000#result/implementation
+        findingRefs: []
+      - criterionRef: "#criterion/CRIT-004"
+        status: satisfied
+        summary: printHelp, README.md, and SKILL.md mention both forms; TC-HELP-DOCUMENTATION compares requests/README.md with the baseline commit; TC-QUALITY-GATES asserts a marker immediately above a test named with each of the 14 ids. Changed paths are limited to the implementation owned paths and WI-0028 records.
+        evidenceRefs:
+          - WI-0028-20000000#result/implementation
+        findingRefs: []
+    findings: []
+    evidence:
+      - id: EVID-001
+        kind: diff
+        ref: WI-0028-20000000#result/implementation
+        claim: The diff adds src/cli/request-help.ts, the two help positions in argument parsing, dispatch, documentation, and tests, and nothing outside the owned paths.
+        tier: inspection
+        source: repository
+      - id: EVID-002
+        kind: validation
+        ref: WI-0028-20000000#result/implementation
+        claim: Typecheck, build, and 188 tests passed, with no claude invocation during the help tests.
+        tier: cli-audit
+        source: host
+    limitations:
+      - $ref parameter schemas are named rather than expanded in help output.
+      - The review was a separate pass by the implementing agent, not an independent reviewer.
+    nonClaims:
+      - This review is not an approval for deployment or remote publication.
+    reproducibility:
+      policyDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      renderedPromptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      agentConfigurationDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      executionReceiptDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    executionReceipt:
+      executionId: WI-0028-90000000_EXEC-REVIEW
+      status: succeeded
+      startedAt: 2026-11-27T20:45:17Z
+      finishedAt: 2026-11-27T20:50:17Z
